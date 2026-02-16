@@ -10,6 +10,10 @@ include("config.jl")
 include("gradcheck.jl")
 include("tensor_ops.jl")
 include("attention.jl")
+include("model.jl")
+include("data.jl")
+include("train.jl")
+include("generate.jl")
 
 # ---------------------------------------------------------------------------
 # Test harness
@@ -217,7 +221,62 @@ end
 
 function tier3_tests()
     printstyled("\n── Tier 3: Model ──\n", bold=true)
-    # placeholder -- will be filled by pico-mrg
+
+    # --- single transformer block: shape ---
+    D = 16; T = 4; B = 2; H = 2; d_ff = 64
+    cfg = GPTConfig(vocab_size=10, d_model=D, n_heads=H, n_layers=1, seq_len=T, d_ff=d_ff)
+    block = init_transformer_block(cfg)
+    mask = causal_mask(T)
+    x_blk = randn(D, T, B)
+    out_blk, cache_blk = transformer_block_forward(block, x_blk, mask)
+    check("transformer block: output shape (D,T,B)", size(out_blk) == (D, T, B))
+
+    # --- transformer block backward: all grads exist ---
+    grad_out_blk = ones(D, T, B)
+    grad_x_blk, grads_blk = transformer_block_backward(cache_blk, grad_out_blk)
+    check("transformer block: grad_x shape", size(grad_x_blk) == (D, T, B))
+    check("transformer block: has FFN grads", haskey(grads_blk, :W1) && size(grads_blk[:W1]) == (d_ff, D))
+
+    # --- full model forward: logits shape ---
+    V_sz = 10
+    cfg_full = GPTConfig(vocab_size=V_sz, d_model=D, n_heads=H, n_layers=2, seq_len=T, d_ff=d_ff)
+    model = init_gpt(cfg_full)
+    tokens = rand(1:V_sz, T, B)
+    logits, cache_m = gpt_forward(model, tokens)
+    check("full model: logits shape (V,T,B)", size(logits) == (V_sz, T, B))
+
+    # --- full model backward: every param has grad ---
+    targets = rand(1:V_sz, T, B)
+    loss, cache_ce = cross_entropy_forward(logits, targets)
+    grad_logits = cross_entropy_backward(cache_ce)
+    grads_all = gpt_backward(model, cache_m, grad_logits)
+    check("full model backward: has E_tok grad", haskey(grads_all, :E_tok))
+    check("full model backward: has W_out grad", haskey(grads_all, :W_out))
+    check("full model backward: has block grads", haskey(grads_all, :blocks) && length(grads_all[:blocks]) == 2)
+
+    # --- OVERFIT TEST: most important single test ---
+    # 2-layer model, D=32, must drive loss < 0.1 on 4 sequences in 200 steps
+    printstyled("  Running overfit-one-batch test...\n", color=:yellow)
+    D_ov = 32; T_ov = 8; B_ov = 4; V_ov = 10; H_ov = 2
+    cfg_ov = GPTConfig(vocab_size=V_ov, d_model=D_ov, n_heads=H_ov, n_layers=2, seq_len=T_ov, d_ff=4*D_ov)
+    model_ov = init_gpt(cfg_ov)
+    tokens_ov = rand(1:V_ov, T_ov, B_ov)
+    targets_ov = rand(1:V_ov, T_ov, B_ov)
+
+    lr = 1e-2
+    final_loss = NaN
+    for step in 1:200
+        logits_ov, cache_ov = gpt_forward(model_ov, tokens_ov)
+        loss_ov, cache_ce_ov = cross_entropy_forward(logits_ov, targets_ov)
+        grad_logits_ov = cross_entropy_backward(cache_ce_ov)
+        grads_ov = gpt_backward(model_ov, cache_ov, grad_logits_ov)
+        sgd_update!(model_ov, grads_ov, lr)
+        final_loss = loss_ov
+        if step % 50 == 0
+            @printf("    step %3d  loss = %.4f\n", step, loss_ov)
+        end
+    end
+    check("overfit-one-batch: loss < 0.1 (got $( @sprintf("%.4f", final_loss) ))", final_loss < 0.1)
 end
 
 # ===================================================================
@@ -226,7 +285,36 @@ end
 
 function tier4_tests()
     printstyled("\n── Tier 4: Data Pipeline ──\n", bold=true)
-    # placeholder -- will be filled by pico-b8h
+
+    # Use synthetic text to avoid downloading Shakespeare in tests
+    text = "Hello, World! This is a test of the data pipeline."
+    c2i, i2c = build_vocab(text)
+    V = length(c2i)
+
+    # --- tokenization round-trip ---
+    ids = encode(text, c2i)
+    decoded = decode(ids, i2c)
+    check("tokenize round-trip", decoded == text)
+
+    # --- batch shapes ---
+    seq_len = 8; batch_size = 2
+    batches = make_batches(ids, seq_len, batch_size)
+    if !isempty(batches)
+        inp, tgt = batches[1]
+        check("batch input shape (T,B)",  size(inp) == (seq_len, batch_size))
+        check("batch target shape (T,B)", size(tgt) == (seq_len, batch_size))
+        check("batch values in [1,V]",    all(1 .<= inp .<= V) && all(1 .<= tgt .<= V))
+
+        # --- no off-by-one: target[t] == input[t+1] in original sequence ---
+        check("target[t] == input[t+1]",  all(tgt[1:end-1, 1] .== inp[2:end, 1]))
+    else
+        check("batch: at least one batch", false)
+    end
+
+    # --- train/val split ---
+    train_data, val_data = train_val_split(ids; split_frac=0.9)
+    check("split: no overlap", train_data[end] != val_data[1] || length(train_data) + length(val_data) == length(ids))
+    check("split: covers all data", length(train_data) + length(val_data) == length(ids))
 end
 
 # ===================================================================
@@ -235,7 +323,41 @@ end
 
 function tier5_tests()
     printstyled("\n── Tier 5: Training Loop ──\n", bold=true)
-    # placeholder
+
+    # --- single SGD step decreases loss ---
+    D_t = 16; T_t = 4; B_t = 2; V_t = 10; H_t = 2
+    cfg_m = GPTConfig(vocab_size=V_t, d_model=D_t, n_heads=H_t, n_layers=1, seq_len=T_t, d_ff=4*D_t)
+    cfg_t = TrainConfig(learning_rate=1e-2, warmup_steps=10, n_epochs=1, max_grad_norm=1.0)
+    model_t = init_gpt(cfg_m)
+    inp_t = rand(1:V_t, T_t, B_t)
+    tgt_t = rand(1:V_t, T_t, B_t)
+
+    logits1, c1 = gpt_forward(model_t, inp_t)
+    loss1, cc1 = cross_entropy_forward(logits1, tgt_t)
+    g1 = cross_entropy_backward(cc1)
+    grads1 = gpt_backward(model_t, c1, g1)
+    clip_gradients!(grads1, cfg_t.max_grad_norm)
+    sgd_update!(model_t, grads1, cfg_t.learning_rate)
+
+    logits2, _ = gpt_forward(model_t, inp_t)
+    loss2, _ = cross_entropy_forward(logits2, tgt_t)
+    check("SGD step decreases loss", loss2 < loss1)
+
+    # --- LR schedule ---
+    cfg_lr = TrainConfig(learning_rate=1e-3, lr_min=1e-5, warmup_steps=100)
+    total = 1000
+    lr_0 = lr_schedule(0, cfg_lr, total)
+    lr_warmup = lr_schedule(100, cfg_lr, total)
+    lr_end = lr_schedule(total, cfg_lr, total)
+    check("LR: t=0 is ~0",              lr_0 < 1e-8)
+    check("LR: t=warmup is eta_max",    abs(lr_warmup - 1e-3) < 1e-8)
+    check("LR: t=end is ~eta_min",      abs(lr_end - 1e-5) < 1e-6)
+
+    # --- gradient clipping ---
+    grads_clip = Dict{Symbol,Any}(:W => randn(10, 10) .* 100.0)
+    clip_gradients!(grads_clip, 1.0)
+    norm_after = sqrt(sum(grads_clip[:W] .^ 2))
+    check("grad clip: ||g|| <= max_norm + eps", norm_after <= 1.0 + 1e-6)
 end
 
 # ===================================================================
@@ -244,7 +366,25 @@ end
 
 function tier6_tests()
     printstyled("\n── Tier 6: Generation ──\n", bold=true)
-    # placeholder
+
+    D_g = 16; T_g = 8; V_g = 10; H_g = 2
+    cfg_g = GPTConfig(vocab_size=V_g, d_model=D_g, n_heads=H_g, n_layers=1, seq_len=T_g, d_ff=4*D_g)
+    model_g = init_gpt(cfg_g)
+    context = [1, 2, 3]
+
+    # --- output length ---
+    out = generate(model_g, context, 5; temperature=0.8)
+    check("generate: output length", length(out) == length(context) + 5)
+
+    # --- greedy is deterministic ---
+    out1 = generate(model_g, context, 5; temperature=0.0)
+    out2 = generate(model_g, context, 5; temperature=0.0)
+    check("generate: greedy deterministic", out1 == out2)
+
+    # --- top-k=1 matches greedy ---
+    out_topk = generate(model_g, context, 5; temperature=1.0, top_k=1)
+    out_greedy = generate(model_g, context, 5; temperature=0.0)
+    check("generate: top_k=1 == greedy", out_topk == out_greedy)
 end
 
 # ===================================================================

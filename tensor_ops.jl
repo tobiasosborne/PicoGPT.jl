@@ -58,10 +58,8 @@ Returns h of shape (D, T, B).
 function embed_forward(E::Matrix{Float64}, token_ids::Matrix{Int})
     D, V = size(E)
     T, B = size(token_ids)
-    h = zeros(D, T, B)
-    for b in 1:B, t in 1:T
-        @views h[:, t, b] .= E[:, token_ids[t, b]]
-    end
+    # Bulk column gather: flatten token_ids, index, reshape
+    h = reshape(E[:, vec(token_ids)], D, T, B)
     (h, (E, token_ids))
 end
 

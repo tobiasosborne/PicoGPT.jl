@@ -22,7 +22,7 @@ mutable struct AttentionParams
     n_heads::Int
 end
 
-struct AttentionGrads
+mutable struct AttentionGrads
     Wq::Matrix{Float64}
     bq::Vector{Float64}
     Wk::Matrix{Float64}
@@ -65,10 +65,10 @@ function linear_forward(W::Matrix{Float64}, b::Vector{Float64},
     D_out, D_in = size(W)
     D, T, B = size(x)
     @assert D == D_in
-    y = zeros(D_out, T, B)
-    for bb in 1:B, t in 1:T
-        @views y[:, t, bb] .= W * x[:, t, bb] .+ b
-    end
+    # Reshape (D_in, T, B) -> (D_in, T*B), single BLAS gemm, reshape back
+    x_2d = reshape(x, D_in, T * B)          # zero-copy view
+    y_2d = W * x_2d .+ b                     # (D_out, T*B) -- broadcast b column
+    y = reshape(y_2d, D_out, T, B)           # zero-copy view
     (y, (W, b, x))
 end
 
@@ -77,15 +77,14 @@ function linear_backward(cache, grad_y::Array{Float64,3})
     D_out, D_in = size(W)
     _, T, B = size(grad_y)
 
-    grad_x = zeros(D_in, T, B)
-    grad_W = zeros(D_out, D_in)
-    grad_b = zeros(D_out)
+    gy_2d = reshape(grad_y, D_out, T * B)    # zero-copy
+    x_2d  = reshape(x, D_in, T * B)          # zero-copy
 
-    for bb in 1:B, t in 1:T
-        @views grad_x[:, t, bb] .= W' * grad_y[:, t, bb]
-        @views grad_W .+= grad_y[:, t, bb] * x[:, t, bb]'
-        @views grad_b .+= grad_y[:, t, bb]
-    end
+    grad_x_2d = W' * gy_2d                   # (D_in, T*B)  single gemm
+    grad_W    = gy_2d * x_2d'                 # (D_out, D_in) single gemm
+    grad_b    = vec(sum(gy_2d, dims=2))       # (D_out,)
+
+    grad_x = reshape(grad_x_2d, D_in, T, B)
     (grad_x, grad_W, grad_b)
 end
 
@@ -130,23 +129,19 @@ end
 #   dL/dK[d,j,b] = (1/√Dh) Σ_i dL/dS[i,j,b] · Q[d,i,b]
 
 function single_head_attention_forward(Q::Array{Float64,3}, K::Array{Float64,3},
-                                       V::Array{Float64,3}, mask::Matrix{Float64})
+                                       V::Array{Float64,3}, mask::AbstractMatrix{Float64})
     Dh, T, B = size(Q)
     scale = 1.0 / sqrt(Float64(Dh))
 
     scores = zeros(T, T, B)
+    attn = zeros(T, T, B)
     for bb in 1:B
         @views scores[:, :, bb] .= (Q[:, :, bb]' * K[:, :, bb]) .* scale .+ mask
-    end
-
-    # softmax per row (along dim 2 = key dimension)
-    attn = zeros(T, T, B)
-    attn_caches = []
-    for bb in 1:B, i in 1:T
-        row = scores[i, :, bb]
-        s, c = softmax_forward(row)
-        attn[i, :, bb] = s
-        push!(attn_caches, c)
+        # Matrix softmax along dim 2 (rows): each row is a distribution over keys
+        @views S = scores[:, :, bb]
+        row_max = maximum(S, dims=2)          # (T, 1)
+        ex = exp.(S .- row_max)
+        @views attn[:, :, bb] .= ex ./ sum(ex, dims=2)
     end
 
     out = zeros(Dh, T, B)
@@ -154,37 +149,33 @@ function single_head_attention_forward(Q::Array{Float64,3}, K::Array{Float64,3},
         @views out[:, :, bb] .= V[:, :, bb] * attn[:, :, bb]'
     end
 
-    cache = (Q, K, V, attn, attn_caches, mask, scale, Dh, T, B)
+    cache = (Q, K, V, attn, mask, scale, Dh, T, B)
     (out, cache)
 end
 
 function single_head_attention_backward(cache, grad_out::Array{Float64,3})
-    Q, K, V, attn, attn_caches, mask, scale, Dh, T, B = cache
+    Q, K, V, attn, mask, scale, Dh, T, B = cache
 
     grad_Q = zeros(Dh, T, B)
     grad_K = zeros(Dh, T, B)
     grad_V = zeros(Dh, T, B)
 
-    # dL/dA[i,j,b] = Σ_d dL/dout[d,i,b] · V[d,j,b]
     grad_attn = zeros(T, T, B)
-    for bb in 1:B
-        @views grad_attn[:, :, bb] .= grad_out[:, :, bb]' * V[:, :, bb]
-        # dL/dV[d,j,b] = Σ_i dL/dout[d,i,b] · A[i,j,b]
-        @views grad_V[:, :, bb] .= grad_out[:, :, bb] * attn[:, :, bb]
-    end
-
-    # attn -> scores via softmax backward (per row)
     grad_scores = zeros(T, T, B)
-    idx = 1
-    for bb in 1:B, i in 1:T
-        c = attn_caches[idx]
-        row_grad = softmax_backward(c, grad_attn[i, :, bb])
-        grad_scores[i, :, bb] = row_grad
-        idx += 1
-    end
 
-    # scores -> Q, K
     for bb in 1:B
+        # dL/dA = grad_out' * V  (T×T)
+        @views grad_attn[:, :, bb] .= grad_out[:, :, bb]' * V[:, :, bb]
+        # dL/dV = grad_out * A   (Dh×T)
+        @views grad_V[:, :, bb] .= grad_out[:, :, bb] * attn[:, :, bb]
+
+        # Matrix softmax backward: dL/dS_i = A_i .* (dL/dA_i - dot(A_i, dL/dA_i))
+        @views A = attn[:, :, bb]
+        @views gA = grad_attn[:, :, bb]
+        dot_per_row = sum(A .* gA, dims=2)    # (T, 1)
+        @views grad_scores[:, :, bb] .= A .* (gA .- dot_per_row)
+
+        # scores -> Q, K
         @views grad_Q[:, :, bb] .= K[:, :, bb] * grad_scores[:, :, bb]' .* scale
         @views grad_K[:, :, bb] .= Q[:, :, bb] * grad_scores[:, :, bb] .* scale
     end
@@ -207,7 +198,7 @@ end
 #   output = Wo * concat + bo
 
 function multi_head_attention_forward(params::AttentionParams, x::Array{Float64,3},
-                                      mask::Matrix{Float64})
+                                      mask::AbstractMatrix{Float64})
     D, T, B = size(x)
     H = params.n_heads
     Dh = div(D, H)
@@ -217,16 +208,16 @@ function multi_head_attention_forward(params::AttentionParams, x::Array{Float64,
     V_full, cache_v = linear_forward(params.Wv, params.bv, x)
 
     # Split into heads and run attention
-    head_outs = Array{Float64,3}[]
-    head_caches = []
+    head_outs = Vector{Array{Float64,3}}(undef, H)
+    head_caches = Vector{Any}(undef, H)
     for h in 1:H
         rows = (h-1)*Dh+1 : h*Dh
         Qh = Q_full[rows, :, :]
         Kh = K_full[rows, :, :]
         Vh = V_full[rows, :, :]
         out_h, cache_h = single_head_attention_forward(Qh, Kh, Vh, mask)
-        push!(head_outs, out_h)
-        push!(head_caches, cache_h)
+        head_outs[h] = out_h
+        head_caches[h] = cache_h
     end
 
     # Concat heads -> (D, T, B)

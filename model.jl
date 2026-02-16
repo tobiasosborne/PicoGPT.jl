@@ -36,7 +36,7 @@ function init_transformer_block(cfg::GPTConfig)
 end
 
 function transformer_block_forward(block::TransformerBlock, h::Array{Float64,3},
-                                   mask::Matrix{Float64})
+                                   mask::AbstractMatrix{Float64})
     # --- Sub-block 1: h = h + MHA(LN(h)) ---
     ln1_out, cache_ln1 = layer_norm_forward(h, block.ln1_gamma, block.ln1_beta)
     attn_out, cache_attn = multi_head_attention_forward(block.attn, ln1_out, mask)
@@ -102,6 +102,7 @@ mutable struct GPT
     ln_f_beta::Vector{Float64}
     W_out::Matrix{Float64}     # (V, D) output projection
     b_out::Vector{Float64}     # (V,)
+    mask::Matrix{Float64}      # (T, T) cached causal mask
 end
 
 function init_gpt(cfg::GPTConfig)
@@ -114,8 +115,9 @@ function init_gpt(cfg::GPTConfig)
     ln_f_beta = zeros(D)
     W_out = xavier_init(D, V)
     b_out = zeros(V)
+    mask = causal_mask(T)
 
-    GPT(cfg, E_tok, pe, blocks, ln_f_gamma, ln_f_beta, W_out, b_out)
+    GPT(cfg, E_tok, pe, blocks, ln_f_gamma, ln_f_beta, W_out, b_out, mask)
 end
 
 function gpt_forward(model::GPT, token_ids::Matrix{Int})
@@ -126,12 +128,13 @@ function gpt_forward(model::GPT, token_ids::Matrix{Int})
     h, cache_emb = embed_forward(model.E_tok, token_ids)
     h .+= model.pe[:, 1:T]  # broadcast PE over batch
 
-    # Transformer blocks
-    mask = causal_mask(T)
-    block_caches = []
+    # Transformer blocks (use cached mask, sliced for current T)
+    mask = T == model.cfg.seq_len ? model.mask : @view model.mask[1:T, 1:T]
+    n_blocks = length(model.blocks)
+    block_caches = Vector{Any}(undef, n_blocks)
     for (i, block) in enumerate(model.blocks)
         h, cache_blk = transformer_block_forward(block, h, mask)
-        push!(block_caches, cache_blk)
+        block_caches[i] = cache_blk
     end
 
     # Final layer norm
@@ -160,10 +163,11 @@ function gpt_backward(model::GPT, cache, grad_logits::Array{Float64,3})
     grads[:ln_f_beta] = grad_ln_f_beta
 
     # Transformer blocks (reverse order)
-    block_grads = []
-    for i in length(model.blocks):-1:1
+    n_blocks = length(model.blocks)
+    block_grads = Vector{Dict{Symbol,Any}}(undef, n_blocks)
+    for i in n_blocks:-1:1
         grad_h, blk_grads = transformer_block_backward(block_caches[i], grad_h)
-        pushfirst!(block_grads, blk_grads)
+        block_grads[i] = blk_grads
     end
     grads[:blocks] = block_grads
 

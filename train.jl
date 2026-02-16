@@ -25,32 +25,28 @@ end
 
 # g <- g * min(1, c / ||g||_2)
 
-function collect_grad_arrays(grads::Dict{Symbol,Any})
-    arrays = Vector{Float64}[]
-    for (k, v) in grads
+function _sum_sq(grads::Dict{Symbol,Any})
+    total = 0.0
+    for (_, v) in grads
         if v isa AbstractArray{Float64}
-            push!(arrays, vec(v))
+            total += sum(abs2, v)
         elseif v isa AttentionGrads
             for f in fieldnames(AttentionGrads)
-                push!(arrays, vec(getfield(v, f)))
+                total += sum(abs2, getfield(v, f))
             end
         elseif v isa Vector  # block grads list
             for blk_g in v
-                append!(arrays, collect_grad_arrays(blk_g))
+                total += _sum_sq(blk_g)
             end
         elseif v isa Dict
-            append!(arrays, collect_grad_arrays(v))
+            total += _sum_sq(v)
         end
     end
-    arrays
+    total
 end
 
 function grad_global_norm(grads::Dict{Symbol,Any})
-    total = 0.0
-    for arr in collect_grad_arrays(grads)
-        total += sum(arr .^ 2)
-    end
-    sqrt(total)
+    sqrt(_sum_sq(grads))
 end
 
 function clip_gradients!(grads::Dict{Symbol,Any}, max_norm::Float64)
@@ -65,11 +61,12 @@ end
 function scale_grads!(grads::Dict{Symbol,Any}, scale::Float64)
     for (k, v) in grads
         if v isa AbstractArray{Float64}
-            grads[k] = v .* scale
+            v .*= scale
         elseif v isa AttentionGrads
-            grads[k] = AttentionGrads(
-                v.Wq .* scale, v.bq .* scale, v.Wk .* scale, v.bk .* scale,
-                v.Wv .* scale, v.bv .* scale, v.Wo .* scale, v.bo .* scale)
+            v.Wq .*= scale; v.bq .*= scale
+            v.Wk .*= scale; v.bk .*= scale
+            v.Wv .*= scale; v.bv .*= scale
+            v.Wo .*= scale; v.bo .*= scale
         elseif v isa Vector  # block grads list
             for blk_g in v
                 scale_grads!(blk_g, scale)

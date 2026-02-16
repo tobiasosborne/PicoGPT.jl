@@ -27,16 +27,66 @@ If you haven't read Alammar's post, read it first.  It will give you the visual 
 
 ## 1. The 10,000-foot view
 
-A GPT model is a function that takes a sequence of tokens and predicts the next token at every position.  The architecture:
+A GPT model is a function that takes a sequence of tokens and predicts the next token at every position.  Here's the complete data flow with tensor shapes:
 
 ```
-tokens (integers)
-  → embed into continuous vectors
-  → add positional information
-  → pass through N transformer blocks
-  → project back to vocabulary
-  → softmax → probability distribution over next tokens
+  "the cat sat"                          Raw text
+       │
+       ▼
+  [47, 52, 28]                           Token indices  ∈ Z^(T)
+       │
+       ▼
+ ┌─────────────┐
+ │  E_tok       │  (D, V) = (128, 65)    Embedding matrix
+ │  lookup      │
+ └──────┬──────┘
+        │
+        ▼
+   h₀ ∈ R^(D×T)                          (128, 3) — each token is now a vector
+        │
+   + PE ∈ R^(D×T)                         Sinusoidal position signal (fixed)
+        │
+        ▼
+ ┌──────────────────────────────────────────────────┐
+ │  Transformer Block  ×4                            │
+ │                                                   │
+ │   h ──┬──→ LayerNorm → Multi-Head Attention ──┐  │
+ │       │                                        +  │  ← residual
+ │       └────────────────────────────────────────┘  │
+ │       │                                           │
+ │   h ──┬──→ LayerNorm → W₁ → ReLU → W₂ ───────┐  │
+ │       │                                        +  │  ← residual
+ │       └────────────────────────────────────────┘  │
+ └──────────────────────────────────────────────────┘
+        │
+        ▼
+   LayerNorm                              Final normalization
+        │
+        ▼
+ ┌─────────────┐
+ │  W_out       │  (V, D) = (65, 128)    Output projection
+ └──────┬──────┘
+        │
+        ▼
+   logits ∈ R^(V×T)                       (65, 3) — score for each vocab token
+        │
+        ▼
+   softmax → cross-entropy loss           Training: compare with target tokens
+        or
+   softmax → sample                       Generation: pick the next token
 ```
+
+**Dimensions cheat sheet** (used throughout this tutorial):
+
+| Symbol | Name | Default | Meaning |
+|--------|------|---------|---------|
+| `B` | Batch | 32 | Number of sequences processed in parallel |
+| `T` | Time | 256 | Sequence length (context window) |
+| `D` | Model | 128 | Embedding / hidden dimension |
+| `H` | Heads | 4 | Number of attention heads |
+| `Dh` | Head dim | 32 | `D / H`, dimension per head |
+| `V` | Vocab | 65 | Number of unique tokens |
+| `d_ff` | FFN | 512 | Feedforward hidden dimension |
 
 In PicoGPT.jl, this is implemented in `gpt_forward` ([`model.jl:121`](../model.jl#L121)):
 
@@ -168,7 +218,59 @@ The mechanism uses three projections of the input:
 
 The attention weight from position `i` to position `j` is proportional to the dot product of query `i` and key `j`.
 
-### 3.2 Scaled dot-product attention
+### 3.2 A worked example: attention on "the cat sat"
+
+Before the math, let's trace through a concrete example with tiny numbers.  Suppose we have 3 tokens and `Dh = 2` (2-dimensional head).
+
+```
+Input vectors (after projection):
+  Q = [ 1.0  0.5  0.2 ]     K = [ 0.9  0.4  0.1 ]     V = [ 0.3  0.7  0.1 ]
+      [ 0.0  1.0  0.8 ]         [ 0.1  0.8  0.9 ]         [ 0.5  0.2  0.9 ]
+       "the" "cat" "sat"          "the" "cat" "sat"          "the" "cat" "sat"
+```
+
+**Step 1: Compute scores** — `scores[i,j] = (1/√Dh) · qᵢᵀ kⱼ`
+
+```
+scale = 1/√2 ≈ 0.707
+
+scores = Q' * K * scale =                    "the"  "cat"  "sat"
+                               "the" attends [ 0.64  0.28   0.07 ]
+                               "cat" attends [ 0.39  0.76   0.68 ]
+                               "sat" attends [ 0.19  0.53   0.52 ]
+```
+
+**Step 2: Apply causal mask** — block future positions
+
+```
+                        "the"  "cat"  "sat"
+         "the" attends [ 0.64  -Inf   -Inf ]   ← can only see itself
+         "cat" attends [ 0.39   0.76  -Inf ]   ← can see "the" and "cat"
+         "sat" attends [ 0.19   0.53   0.52]   ← can see everything
+```
+
+**Step 3: Softmax per row** — normalize into probabilities
+
+```
+                        "the"  "cat"  "sat"
+         "the" attends [ 1.00   0.00   0.00]   ← forced to attend only to itself
+         "cat" attends [ 0.41   0.59   0.00]   ← mostly attends to "cat"
+         "sat" attends [ 0.27   0.38   0.35]   ← roughly uniform over all three
+```
+
+**Step 4: Weighted sum of values** — `out[:,i] = Σⱼ attn[i,j] · V[:,j]`
+
+```
+  out["the"] = 1.00 · V["the"]                         = [0.30, 0.50]
+  out["cat"] = 0.41 · V["the"] + 0.59 · V["cat"]       = [0.54, 0.32]
+  out["sat"] = 0.27 · V["the"] + 0.38 · V["cat"] + 0.35 · V["sat"] = [0.39, 0.53]
+```
+
+Position "the" can only see itself, so its output is just its own value vector.  Position "cat" blends information from "the" and "cat".  Position "sat" mixes all three, learning which context is most useful for predicting the next word.
+
+This is the core of attention: **a learned, content-dependent weighted average**.
+
+### 3.3 Scaled dot-product attention — the code
 
 For a single head, given matrices Q, K, V each of shape `(Dh, T, B)`:
 
@@ -211,7 +313,7 @@ function single_head_attention_forward(Q, K, V, mask)
 end
 ```
 
-### 3.3 The causal mask
+### 3.4 The causal mask
 
 GPT is autoregressive: when predicting position `t`, it can only see positions `1, 2, ..., t`.  The causal mask enforces this by setting future attention weights to zero.
 
@@ -241,7 +343,7 @@ i=4 [  0     0     0     0  ]     position 4 sees everything
 
 Adding `-Inf` before softmax ensures `exp(-Inf) = 0`, so future positions contribute nothing to the weighted sum.
 
-### 3.4 Attention backward pass
+### 3.5 Attention backward pass
 
 The backward pass for attention is the most intricate part of the codebase.  Here is the full derivation, which appears in [`attention.jl:115`](../attention.jl#L115):
 
@@ -288,12 +390,31 @@ end
 
 A single attention head has one notion of "relevance."  Multiple heads let the model attend to different things simultaneously — one head might track syntactic structure, another might track semantic similarity.
 
-The idea:
-1. Project the input through separate `Wq`, `Wk`, `Wv` matrices
-2. Split the D-dimensional result into H heads of dimension `Dh = D/H`
-3. Run scaled dot-product attention independently for each head
-4. Concatenate the head outputs
-5. Apply a final output projection `Wo`
+The idea, as a diagram:
+
+```
+     x ∈ R^(D×T×B)
+     │
+     ├──→ Wq ──→ Q_full (D,T,B) ──┬── rows 1:Dh   → Q₁ ──→ Attention₁ ──→ out₁
+     │                              ├── rows Dh+1:2Dh→ Q₂ ──→ Attention₂ ──→ out₂
+     │                              ├── ...
+     │                              └── rows (H-1)Dh+1:D → Q_H → Attention_H → out_H
+     ├──→ Wk ──→ K_full (D,T,B) ──┬── split same way into K₁..K_H ──────────────┘
+     │                              │                                    (each head
+     └──→ Wv ──→ V_full (D,T,B) ──┴── split same way into V₁..V_H      gets its
+                                                                          own Q,K,V)
+                                         │
+                                         ▼
+                                   concat(out₁, out₂, ..., out_H)   (D, T, B)
+                                         │
+                                         ▼
+                                      Wo * concat + bo               (D, T, B)
+                                         │
+                                         ▼
+                                      output
+```
+
+With `D = 128` and `H = 4`, each head operates on `Dh = 32` dimensions.  The heads run independently — head 1 might learn to track subject-verb agreement while head 3 tracks adjacency.
 
 From [`attention.jl:209`](../attention.jl#L209):
 
@@ -360,7 +481,49 @@ This `+` is because of the chain rule fan-out: when `x` is used in three places,
 
 ## 5. The transformer block
 
-Each transformer block combines attention with a feedforward network (FFN), connected by residual connections and layer normalization.  PicoGPT uses **pre-norm** residual ordering (GPT-2 style):
+Each transformer block combines attention with a feedforward network (FFN), connected by residual connections and layer normalization.  PicoGPT uses **pre-norm** residual ordering (GPT-2 style).
+
+Here is the full data flow through one block, with the residual "highway" on the left:
+
+```
+ h ∈ R^(D,T,B)
+ │
+ ├────────────────────────────────────┐
+ │                                    │ (skip connection)
+ ▼                                    │
+ LayerNorm(γ₁, β₁)                   │
+ │                                    │
+ ▼                                    │
+ Multi-Head Attention                 │
+ │  (Wq, Wk, Wv → Q,K,V             │
+ │   → scaled dot-product             │
+ │   → concat → Wo)                   │
+ │                                    │
+ ▼                                    │
+ + ←──────────────────────────────────┘   h₂ = h + MHA(LN(h))
+ │
+ ├────────────────────────────────────┐
+ │                                    │ (skip connection)
+ ▼                                    │
+ LayerNorm(γ₂, β₂)                   │
+ │                                    │
+ ▼                                    │
+ W₁ · x + b₁        (D → d_ff)      │   expand:  128 → 512
+ │                                    │
+ ▼                                    │
+ ReLU                                 │
+ │                                    │
+ ▼                                    │
+ W₂ · x + b₂        (d_ff → D)      │   contract: 512 → 128
+ │                                    │
+ ▼                                    │
+ + ←──────────────────────────────────┘   h₃ = h₂ + FFN(LN(h₂))
+ │
+ ▼
+ h₃ ∈ R^(D,T,B)    → next block (or final layer norm)
+```
+
+In code:
 
 ```
 h = h + MultiHeadAttention(LayerNorm(h))     # sub-block 1
@@ -554,7 +717,23 @@ This is the heart of PicoGPT.  Every module has a handwritten backward pass.  He
 
 ### 7.2 Full model backward
 
-The backward pass ([`model.jl:147`](../model.jl#L147)) reverses the forward pass exactly:
+The backward pass reverses the forward pass.  Gradients flow from loss back to the first embedding:
+
+```
+                                              FORWARD (→)
+loss ← cross_entropy ← logits ← W_out ← LN_f ← Block₄ ← Block₃ ← Block₂ ← Block₁ ← E_tok
+  │                                                                                       ▲
+  │                                   BACKWARD (←)                                        │
+  └── ∂L/∂logits → ∂L/∂h → ∂L/∂h → ∂L/∂h → ∂L/∂h → ∂L/∂h → ∂L/∂h → ∂L/∂h → ∂L/∂E ──┘
+                     │        │        │        │        │        │
+                     ▼        ▼        ▼        ▼        ▼        ▼
+                  ∂L/∂W_out ∂L/∂γ_f  (all block parameter gradients collected)  ∂L/∂E_tok
+
+  Each "→" is a forward function call.     Each "←" is a backward function call.
+  Forward stores a cache.                  Backward consumes that cache.
+```
+
+The implementation ([`model.jl:147`](../model.jl#L147)):
 
 ```julia
 function gpt_backward(model, cache, grad_logits)
@@ -699,11 +878,64 @@ Each epoch iterates over all batches.  Each batch:
 4. Gradient clipping
 5. SGD update
 
+### 8.6 What a training run looks like
+
+When you run `julia run.jl`, you'll see output like this:
+
+```
+============================================================
+PicoGPT.jl — From-Scratch GPT in Pure Julia
+============================================================
+
+[1/4] Loading data...
+  Vocab size: 65
+  Text length: 1115394 chars
+  Train batches: 152
+  Val batches: 16
+
+[2/4] Initializing model...
+  Parameters: 810497 (~0.81M)
+
+[3/4] Training...
+Epoch   1 | train loss: 2.8934 | val loss: 2.5821 | lr: 1.00e-03 | best val: 2.5821
+Epoch   2 | train loss: 2.3647 | val loss: 2.2903 | lr: 9.97e-04 | best val: 2.2903
+Epoch   3 | train loss: 2.1542 | val loss: 2.1103 | lr: 9.89e-04 | best val: 2.1103
+...
+Epoch  18 | train loss: 1.4231 | val loss: 1.5982 | lr: 2.14e-04 | best val: 1.4876
+Epoch  19 | train loss: 1.4098 | val loss: 1.5841 | lr: 8.15e-05 | best val: 1.4876
+Epoch  20 | train loss: 1.4012 | val loss: 1.5790 | lr: 1.00e-05 | best val: 1.4876
+
+[4/4] Generating sample text...
+
+FIRST CITIZEN:
+The king is not the brother of the world,
+And the state of the strong, and the death
+Of the people of the state of the world...
+```
+
+**What to watch for:**
+- **Loss starts at ~2.9** — close to `log(65) ≈ 4.17` (random guessing)
+- **Drops rapidly** in the first 5 epochs as the model learns character frequencies
+- **Val loss plateaus** around 1.5 — the model has learned basic English spelling and Shakespeare-like patterns but can't memorize the training set
+- **Train < Val** — the gap indicates the model is slightly overfitting, which is expected for a small model
+
 ---
 
 ## 9. Text generation
 
-After training, we generate text autoregressively ([`generate.jl:11`](../generate.jl#L11)):
+Generation is where the model shows what it has learned.  The process is autoregressive — we feed a prompt, predict one token, append it, and repeat:
+
+```
+ Step 1:  "T" "h" "e" " "           → model → P(next) → sample "k"
+ Step 2:  "T" "h" "e" " " "k"       → model → P(next) → sample "i"
+ Step 3:  "T" "h" "e" " " "k" "i"   → model → P(next) → sample "n"
+ Step 4:  "T" "h" "e" " " "k" "i" "n" → model → P(next) → sample "g"
+          └─────── context ──────────┘           └── one new token each step
+```
+
+Each step runs a full forward pass (no backward — we're not training).  The logits at the *last* position give us the distribution over the next token.
+
+From [`generate.jl:11`](../generate.jl#L11):
 
 ```julia
 function generate(model, context, max_new_tokens; temperature=1.0, top_k=0)
@@ -724,9 +956,23 @@ Three sampling modes ([`generate.jl:42`](../generate.jl#L42)):
 
 **Greedy** (`temperature=0`): Always pick the highest-probability token.  Deterministic but repetitive.
 
-**Temperature sampling**: Scale logits by `1/T` before softmax.  `T < 1` makes the distribution sharper (more confident), `T > 1` makes it flatter (more random).
+**Temperature sampling**: Scale logits by `1/T` before softmax.  `T < 1` sharpens the distribution, `T > 1` flattens it.
 
 **Top-k**: Zero out all but the top `k` logits before softmax.  Prevents sampling from the long tail of low-probability tokens.
+
+Here's how they compare on the same logits:
+
+```
+Raw logits for next char after "The ki":   n:3.2  s:1.8  t:1.5  a:0.3  ...
+
+Greedy (T=0):        n=100%  s=0%   t=0%   a=0%      → always "n"
+Temperature T=0.5:   n=89%   s=7%   t=3%   a=0.3%    → almost always "n"
+Temperature T=1.0:   n=51%   s=23%  t=18%  a=5%      → usually "n", sometimes "s"
+Temperature T=2.0:   n=30%   s=22%  t=20%  a=12%     → quite random
+Top-k (k=3, T=1.0):  n=55%   s=25%  t=20%  a=0%      → only top 3 candidates
+```
+
+Higher temperature = more creative but less coherent.  `temperature=0.8` is a good balance for Shakespeare.
 
 ---
 

@@ -302,6 +302,12 @@ try {
 }
 await finish(res.raw, res.result);
 const families = checkFonts();
+// A cheap extraction proof: no empty text layer and no lost h in the Th ligature.
+try {
+	const text = execFileSync('pdftotext', [OUT, '-'], { encoding: 'utf8', maxBuffer: 32 << 20 });
+	if (text.trim().length < 1000) die('PDF text extraction is empty or incomplete');
+	if (/^Te /m.test(text)) die('PDF text extraction lost the h in The (Th ligature)');
+} catch (e) { die(`PDF text-extraction proof failed: ${e.message}`); }
 // every mark in the book is vector; a raster image means Chromium flattened something (a pattern,
 // a blend over translucency) and it would print soft
 {

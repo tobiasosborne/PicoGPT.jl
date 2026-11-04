@@ -2,7 +2,7 @@
 #
 # To write, run the model on the text so far, turn the logits of the last position into a
 # distribution, draw the next symbol from it, append it, and repeat. Dividing the logits by
-# a temperature τ is literally a temperature: as τ → 0 the Gibbs distribution freezes onto
+# τ sets the temperature of the Gibbs system with the same energies: as τ → 0 the Gibbs distribution freezes onto
 # its ground states (uniform among exactly tied maxima); as τ → ∞ it melts to uniform.
 
 """
@@ -13,9 +13,9 @@ a with p₁ + ⋯ + pₐ > u, for u uniform on [0, Σp).
 """
 function draw(rng, p)
     !isempty(p) && all(x -> isfinite(x) && x ≥ 0, p) ||
-        throw(ArgumentError("sampling needs a nonempty vector of finite nonnegative weights"))
+        throw(ArgumentError("weights must be nonempty, finite and nonnegative"))
     F = cumsum(p)
-    isfinite(F[end]) && F[end] > 0 || throw(ArgumentError("sampling weights must have a finite positive sum"))
+    isfinite(F[end]) && F[end] > 0 || throw(ArgumentError("weights need a finite positive sum"))
     something(findfirst(>(rand(rng) * F[end]), F), length(p))
 end
 draw(p) = draw(Random.default_rng(), p)

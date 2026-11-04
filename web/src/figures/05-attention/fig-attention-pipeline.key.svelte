@@ -1,6 +1,6 @@
 <script>
-	// How to read a spoke glyph (a vector): the figure's own query q_i, enlarged.
-	// (When chapter 2 exists, this key moves to the first spoke glyph in the book.)
+	// A reminder of how to read a spoke glyph, on the figure's own query q_i, enlarged.
+	// The full key is with the book's first spoke glyph (fig-one-hot, chapter 2).
 	import { getContext } from 'svelte';
 	import HowToRead from '../primitives/HowToRead.svelte';
 	import SpokeGlyph from '../primitives/SpokeGlyph.svelte';
@@ -34,7 +34,7 @@
 	});
 </script>
 
-<HowToRead width={244} height={192} {notes}>
+<HowToRead width={244} height={192} title="Reminder: spoke glyphs" {notes}>
 	{#snippet glyph()}
 		<g class="fx"><SpokeGlyph values={q} x={cx} y={cy} rmax={sc.rmax} scale={sc.scale} tip={3.2} weight={1.6} /></g>
 	{/snippet}

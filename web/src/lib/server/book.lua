@@ -234,7 +234,133 @@ local function aside(el)
   return out
 end
 
+-- ── (extension, epilogue) the dictionary of jargon ─────────────────────────
+-- `::: dictionary` expands to every ML term of every chapter's `::: names` table,
+-- alphabetically, with its maths and physics names and the chapter that defines it.
+-- Columns are found by their header (maths | physics | ML); a cell listing several
+-- terms separated by commas gives one entry per term. Terms named in several chapters
+-- become one entry with numbered senses. Reads the chapter files listed in the index.
+local function split_terms(blocks)
+  local inl = pandoc.utils.blocks_to_inlines(blocks)
+  local terms, cur = {}, pandoc.Inlines({})
+  local function flush()
+    while #cur > 0 and (cur[#cur].t == 'Space' or cur[#cur].t == 'SoftBreak') do cur:remove(#cur) end
+    while #cur > 0 and (cur[1].t == 'Space' or cur[1].t == 'SoftBreak') do cur:remove(1) end
+    if #cur > 0 then table.insert(terms, cur) end
+    cur = pandoc.Inlines({})
+  end
+  for _, x in ipairs(inl) do
+    if x.t == 'Str' and x.text:match(',$') then
+      local head = x.text:gsub(',$', '')
+      if head ~= '' then cur:insert(pandoc.Str(head)) end
+      flush()
+    else
+      cur:insert(x)
+    end
+  end
+  flush()
+  return terms
+end
+
+local function sort_key(inlines)
+  local s = pandoc.utils.stringify(inlines):lower()
+  s = s:gsub('\\[a-z]+', ''):gsub('[^%w%s]', ''):gsub('^%s+', '')
+  s = s:gsub('^an? ', ''):gsub('^the ', '')   -- "an update" files under U
+  return s
+end
+
+local function dictionary(el)
+  local files = index.files or {}
+  local groups, order = {}, {}
+  for _, f in ipairs(files) do
+    local fh = io.open(f.path, 'r')
+    if fh then
+      local src = fh:read('a'); fh:close()
+      local ok, doc = pcall(pandoc.read, src, 'markdown+smart')
+      if ok then
+        doc:walk({ Div = function(d)
+          if not has(d, 'names') then return nil end
+          for _, b in ipairs(d.content) do
+            if b.t == 'Table' then
+              local col = { maths = 1, physics = 2, ml = 3 }
+              local head = b.head.rows[1]
+              if head then
+                for k, cell in ipairs(head.cells) do
+                  local h = pandoc.utils.stringify(cell.contents):lower()
+                  if h:match('^math') then col.maths = k
+                  elseif h:match('^phys') then col.physics = k
+                  elseif h:match('^ml') or h:match('machine') then col.ml = k end
+                end
+              end
+              for _, body in ipairs(b.bodies) do
+                for _, row in ipairs(body.body) do
+                  local cells = row.cells
+                  local ml = cells[col.ml] and cells[col.ml].contents or {}
+                  for _, term in ipairs(split_terms(ml)) do
+                    local key = sort_key(term)
+                    if key ~= '' then
+                      if not groups[key] then groups[key] = { term = term, senses = {} }; table.insert(order, key) end
+                      table.insert(groups[key].senses, {
+                        maths = cells[col.maths] and cells[col.maths].contents or {},
+                        physics = cells[col.physics] and cells[col.physics].contents or {},
+                        chapter = f,
+                      })
+                    end
+                  end
+                end
+              end
+            end
+          end
+          return nil
+        end })
+      else
+        io.stderr:write('[book.lua] dictionary: could not read ' .. tostring(f.path) .. '\n')
+      end
+    end
+  end
+  table.sort(order)
+  local walker = { Math = math_inline, Cite = cite }
+  local function cell_html(blocks)
+    local inl = pandoc.utils.blocks_to_inlines(blocks)
+    local walked = pandoc.Plain(inl):walk(walker)
+    return (inline_html(walked.content):gsub('^%s+', ''):gsub('%s+$', ''))
+  end
+  local function inl_html(inlines)
+    local walked = pandoc.Plain(inlines):walk(walker)
+    return (inline_html(walked.content):gsub('^%s+', ''):gsub('%s+$', ''))
+  end
+  local out, letter = {}, nil
+  table.insert(out, '<div class="dict" role="list" aria-label="Dictionary of jargon">')
+  for _, key in ipairs(order) do
+    local g = groups[key]
+    local first = key:sub(1, 1):upper()
+    if first ~= letter then
+      if letter then table.insert(out, '</div>') end
+      letter = first
+      table.insert(out, '<div class="dict__letter" role="presentation"><p class="dict__head" aria-hidden="true">' .. esc(letter) .. '</p>')
+    end
+    local senses = {}
+    for k, s in ipairs(g.senses) do
+      local c = s.chapter
+      local where = (c.num ~= '' and ('<span class="dict__num">' .. esc(c.num) .. '</span> ') or '') .. esc(c.title)
+      local href = '../' .. c.slug .. '/'
+      local phys = cell_html(s.physics)
+      table.insert(senses,
+        '<span class="dict__sense">' ..
+        (#g.senses > 1 and ('<span class="dict__n">' .. k .. '</span> ') or '') ..
+        '<span class="dict__maths">' .. cell_html(s.maths) .. '</span>' ..
+        (phys ~= '' and ('<span class="dict__sep"> · </span><span class="dict__physics">' .. phys .. '</span>') or '') ..
+        ' <a class="dict__where" href="' .. href .. '">' .. where .. '</a></span>')
+    end
+    table.insert(out, '<p class="dict__entry" role="listitem"><span class="dict__term">' .. inl_html(g.term) .. '</span> ' .. table.concat(senses, ' ') .. '</p>')
+  end
+  if letter then table.insert(out, '</div>') end
+  table.insert(out, '</div>')
+  return pandoc.RawBlock('html', table.concat(out, '\n'))
+end
+
 local function div(el)
+  if has(el, 'dictionary') then return dictionary(el) end
   if has(el, 'figure') then return figure(el) end
   if has(el, 'code') then return code(el) end
   if has(el, 'exercise') then return exercise(el) end

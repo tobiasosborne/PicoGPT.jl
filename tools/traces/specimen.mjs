@@ -1,5 +1,5 @@
 // The specimen, its corpus, and a recorder for training runs.
-import { SPECIMEN_CONFIG, createModel, createBatch, init, trainStep, forward, backward }
+import { SPECIMEN_CONFIG, createModel, createBatch, init, step, forward, backward }
   from '../../web/src/specimen/index.mjs';
 
 export const corpus = 'to be or not to be';
@@ -16,17 +16,21 @@ export function windows(T = SPECIMEN_CONFIG.T) {
   return createBatch(x, y);
 }
 
-export const ADAM = { optimizer: 'adamw', lr: 1e-2, clipNorm: 1 };
+// The run every trace records: AdamW, warmup + cosine, clipped. Seed 0.
+export const STEPS = 700;
+export const OPT = { optimizer: 'adamw', lr: 1e-2, clipNorm: 1,
+                     schedule: { warmupSteps: 20, totalSteps: STEPS, minLR: 1e-4 } };
+export const TRAIN = 'lr 1e-2, 20 warmup steps, cosine to 1e-4, clip 1, seed 0';
 
-// Train from seed, calling observe(model, trace, t) before every update.
-export function run({ seed = 0, steps = 600, opt = ADAM, observe = () => {} } = {}) {
+// Train from seed, calling observe(model, trace, t, batch) before every update.
+export function run({ seed = 0, steps = STEPS, opt = OPT, observe = () => {} } = {}) {
   const model = createModel(SPECIMEN_CONFIG, init(SPECIMEN_CONFIG, seed));
   const batch = windows();
   for (let t = 0; t < steps; t++) {
     const trace = forward(model, batch);
     backward(model, trace);
-    observe(model, trace, t);
-    trainStep(model, batch, opt);
+    observe(model, trace, t, batch);
+    step(model, opt);                 // applies the gradient just computed
   }
   return model;
 }

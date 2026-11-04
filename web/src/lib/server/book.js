@@ -87,6 +87,8 @@ export function bookIndex() {
 		const prefix = c.unnumbered ? 'E' : String(c.num); // figure/section numbering prefix
 		data.chapters[c.id] = { num: label, slug: c.slug };
 		data.bynum[String(c.num)] = c.slug;
+		// (extension, epilogue) chapter files, so the `::: dictionary` filter can read every names table
+		(data.files ??= []).push({ num: label, slug: c.slug, id: c.id, title: c.title, path: c.path });
 		const ids = scanIds(fs.readFileSync(c.path, 'utf8'), prefix);
 		for (const [k, v] of ids.figures) { data.figures[k] = v; data.where[k] = String(c.num); }
 		for (const [k, v] of ids.sections) { data.sections[k] = v; data.where[k] = String(c.num); }

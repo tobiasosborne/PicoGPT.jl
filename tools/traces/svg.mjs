@@ -1,23 +1,28 @@
-// Plotter-honest SVG: every mark is a single stroked path, nothing is filled.
+// Plotter-honest SVG, drawn in millimetres at print size (DESIGN.md §9).
+// Every mark is a single stroked path; nothing is filled; the paper shows through.
 import { writeFileSync } from 'node:fs';
 
-export const ink = { paper: '#f3efe6', ink: '#1b1a17', accent: '#b8462e' };
+export const ink = { ink: '#181a20', value: '#334994', covector: '#d55339' };
+export const stroke = { hairline: 0.10, emphasis: 0.18 };       // mm
 
-const fmt = v => (Math.round(v * 100) / 100).toString();
+const fmt = v => (Math.round(v * 1000) / 1000).toString();
 export const polyline = pts => 'M' + pts.map(([x, y]) => fmt(x) + ' ' + fmt(y)).join('L');
 
-export function svg({ width, height, paths, background = ink.paper }) {
-  const body = paths.map(({ d, stroke = ink.ink, width = 0.35, opacity = 1 }) =>
-    `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round"/>`);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">` +
-    (background ? `<rect width="100%" height="100%" fill="${background}"/>` : '') +
-    body.join('') + '</svg>';
+const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+export function svg({ width, height, title, desc, paths }) {
+  const body = paths.map(({ d, color = ink.ink, width = stroke.hairline, opacity = 1 }) =>
+    `<path d="${d}" stroke="${color}" stroke-width="${width}"` +
+    (opacity < 1 ? ` stroke-opacity="${fmt(Math.max(0.04, opacity))}"` : '') + '/>');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" ` +
+    `width="${width}mm" height="${height}mm" fill="none" stroke-linecap="round" stroke-linejoin="round">` +
+    `<title>${escape(title)}</title><desc>${escape(desc)}</desc>` + body.join('') + '</svg>';
 }
 
-export const save = (file, s) => (writeFileSync(file, s), file);
+export const save = (file, s) => (writeFileSync(file, s), console.log(file, (s.length / 1e6).toFixed(2), 'MB'));
 
-// Ramer–Douglas–Peucker: drop points within tol of the chord. Plotters and browsers both thank us.
-export function simplify(pts, tol = 0.15) {
+// Ramer–Douglas–Peucker: drop points within tol (mm) of the chord.
+export function simplify(pts, tol = 0.05) {
   if (pts.length < 3) return pts;
   const [ax, ay] = pts[0], [bx, by] = pts.at(-1), dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1;
   let k = 0, dmax = 0;

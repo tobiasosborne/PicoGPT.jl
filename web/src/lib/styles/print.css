@@ -1,23 +1,30 @@
 /* ─────────────────────────────────────────────────────────────────────────────
-   print.css — the print edition (DESIGN.md §8).
+   print.css — the print edition (DESIGN.md §8). Built by print/build.mjs.
 
    The PDF is the web book's HTML under this stylesheet, paginated by Paged.js in
-   headless Chromium. Three layers:
-     A. .print-edition-root  — print geometry and type. Active on the /print/ route
-        on screen too (a faithful proof), and therefore also under Paged.js, which
-        renders in screen media.
-     B. @page rules          — trim, margins, running heads, folios, named pages.
-     C. @media print         — any ordinary web page printed from a browser.
-   Render /print/ at a viewport ≥ 1280 px wide (the web breakpoints are viewport-based).
-   Wait for <html data-print-ready="1"> before paginating.
+   headless Chromium. Paged.js renders in SCREEN media and drops every @media block
+   except print, so the book's layout lives in layer A, scoped to .print-edition-root
+   (active on the /print/ route on screen too: a faithful proof).
+     A. the page architecture and type, scoped to .print-edition-root
+     B. @page: trim and margins (running heads and folios are drawn by print/paginate.js)
+     C. Paged.js page furniture: verso/recto layout, running heads, floats, continuations
+     D. @media print: any ordinary web page printed from a browser
+
+   THE PAGE (crown quarto, 189 × 246 mm)
+     text block 153 × 206.3 mm = 43 lines of 13.6 pt
+       main column 104 mm (≈ 62 characters) · gap 5 mm · notes column 44 mm
+     margins: head 18, foot 21.7, inner (gutter) 21, outer 15 mm
+     The notes column is always on the OUTER side: on a recto it is right of the text,
+     on a verso left. Running heads and folios hang above the grid they belong to:
+     the folio over the notes column at the outer corner, the title over the main column.
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* ── A. the print edition ──────────────────────────────────────────────── */
+/* ── A. the print edition ──────────────────────────────────────────────────── */
 .print-edition-root {
-	/* trim 189 × 246 mm (crown quarto); text block 153 mm = main 104 + gap 5 + notes 44 */
 	--pg-main: 104mm;
 	--pg-gap: 5mm;
 	--pg-notes: 44mm;
+	--pg-shift: calc(var(--pg-gap) + var(--pg-notes)); /* the main column's offset on a verso */
 	--main: var(--pg-main);
 	--gap: var(--pg-gap);
 	--margin: var(--pg-notes);
@@ -25,144 +32,326 @@
 	--pad: 0mm;
 
 	--fs-body: 9.6pt;
-	--lh-body: 1.4167;           /* 13.6 pt leading */
+	--lh-body: 1.4167;           /* 13.6 pt */
 	--rhythm: 13.6pt;
-	--fs-small: 7.8pt;
+	--fs-small: 7.8pt;           /* notes, captions: 7.8 / 10.9 */
+	--lh-small: 10.9pt;
 	--fs-label: 7pt;
 	--fs-micro: 6.2pt;
-	--fs-h2: 15pt;
-	--fs-h3: 10.6pt;
-	--fs-claim: 13.5pt;
+	--fs-h2: 13.6pt;
+	--fs-h3: 10.2pt;
+	--fs-claim: 13.2pt;
 	--fs-title: 38pt;
 	--hair: 0.35pt;
 	--line: 0.75pt;
+	--paper: #ffffff;            /* the sheet is the paper: no tint is printed */
+	/* Fallbacks within the book's own faces: Archivo has no Greek, Literata no ℝ ∈ ∝ ⊙ ␣ ‖,
+	   so these come from XCharter Math and JuliaMono, never from a system font. */
+	--serif: 'Literata', 'XCharter Math', 'JuliaMono', serif;
+	--sans: 'Archivo', 'Literata', 'XCharter Math', 'JuliaMono', sans-serif;
+	--mono: 'JuliaMono', monospace;
+	font-family: var(--serif);
 
 	width: var(--wide);
 	margin: 0 auto;
 	font-size: var(--fs-body);
 	line-height: var(--lh-body);
 	hyphens: auto;
+	hyphenate-limit-chars: 6 3 3;
 	orphans: 2;
 	widows: 2;
+	font-kerning: normal;
+	font-optical-sizing: auto;
 	print-color-adjust: exact;
 	-webkit-print-color-adjust: exact;
 }
-.print-edition-root .book { width: var(--wide); }
-.print-edition-root .flow h2 { break-after: avoid; string-set: rh-section content(text); margin-top: calc(var(--rhythm) * 2); }
-.print-edition-root .flow h3 { break-after: avoid; }
-.print-edition-root .fig { break-inside: avoid; margin-block: calc(var(--rhythm) * 1.2); }
-.print-edition-root .fig__caption { font-size: var(--fs-small); }
-.print-edition-root .code { break-inside: auto; --code-fs: 7.1pt; --code-lh: 1.5; }
-.print-edition-root .code__head { break-after: avoid; }
-.print-edition-root .code__chunk { break-inside: avoid; }
-.print-edition-root .exercise { break-inside: avoid; }
-.print-edition-root .names { break-inside: avoid; }
-.print-edition-root .eq { overflow: visible; }
-.print-edition-root a { text-decoration: none; }
-.print-edition-root .xref { border-bottom: 0; }
+.print-edition-root .book { width: var(--wide); margin-inline: 0; }
+.print-edition-root a { text-decoration: none; color: inherit; }
+
+/* things that exist only on screen */
 .print-edition-root .readout,
 .print-edition-root .scrub,
 .print-edition-root .hit,
 .print-edition-root .handle-hit,
 .print-edition-root .rhead,
 .print-edition-root .chapnav,
-.print-edition-root .inktoggle { display: none !important; }
-.print-edition-root .frontis--empty, .print-edition-root .frontis--none { display: none; }
+.print-edition-root .inktoggle,
+.print-edition-root .frontis--empty,
+.print-edition-root .frontis--none { display: none !important; }
 
-/* pages of the front matter and the frontispieces */
+/* ── running text ── */
+.print-edition-root .flow p { text-wrap: pretty; }
+.print-edition-root .flow > p + p,
+.print-edition-root .flow > .noted + p { text-indent: 1.25em; }
+/* the opening line of a chapter's text, in small capitals (after its first heading too) */
+.print-edition-root .chapter-body > p:first-child::first-line,
+.print-edition-root .chapter-body > h2:first-child + p::first-line,
+.print-edition-root .chapter-body > h2:first-child + .noted > p::first-line { font-variant-caps: all-small-caps; letter-spacing: 0.045em; }
+.print-edition-root blockquote { margin: calc(var(--rhythm) * 0.6) 0; padding-left: 1.25em; font-style: italic; }
+.print-edition-root blockquote p { text-indent: 0; }
+.print-edition-root .flow ul, .print-edition-root .flow ol { padding-left: 1.25em; margin-block: calc(var(--rhythm) * 0.5); }
+.print-edition-root .flow li + li { margin-top: 0.15em; }
+.print-edition-root code { font-size: 0.86em; }
+
+/* headings: the section number hangs in the margin to the left of its title */
+.print-edition-root .flow h2 {
+	font-size: var(--fs-h2);
+	line-height: var(--rhythm);
+	font-weight: 450;
+	letter-spacing: -0.004em;
+	margin-top: calc(var(--rhythm) * 2);
+	margin-bottom: calc(var(--rhythm) * 0.5);
+	break-after: avoid;
+	clear: both;
+}
+.print-edition-root .flow h2 .secnum { top: 0.2em; right: calc(100% + 3.2mm); font-size: 7pt; font-weight: 500; letter-spacing: 0.03em; color: var(--ink-3); }
+.print-edition-root .flow h3 { font-size: var(--fs-h3); line-height: var(--rhythm); margin-top: calc(var(--rhythm) * 1.2); margin-bottom: calc(var(--rhythm) * 0.2); break-after: avoid; }
+.print-edition-root .flow h2 + *, .print-edition-root .flow h3 + * { margin-top: 0; }
+
+/* maths. Inline formulae with scripts would open the leading of their line; a small
+   negative margin lets them borrow the space between lines, as TeX's \lineskiplimit does. */
+.print-edition-root p math:not([display='block']),
+.print-edition-root li math:not([display='block']),
+.print-edition-root td math:not([display='block']) { margin-block: -0.22em; }
+.print-edition-root .eq { margin-block: calc(var(--rhythm) * 0.55); overflow: visible; break-inside: avoid; }
+.print-edition-root .eq-scroll { overflow: visible; }
+.print-edition-root .flow > .eq + p { text-indent: 0; }
+
+/* ── margin notes (::: aside) and numbered sidenotes (^[…]) ── */
+.print-edition-root .note,
+.print-edition-root .sidenote {
+	width: var(--pg-notes);
+	margin-right: calc(-1 * var(--pg-shift));
+	font-size: var(--fs-small);
+	line-height: var(--lh-small);
+	text-align: left;
+	hyphens: auto;
+	hyphenate-limit-chars: 6 3 2;
+	text-wrap: pretty;
+	break-inside: avoid;
+}
+.print-edition-root .note { margin-top: 0.1em; margin-bottom: 0.6em; }
+.print-edition-root .sn-ref, .print-edition-root .sn-num { color: var(--ink-2); }
+.print-edition-root .note math { font-size: 1em; }
+
+/* ── the chapter claim and the three names ── */
+.print-edition-root .claim { font-size: var(--fs-claim); line-height: 1.38; font-weight: 340; max-width: none; text-wrap: pretty; hyphens: manual; }
+.print-edition-root .names { margin-block: calc(var(--rhythm) * 1.4) calc(var(--rhythm) * 1.2); break-inside: avoid; }
+.print-edition-root .flow > .names { width: var(--wide); }
+.print-edition-root .names table { font-size: 7.8pt; line-height: 10.6pt; table-layout: fixed; }
+.print-edition-root .names th { font-size: 7.2pt; letter-spacing: 0.1em; padding-bottom: 1.4mm; border-bottom-width: 0.5pt; border-bottom-color: var(--ink-2); }
+.print-edition-root .names th:nth-child(1) { width: 42%; }
+.print-edition-root .names th:nth-child(2) { width: 31%; }
+.print-edition-root .names td { padding: 1.3mm 3mm 1.3mm 0; border-bottom: 0.3pt solid var(--rule); hyphens: manual; }
+.print-edition-root .names td:nth-child(3) { font-size: 7.1pt; }
+
+/* ── figures ── */
+.print-edition-root .fig { break-inside: avoid; margin-block: calc(var(--rhythm) * 1.15) calc(var(--rhythm) * 1.25); clear: both; }
+.print-edition-root .fig__caption { font-size: var(--fs-small); line-height: var(--lh-small); margin-top: 2.4mm; text-wrap: pretty; }
+.print-edition-root .fig__num { font-size: 7pt; letter-spacing: 0.02em; margin-right: 0.7em; }
+.print-edition-root .fig__notes { margin-top: 2.4mm; }
+.print-edition-root .fig__notes .note,
+.pagedjs_left_page .print-edition-root .fig__notes .note { float: none; width: auto; margin: 0; text-align: left; }
+.print-edition-root .fig__notes .note + .note { margin-top: 2mm; }
+.print-edition-root .fig__pending { padding: 6mm 0; font-size: var(--fs-small); }
+
+/* ── code ── */
+.print-edition-root .code { --code-fs: 7.1pt; --code-lh: 1.47; break-inside: auto; margin-block: calc(var(--rhythm) * 0.9) calc(var(--rhythm) * 1.1); clear: both; }
+.print-edition-root .code__head { break-after: avoid; font-size: 6.8pt; padding-bottom: 1mm; margin-bottom: 1.6mm; border-bottom-width: 0.3pt; }
+.print-edition-root .code__chunk { break-inside: avoid; grid-template-columns: 5mm minmax(0, 1fr); column-gap: 2.6mm; margin-left: -7.6mm; }
+.print-edition-root .code__nums { font-size: 6pt; padding-top: 0.04em; }
+.print-edition-root .code__gap { padding-left: 0; }
+.print-edition-root .flow > .code.pg-code-main { width: var(--pg-main); }
+.print-edition-root .code pre { overflow: visible; }
+.print-edition-root .code__caption { font-size: var(--fs-small); line-height: var(--lh-small); }
+
+/* ── exercises: the label hangs in the notes column beside the exercise ── */
+.print-edition-root .exercise { break-inside: avoid; margin-top: calc(var(--rhythm) * 0.7); }
+.print-edition-root .exercise + .exercise { margin-top: calc(var(--rhythm) * 0.9); }
+.print-edition-root .exercise__label {
+	float: right;
+	clear: right;
+	width: var(--pg-notes);
+	margin: 0 calc(-1 * var(--pg-shift)) 0 0;
+	display: block;
+	font-size: var(--fs-small);
+	line-height: var(--rhythm);
+}
+.print-edition-root .exercise__word { font-size: 8.4pt; letter-spacing: 0.09em; }
+.print-edition-root .exercise__num { font-size: 7pt; margin-left: 0.3em; }
+.print-edition-root .exercise__title { display: block; line-height: var(--lh-small); color: var(--ink-2); }
+.print-edition-root .exercises-head { margin-top: calc(var(--rhythm) * 2.5); }
+
+/* ── cross-references: page numbers added by print/paginate.js when the target is
+   not on the same spread ── */
+.print-edition-root .xref { border-bottom: 0; white-space: normal; }
+.print-edition-root .pg-xpage { font-variant-numeric: oldstyle-nums; white-space: nowrap; }
+
+/* ── the dictionary of jargon (epilogue) ── */
+.print-edition-root .flow > .dict { width: var(--wide); }
+.print-edition-root .dict { columns: 2; column-gap: 6mm; }
+.print-edition-root .dict__head { font-size: 15pt; margin: 3mm 0 1mm; }
+.print-edition-root .dict__entry { font-size: 7.6pt; line-height: 10.2pt; margin-bottom: 1.1mm; }
+
+/* ── the front matter ───────────────────────────────────────────────────────── */
 .pp { break-after: page; }
-.pp--halftitle { page: front; break-before: right; padding-top: 52mm; text-align: center; }
-.pp-halftitle { font-variant-caps: all-small-caps; letter-spacing: 0.14em; font-size: 12pt; color: var(--ink-2); }
-.pp--frontis { page: frontis; break-before: left; display: grid; place-items: center; height: 205mm; }
-.pp--frontis img { max-width: 100%; max-height: 205mm; width: auto; height: auto; }
-.pp--blank { display: none; }
-.pp--title { page: front; break-before: right; padding-top: 18mm; }
-.pp-title { font-size: 52pt; font-weight: 250; line-height: 0.9; letter-spacing: -0.03em; font-variation-settings: 'opsz' 72; }
-.pp-subtitle { font-size: 16pt; font-style: italic; font-weight: 330; line-height: 1.2; margin-top: 4mm; max-width: 16em; }
-.pp--title .theta { margin-top: 14mm; }
-.pp--title .theta__field { font-size: 5.3pt; line-height: 1.38; }
-.pp--title .theta__readout { font-size: 6.4pt; }
-.pp-author { margin-top: 16mm; font-variant-caps: all-small-caps; letter-spacing: 0.1em; font-size: 11pt; }
-.pp--colophon { page: front; break-before: left; display: flex; flex-direction: column; justify-content: flex-end; height: 200mm; font-size: 7.6pt; line-height: 1.45; color: var(--ink-2); max-width: 92mm; }
-.pp--colophon p + p { text-indent: 0; margin-top: 2.4mm; }
+.print-edition-root .pp p + p { text-indent: 0; }
+.pp--halftitle { page: front; break-before: right; padding-top: 58mm; }
+.pp-halftitle { font-variant-caps: all-small-caps; letter-spacing: 0.22em; font-size: 11pt; color: var(--ink); text-align: left; padding-left: 0; }
+
+/* plates (the traces): the image centred over a caption at the foot of the text block */
+.pp--frontis { page: frontis; break-before: left; height: 206mm; display: flex; flex-direction: column; }
+.pp-plate { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 6mm 0 8mm; }
+.pp-plate img { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.pp-plate__caption { flex: none; width: var(--pg-main); margin-left: var(--pg-shift); font-family: 'Archivo', 'Literata', 'XCharter Math', 'JuliaMono', sans-serif; font-size: 6.6pt; line-height: 9.2pt; color: var(--ink-2); font-variant-numeric: lining-nums; hyphens: auto; text-wrap: pretty; }
+.pp-plate__label { font-weight: 600; color: var(--ink); letter-spacing: 0.01em; margin-right: 0.3em; }
+.pp-plate__title { font-family: var(--serif); font-style: italic; font-size: 7.8pt; color: var(--ink); }
+
+/* the title page: θ itself is the texture */
+.pp--title { page: front; break-before: right; height: 206mm; display: flex; flex-direction: column; padding-top: 6mm; }
+.pp-title { font-size: 54pt; font-weight: 240; line-height: 0.9; letter-spacing: -0.032em; font-variation-settings: 'opsz' 72; margin-left: -0.05em; }
+.pp-subtitle { font-size: 15.5pt; font-style: italic; font-weight: 320; line-height: 1.22; margin-top: 4.5mm; max-width: 14em; }
+.pp--title .theta { margin-top: 15mm; }
+.pp--title .theta__field { font-size: 5.25pt; line-height: 1.4; }
+.pp--title .theta__readout { font-size: 6.2pt; min-height: 0; margin-top: 2mm; }
+.pp-author { margin-top: auto; font-variant-caps: all-small-caps; letter-spacing: 0.12em; font-size: 11pt; }
+
+/* the colophon (verso of the title) */
+.pp--colophon { page: front; break-before: left; height: 206mm; display: flex; flex-direction: column; justify-content: flex-end; margin-left: var(--pg-shift); width: var(--pg-main); font-size: 7.4pt; line-height: 10.4pt; color: var(--ink-2); }
+.pp--colophon > p { margin-top: 2.6mm; text-wrap: pretty; }
+.pp-facts { display: grid; grid-template-columns: 27mm 1fr; gap: 0.6mm 4mm; margin: 0 0 3mm; padding-bottom: 3mm; border-bottom: 0.3pt solid var(--rule); font-family: var(--sans); font-size: 6.8pt; line-height: 9.4pt; font-variant-numeric: lining-nums tabular-nums; }
+.pp-facts div { display: contents; }
+.pp-facts dt { color: var(--ink-3); }
+.pp-facts dd { margin: 0; color: var(--ink); }
+.pp-facts i { font-family: var(--serif); font-size: 1.1em; }
 .ink-value { color: var(--value-deep); }
 .ink-covector { color: var(--covector-deep); }
 .pp-built { color: var(--ink-3); }
-.pp--contents { page: front; break-before: right; padding-top: 22mm; }
-.pp-h { font-variant-caps: all-small-caps; letter-spacing: 0.12em; font-size: 11pt; color: var(--ink-2); font-weight: 450; margin-bottom: 7mm; }
-.pp--contents .toc__title { font-size: 12.5pt; }
-.pp--contents .toc__num { font-size: 17pt; }
-.pp--contents .toc__item { padding: 2.6mm 0 3mm; }
-.pp--contents .toc__state { display: none; }
-.print-edition-root .toc__item { break-inside: avoid; }
 
-/* chapters: the trace on the verso, the opening on the recto */
+/* the contents: numeral in the margin, title and page, the gist, the sections run in */
+.pp--contents { page: front; break-before: right; padding-top: 10mm; }
+.pp-h { font-variant-caps: all-small-caps; letter-spacing: 0.16em; font-size: 10pt; color: var(--ink); font-weight: 450; margin: 0 0 9mm; }
+.pg-toc { list-style: none; margin: 0; padding: 0; width: var(--pg-main); }
+.pg-toc__ch { position: relative; padding: 0 0 4.2mm; break-inside: avoid; }
+.pg-toc__num { position: absolute; right: calc(100% + 4mm); top: -0.5pt; font-size: 15pt; line-height: 1; font-weight: 250; color: var(--ink-3); font-variant-numeric: lining-nums; font-variation-settings: 'opsz' 48; }
+.pg-toc__head { font-size: 11.6pt; line-height: 14pt; display: flex; align-items: baseline; gap: 3mm; }
+.pg-toc__title { color: var(--ink); }
+.pg-toc__page { font-size: 9.6pt; color: var(--ink); font-variant-numeric: oldstyle-nums; }
+.pg-toc__page::after { content: target-counter(attr(href url), page); }
+.pg-toc__gist { font-size: 7.8pt; line-height: 10.6pt; font-style: italic; color: var(--ink-2); margin-top: 0.6mm; hyphens: manual; text-wrap: pretty; }
+.pg-toc__secs { font-size: 7.6pt; line-height: 10.6pt; color: var(--ink); margin-top: 0.8mm; hyphens: manual; text-wrap: pretty; }
+.pg-toc__sec { white-space: normal; }
+.pg-toc__spage { color: var(--ink-3); font-variant-numeric: oldstyle-nums; white-space: nowrap; }
+.pg-toc__spage::after { content: target-counter(attr(href url), page); }
+.pg-toc__sep { color: var(--ink-3); }
+.pg-toc__ch--planned .pg-toc__title, .pg-toc__ch--planned .pg-toc__num { color: var(--ink-3); }
+.pg-toc__ch--planned .pg-toc__gist { color: var(--ink-3); }
+.pg-toc__state { font-size: 7pt; font-variant-caps: all-small-caps; letter-spacing: 0.08em; color: var(--ink-3); }
+
+/* ── chapters: the trace on the verso, the opening on the facing recto ─────────── */
 /* The break sits on the article, so a page inserted before it is a true :blank page; the
    frontispiece then falls on a verso and the opening's break-before: right on the facing recto.
    (Two forced breaks in a row, or an empty element between them, make Paged.js add a page.) */
 .print-chapter { break-before: right; }
 .print-chapter--frontis { break-before: left; }
 .print-chapter .pp--chapter-frontis { break-before: auto; break-after: auto; }
-.print-chapter .opening { break-before: right; padding-bottom: 6mm; }
-.print-chapter .opening__text { padding-top: 34mm; }
-.print-chapter .opening__num { right: calc(100% + 0.28em); }
-.print-chapter .opening__kicker { font-size: 9.6pt; }
+.print-chapter .opening { break-before: right; padding-bottom: 0; }
+.print-chapter .opening__text { padding-top: 38mm; position: relative; }
+.print-chapter .opening__kicker { font-size: 8.6pt; letter-spacing: 0.14em; color: var(--ink-2); margin-bottom: 3.5mm; font-weight: 430; }
+.print-chapter .opening__title { font-size: var(--fs-title); line-height: 1; font-weight: 280; letter-spacing: -0.02em; position: static; }
+/* the chapter numeral stands in the notes column, the outer margin of the recto */
+.print-chapter .opening__num {
+	position: absolute;
+	left: calc(var(--pg-main) + var(--pg-gap));
+	right: auto;
+	width: var(--pg-notes);
+	bottom: auto;
+	top: 28.5mm;
+	text-align: right;
+	font-size: 92pt;
+	line-height: 1;
+	font-weight: 200;
+	letter-spacing: -0.04em;
+	color: var(--rule);
+	font-variation-settings: 'opsz' 72;
+}
+.print-chapter .opening__claim { margin-top: 6.5mm; width: var(--pg-main); }
+.print-chapter .opening + .chapter-body > .names:first-child { margin-top: 8mm; }
 .rh-chapter, .rh-clear { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.rh-chapter { string-set: rh-chapter content(text); }
-/* the opening page carries no section head: an empty marker resets it (no named page here:
-   switching named pages mid-chapter makes Paged.js insert a page) */
-.rh-clear { string-set: rh-section content(text); }
 
-/* ── B. pages ──────────────────────────────────────────────────────────── */
+/* ── B. pages ────────────────────────────────────────────────────────────────── */
 @page {
 	size: 189mm 246mm;
-	margin: 18mm 15mm 21mm 21mm;
+	margin: 18mm 15mm 21.7mm 21mm;
 }
-@page :right {
-	margin-left: 21mm;
-	margin-right: 15mm;
-	@top-left { content: string(rh-section); font-family: 'Literata', serif; font-size: 7.4pt; font-style: italic; color: #4c5058; vertical-align: bottom; padding-bottom: 4mm; }
-	@top-right { content: counter(page); font-family: 'Literata', serif; font-size: 8pt; font-variant-numeric: oldstyle-nums; color: #181a20; vertical-align: bottom; padding-bottom: 4mm; }
-}
-@page :left {
-	margin-left: 15mm;
-	margin-right: 21mm;
-	@top-left { content: counter(page); font-family: 'Literata', serif; font-size: 8pt; font-variant-numeric: oldstyle-nums; color: #181a20; vertical-align: bottom; padding-bottom: 4mm; }
-	@top-right { content: string(rh-chapter); font-family: 'Literata', serif; font-size: 7.4pt; font-variant-caps: all-small-caps; letter-spacing: 0.08em; color: #4c5058; vertical-align: bottom; padding-bottom: 4mm; }
-}
-@page front {
-	@top-left { content: none; }
-	@top-right { content: none; }
-}
-@page frontis {
-	margin: 16mm 14mm;
-	@top-left { content: none; }
-	@top-right { content: none; }
-}
-@page :blank {
-	@top-left { content: none; }
-	@top-right { content: none; }
-}
+@page :right { margin-left: 21mm; margin-right: 15mm; }
+@page :left { margin-left: 15mm; margin-right: 21mm; }
+@page frontis { margin-top: 18mm; margin-bottom: 21.7mm; }
 
-/* Paged.js: an inserted blank page carries no running head or folio */
-.pagedjs_blank_page .pagedjs_margin-content { visibility: hidden; }
+/* ── C. Paged.js page furniture ────────────────────────────────────────────────── */
+.pagedjs_page { background: #ffffff; }
+.pagedjs_pagebox { position: relative; }
+.pagedjs_page_content { position: relative; }
 
-/* Margin notes in the OUTER margin: on versos (Paged.js marks page sides) the
-   text column moves right and notes float into the left margin. */
-.pagedjs_left_page .print-edition-root .flow > *:not(.fig--wide):not(.code):not(.fig--full) { margin-left: calc(var(--pg-gap) + var(--pg-notes)); }
+/* versos: the main column moves right, notes float into the left (outer) margin */
+.pagedjs_left_page .print-edition-root .flow > *:not(.fig--wide):not(.fig--full):not(.code:not(.pg-code-main)):not(.names):not(.dict):not(.pg-anchor) { margin-left: var(--pg-shift); }
+/* a wide excerpt on a verso starts at the outer edge of the text block: its line numbers stay inside it */
+.pagedjs_left_page .print-edition-root .code:not(.pg-code-main) { padding-left: 7.6mm; }
 .pagedjs_left_page .print-edition-root .note,
-.pagedjs_left_page .print-edition-root .sidenote {
+.pagedjs_left_page .print-edition-root .sidenote,
+.pagedjs_left_page .print-edition-root .exercise__label {
 	float: left;
 	clear: left;
 	margin-right: 0;
-	margin-left: calc(-1 * (var(--pg-gap) + var(--pg-notes)));
-	text-align: right;
+	margin-left: calc(-1 * var(--pg-shift));
 }
 .pagedjs_left_page .print-edition-root .fig__foot { grid-template-columns: var(--pg-notes) var(--pg-main); }
 .pagedjs_left_page .print-edition-root .fig__foot .fig__caption { grid-column: 2; grid-row: 1; }
 .pagedjs_left_page .print-edition-root .fig__notes { grid-column: 1; grid-row: 1; }
+.pagedjs_left_page .print-edition-root .fig--main .fig__foot { margin-left: calc(-1 * var(--pg-shift)); }
+.pagedjs_left_page .print-edition-root .flow h2 .secnum { right: calc(100% + 3.2mm); }
 
-/* ── C. any web page, printed from the browser ─────────────────────────── */
+/* continuations: a block resumed at the head of a page is not a new paragraph */
+.pagedjs_page .print-edition-root [data-split-from] { margin-top: 0 !important; }
+.pagedjs_page .print-edition-root p[data-split-from] { text-indent: 0 !important; }
+.pagedjs_page .print-edition-root [data-split-to] { margin-bottom: 0 !important; }
+.pagedjs_page .print-edition-root .chapter-body[data-split-from] > p:first-child::first-line { font-variant-caps: normal; letter-spacing: 0; }
+/* the first block on a page starts at the head of the text block */
+.pagedjs_page .print-edition-root .pg-first { margin-top: 0 !important; }
+/* a figure set at the head of a page by the float handler */
+.pagedjs_page .print-edition-root .fig.pg-top { margin-top: 0; margin-bottom: calc(var(--rhythm) * 1.6); }
+/* the rest of a paragraph that a figure at the head of the page interrupted */
+.pagedjs_page .print-edition-root .pg-cont, .pagedjs_page .print-edition-root .pg-cont > p:first-child { margin-top: 0 !important; text-indent: 0 !important; }
+.print-edition-root .pg-anchor { height: 0; margin: 0; }
+
+/* running heads and folios (DOM drawn by print/paginate.js on each page) */
+.pg-head, .pg-foot {
+	position: absolute;
+	width: 153mm;
+	display: grid;
+	align-items: baseline;
+	font-family: 'Literata', 'XCharter Math', 'JuliaMono', serif;
+	font-size: 7.6pt;
+	line-height: 1;
+	color: #4c5058;
+	font-variant-numeric: oldstyle-nums proportional-nums;
+	white-space: nowrap;
+}
+.pg-head { top: 10.4mm; }
+.pg-head--verso { left: 15mm; grid-template-columns: 49mm 104mm; }
+.pg-head--recto { left: 21mm; grid-template-columns: 104mm 49mm; }
+.pg-folio { font-size: 8.2pt; color: #181a20; }
+.pg-head--recto .pg-folio, .pg-foot--recto .pg-folio { text-align: right; }
+.pg-rh { overflow: hidden; text-overflow: ellipsis; }
+.pg-head--verso .pg-rh { font-variant-caps: all-small-caps; letter-spacing: 0.11em; }
+.pg-head--verso .pg-rh__num { font-variant-numeric: lining-nums; letter-spacing: 0; margin-right: 0.9em; color: #7d8088; }
+.pg-head--recto .pg-rh { font-style: italic; }
+.pg-head .pg-rh math { font-size: 0.95em; }
+.pg-foot { bottom: 11mm; }
+.pg-foot--recto { left: 21mm; grid-template-columns: 104mm 49mm; }
+.pg-foot--verso { left: 15mm; grid-template-columns: 49mm 104mm; }
+
+/* ── D. any web page, printed from the browser ───────────────────────────────── */
 @media print {
 	:root { --paper: #ffffff; }
 	html, body { background: #ffffff; }
@@ -171,7 +360,3 @@
 	.flow h2, .flow h3 { break-after: avoid; }
 	a { text-decoration: none; }
 }
-
-/* contents with page numbers (Paged.js target-counter) */
-.print-edition-root .toc__item { grid-template-columns: 12mm minmax(0, 1fr) auto auto; }
-.print-edition-root .toc__page::after { content: target-counter(attr(href url), page); font-variant-numeric: oldstyle-nums; color: var(--ink-2); }

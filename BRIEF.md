@@ -298,9 +298,45 @@ Layout must reserve a frontispiece slot at each chapter opening and on the cover
   1007 numbers can never learn").
 - **LayerNorm with ε > 0 maps to just inside the sphere of radius √D**, not onto it. Say so
   precisely.
-- **The specimen's loss floor is 0.0588 nats, not 0.** That is the irreducible ambiguity of the
-  corpus (e.g. after a short context "o", the next character could be " ", "r" or "t").
+- **The specimen's loss floor is exactly (2 ln 2 + 3 ln 3)/80 ≈ 0.05853 nats, not 0.** Of the 80
+  predictions (10 windows × 8 positions), five come at position 1 of a window, where the context is
+  one character long:
+  - two windows begin with "o", continued by " " or "r" (ln 2 each);
+  - three begin with " ", continued by "b", "o" or "n" (ln 3 each).
+  Every other prediction is determined by its context. Training reaches about 0.0588. Compute
+  these numbers in figures; never hard-code them. The surprise trace
+  (web/public/traces/surprise.svg) shows the two plateaux.
 - **Plain Adam at the floor periodically "slingshots"** (loss spikes after convergence). This
   is a real exhibit for chapter 8. A cosine schedule suppresses it.
 - `book/notes/derivations.md` is the mathematical reference for all chapters; parameter
   counts are 1,007 (specimen) and 810,049 (V=65, D=128, F=512, L=4).
+
+## 13. The canonical recipe (binding for Julia, the JS engine, figures, and traces)
+
+There is ONE initialisation and ONE optimiser. Julia's `src/parameters.jl:initial` and
+`artifacts/specimen.json` ("init", "train", "conventions") are the reference.
+
+**Initialisation** (mean, std):
+- `E` ~ (0, 1)
+- `Wq Wk Wv W1` ~ (0, 1/√D)
+- `Wo` ~ (0, 1/√(2L·D))
+- `W2` ~ (0, 1/√(2L·F))
+- `Wout` ~ (0, 1/D)
+- every γ = 1
+- every β and bias = 0
+
+**Optimiser.** AdamW:
+- β1 = 0.9, β2 = 0.95, ε = 1e-8.
+- Weight decay λ applies to matrices only (parameters with 2-D shapes), not to γ, β or biases.
+- Global-norm clipping before the moments.
+
+**Schedule.** η_t = η·t/warmup for t ≤ warmup, then cosine from η to η_min.
+
+**Specimen recipe:** η = 0.02, η_min = 0.002, warmup = 20, λ = 0.01, clip = 1, 200 steps,
+full batch.
+
+**Trajectory convention:** `loss[k+1]` is the loss after k updates, k = 0…steps.
+
+Every JS consumer (engine, `web/src/lib/model/*`, figures, traces) calls ONE engine
+implementation of init and step. There must be no second implementation of training in the
+web code.

@@ -41,6 +41,7 @@ function fromArtifact(p) {
 		theta0: a.theta0,
 		theta: train.theta_final ?? a.theta0,
 		loss: train.loss ?? [],
+		init: a.init ?? null, // the initial distributions (chapter 8 redraws θ₀ for other seeds)
 		provenance: {
 			kind: 'artifact',
 			source: 'artifacts/specimen.json',

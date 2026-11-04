@@ -10,6 +10,7 @@
 	let { data } = $props();
 	const specimen = $derived(makeSpecimen(data.specimen));
 	setContext('specimen', () => specimen);
+	setContext('artifacts', () => data.artifacts ?? {});
 	const meta = $derived(data.chapter.meta);
 </script>
 

@@ -11,7 +11,7 @@
   &nbsp;·&nbsp;
   <a href="#the-code">The code</a>
   &nbsp;·&nbsp;
-  <a href="#the-print-edition">The print edition</a>
+  <a href="https://github.com/tobiasosborne/PicoGPT.jl/raw/master/print/PicoGPT.pdf">Download the PDF</a>
 </h3>
 
 <br>
@@ -146,12 +146,14 @@ whole training run. A full training step of the specimen takes about a third of 
 
 ## The print edition
 
+**[Download PicoGPT.pdf](https://github.com/tobiasosborne/PicoGPT.jl/raw/master/print/PicoGPT.pdf)** (134 pages, every mark vector).
+
 The same HTML, set as a printed book: 189 × 246 mm, an outer column for notes, figures in their
 static states, and the traces as plates facing each chapter opening. It is paginated by
 Paged.js and printed to PDF by headless Chromium, so there is no second typesetting system.
 
 ```sh
-cd print && npm install && npm run pdf                   # → print/PicoGPT.pdf
+cd print && npm install && npm run pdf                   # rebuild → print/PicoGPT.pdf
 ```
 
 ## Build the web book

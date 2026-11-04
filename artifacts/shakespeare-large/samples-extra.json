@@ -1,0 +1,21 @@
+{
+ "description": "Three extra samples from the final (step-12,000) large model, drawn on monolith after export with draw/generate at temperature 0.8, 200 generated characters each, prompted with a newline. Recorded verbatim from the run report; not part of export_book_data.jl's output.",
+ "step": 12000,
+ "temperature": 0.8,
+ "prompt": "\n",
+ "length": 200,
+ "samples": [
+  {
+   "seed": 20261,
+   "text": "\nKill'd either death or persons out of these woods,\nSo and admired, as the prisoner'd lance.\n\nROMEO:\nWhoever many his drum: stand all, did I cannot be.\n\nJULIET:\nIf they be so, you have but me to ru me"
+  },
+  {
+   "seed": 20262,
+   "text": "\nDraw Is in your daughter, that you might leave\nA lully sincerity see't corney, which as never\nWas not inctinences for in the cest,\nTo look that thou like thy slipning star;\nAnd she about means, O, the"
+  },
+  {
+   "seed": 20263,
+   "text": "\nKING RICHARD III:\nWhat is't o'clock?\n\nBUCKINGHAM:\nUpon the stroke of ten.\n\nKING RICHARD III:\nWell, then, I must stay about the king\nHath they not what in they single three,\nAnd the king did requite of"
+  }
+ ]
+}

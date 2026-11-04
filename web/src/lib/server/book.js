@@ -171,7 +171,7 @@ export function renderChapter(slug) {
 	if (!c) return null;
 	const md = expandProse(fs.readFileSync(c.path, 'utf8'), ROOT);
 	const index = bookIndex();
-	const key = [fs.statSync(c.path).mtimeMs, fs.statSync(FILTER).mtimeMs, index.key, sourcesKey(md), ...['artifacts/specimen.json', 'artifacts/shakespeare/loss.json'].map((f) => fs.statSync(path.join(ROOT, f)).mtimeMs)].join('#');
+	const key = [fs.statSync(c.path).mtimeMs, fs.statSync(FILTER).mtimeMs, index.key, sourcesKey(md), ...['artifacts/specimen.json', 'artifacts/shakespeare/loss.json', 'artifacts/shakespeare-large/loss.json', 'artifacts/shakespeare-large/memorised.json'].map((f) => fs.statSync(path.join(ROOT, f)).mtimeMs)].join('#');
 	const hit = cache.get(slug);
 	if (hit?.key === key) return hit.value;
 

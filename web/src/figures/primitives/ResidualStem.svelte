@@ -65,6 +65,7 @@
 		track = true,
 		bars = null, // { values, scale (px per unit), signed, mark, gap }
 		tipScale = 1,
+		fitTips = false, // covector glyphs: bars fit between neighbouring spokes (keys)
 		part = 'all' // 'attention': only x₀ → attention branch → x_mid (for keys)
 	} = $props();
 	const one = $derived(part === 'attention');
@@ -225,7 +226,7 @@
 			{/if}
 		{/if}
 		{#if glyphs && b.v && b.uNode > 0.001}
-			<SpokeGlyph values={b.v.map((v) => v * b.uNode)} x={bx} y={b.n} rmax={rG} {scale} {ink} muted={muted} tip={1.9 * tipScale} />
+			<SpokeGlyph values={b.v.map((v) => v * b.uNode)} x={bx} y={b.n} rmax={rG} {scale} {ink} muted={muted} tip={1.9 * tipScale} fit={fitTips} />
 		{:else if glyphs && b.v && track}
 			<circle class="rstem__station" cx={bx} cy={b.n} r="1.2" />
 		{:else if !glyphs && b.uNode > 0}
@@ -248,7 +249,7 @@
 		{#each cov ? [['out', Y.out, sv.showOut0], ['mid', Y.mid, sv.showMid], ['x0', Y.x0, sv.showX0]] : [['x0', Y.x0, sv.showX0], ['mid', Y.mid, sv.showMid], ['out', Y.out, sv.showOut]] as [key, yy, show] (key)}
 			{#if !(one && key === 'out')}
 				{#if show}
-					<SpokeGlyph values={sv[key]} {x} y={yy} rmax={rG} {scale} {ink} {muted} tip={2.1 * tipScale} />
+					<SpokeGlyph values={sv[key]} {x} y={yy} rmax={rG} {scale} {ink} {muted} tip={2.1 * tipScale} fit={fitTips} />
 				{:else if track}
 					<circle class="rstem__station" cx={x} cy={yy} r="1.2" />
 				{/if}
@@ -261,7 +262,14 @@
 		<line class="rstem__base" x1={barLine.x1} x2={2 * x - barLine.x1} y1={barLine.y} y2={barLine.y} />
 		{#each barGeom as b (b.k)}
 			{#if b.h > 0.05}
-				<rect class="rstem__bar" class:is-mark={b.mark} x={b.x} y={b.y} width={b.w} height={b.h} />
+				{#if cov && !muted && b.w < 5}
+					<!-- too narrow to hatch: the barred covector mark, a stem with a bar across its tip -->
+					{@const tip = b.y === barLine.y ? b.y + b.h : b.y}
+					<line class="rstem__tick" x1={b.x + b.w / 2} x2={b.x + b.w / 2} y1={barLine.y} y2={tip} />
+					<line class="rstem__tick rstem__tick--bar" x1={b.x - 0.3} x2={b.x + b.w + 0.3} y1={tip} y2={tip} />
+				{:else}
+					<rect class="rstem__bar" class:is-mark={b.mark} x={b.x} y={b.y} width={b.w} height={b.h} />
+				{/if}
 			{/if}
 		{/each}
 	{/if}
@@ -292,6 +300,8 @@
 	.rstem__base { stroke: var(--rule); stroke-width: var(--hair); }
 	.rstem--value .rstem__bar { fill: var(--value); }
 	.rstem--covector .rstem__bar { fill: url(#hatch-covector); stroke: var(--covector); stroke-width: 0.5px; }
+	.rstem__tick { stroke: var(--covector); stroke-width: 0.9px; stroke-linecap: butt; }
+	.rstem__tick--bar { stroke-width: 1.3px; }
 	.rstem--muted .rstem__band, .rstem--muted .rstem__bar { fill: var(--ink-3); opacity: 0.2; stroke: none; }
 	.rstem--muted .rstem__copy, .rstem--muted .rstem__ret { stroke: var(--ink-3); opacity: 0.2; }
 	/* the recorded forward pass under a backward pass: its joints give way to the covector's */

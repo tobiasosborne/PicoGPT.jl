@@ -143,6 +143,9 @@
 		}
 		// a code excerpt whose longest line fits the main column sits in it (and moves with it on
 		// versos); a longer one spans the text block
+		// (a code excerpt with a margin note is unwrapped first: the note is already a mark that
+		// anchors to the block after it, and the excerpt is then laid out like any other)
+		for (const code of root.querySelectorAll('.chapter-body > .noted > .code')) code.parentElement.replaceWith(...code.parentElement.childNodes);
 		for (const code of root.querySelectorAll('.chapter-body > .code')) {
 			let w = 0;
 			for (const pre of code.querySelectorAll('pre')) {
@@ -150,7 +153,17 @@
 				r.selectNodeContents(pre);
 				w = Math.max(w, r.getBoundingClientRect().width);
 			}
-			if (w <= mainW + 0.5) code.classList.add('pg-code-main');
+			if (w <= mainW + 0.5) { code.classList.add('pg-code-main'); continue; }
+			// longer than the text block too: set the excerpt a little smaller rather than let a
+			// source line run off the page (the lines are the file's own; they are never rewrapped)
+			const avail = code.querySelector('pre')?.getBoundingClientRect().width ?? 0;
+			if (avail && w > avail + 0.5) {
+				const fs = parseFloat(getComputedStyle(code).getPropertyValue('--code-fs')) || 7.1;
+				const to = Math.max(5.8, Math.floor(fs * (avail / w) * 20) / 20);
+				code.style.setProperty('--code-fs', `${to}pt`);
+				diag.floats.push({ id: code.dataset.file ?? 'code', how: `set at ${to} pt so its longest line fits the text block` });
+				if (to === 5.8 && fs * (avail / w) < 5.8) diag.warnings.push(`a code excerpt (${code.querySelector('.code__head')?.textContent.trim().slice(0, 50)}) is too wide for the text block even at 5.8 pt`);
+			}
 		}
 		// Hatching as vector lines. Chromium's PDF backend cannot write the rotated SVG hatch
 		// pattern natively and paints each hatched mark with a page-sized 72 dpi raster tile.
@@ -625,7 +638,7 @@
 		const gap = 2.4 * PX_PER_MM;
 		const near = 8 * 13.6 * 96 / 72;
 		// obstacles: anything else in the notes column
-		const obst = [...content.querySelectorAll('.fig, .code, .names, .dict, .eq.pg-eq-wide, .eq-scroll.pg-eq-wide, .exercise__label, .opening, .pg-toc')]
+		const obst = [...content.querySelectorAll('.fig, .code, .names, .dict, .eq.pg-eq-wide, .eq-scroll.pg-eq-wide, .exercise__label, .opening, .pg-toc, h2 .secnum, h3 .secnum')]
 			.map((e) => e.classList.contains('fig') ? (e.querySelector('.fig__notes') && !e.classList.contains('fig--wide') && !e.classList.contains('fig--full') ? e.querySelector('.fig__notes') : e) : e)
 			.map((e) => e.getBoundingClientRect())
 			.filter((r) => r.height && r.right > colL + 1 && r.left < colR - 1 && r.left < A.right - 1)

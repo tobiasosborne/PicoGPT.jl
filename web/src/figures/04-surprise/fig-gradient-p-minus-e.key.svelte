@@ -25,7 +25,7 @@
 	{ ax: xs[1] + 13, ay: base - amp + 6, side: 'right', len: 12, text: 'outline: the one-hot\nvector of what came' },
 	{ ax: xs[0], ay: base - p[other] * amp, side: 'above', len: 14, text: 'solid: p, the\nprediction', align: 'start', dx: -36 },
 	{ ax: xs[1] + 9, ay: g0 + (1 - p[y]) * gamp * 0.6, side: 'right', len: 12, text: `hatched: the gradient,\n${fmt(p[y] - 1, 2)}; down: descent\nraises this logit` },
-	{ ax: xs[0] - 9, ay: g0, side: 'below', len: 36, text: `up: descent lowers it, by ${fmt(p[other], 2)}`, align: 'start', dx: -2 }
+	{ ax: xs[0] - 9, ay: g0 - p[other] * gamp, side: 'above', len: 10, text: `up: descent lowers it, by ${fmt(p[other], 2)}`, align: 'start', dx: -6 }
 ]}>
 	{#snippet glyph()}
 		<g class="fx">

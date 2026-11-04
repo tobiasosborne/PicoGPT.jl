@@ -21,7 +21,7 @@ export function load() {
 			if (seg.t !== 'html') continue;
 			seg.html = seg.html.replace(/(\sid=")([^"]+)"/g, (all, pre, id) => (seen[id]?.size > 1 && where[id] !== String(c.num) ? `${pre}${c.slug}--${id}"` : all));
 			// in one document, links between chapters become in-document anchors
-			seg.html = seg.html.replace(/href="\.\.\/[\w-]+\/#/g, 'href="#').replace(/href="\.\.\/([\w-]+)\/"/g, 'href="#ch-$1"');
+			seg.html = seg.html.replace(/href="\.\.\/[\w-]+\/#/g, 'href="#').replace(/href="\.\.\/([\w-]+)\/"/g, 'href="#open-$1"');
 			// the sections, for the contents
 			for (const m of seg.html.matchAll(/<h2\b[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/h2>/g)) {
 				const num = m[2].match(/<span class="secnum">([^<]*)<\/span>/)?.[1] ?? '';

@@ -88,7 +88,7 @@ $$\E\,\hat g=\nabla\ell.$$
 The *minibatch gradient* $\hat g$ is an unbiased estimate of the gradient. If the $I_j$ are drawn independently (with replacement), its covariance is $\Sigma/b$, where $\Sigma$ is the covariance of a single example's gradient: the noise shrinks like $1/\sqrt b$. Drawing without replacement, as in practice, keeps the mean and multiplies the covariance by $(M-b)/(M-1)$, which is zero when the batch is the whole set. Gradient descent with $\hat g$ is *stochastic gradient descent*, Euler's method with a force measured afresh, and noisily, at every step.
 
 ::: {.figure #fig-minibatch}
-Every minibatch gradient of the specimen, projected onto a plane. Each dot is the gradient of the loss on $b$ of the ten windows, for every possible choice of the $b$; the cross is the full gradient, which is exactly the mean of each cloud. Before training, and after it.
+Every minibatch gradient of the specimen, projected onto a plane. Each short bar is the gradient of the loss on $b$ of the ten windows, for every possible choice of the $b$; the cross is the full gradient, which is exactly the mean of each cloud. Before training, and after it.
 :::
 
 For the specimen nothing need be sampled: there are exactly $\binom{10}{b}$ minibatches of size $b$, and @fig-minibatch computes the gradient of every one. Before training the clouds are centred on a large full gradient, and they tighten as $b$ grows. After training the full gradient is almost zero, as it should be at the bottom of the loss, but the clouds are not. The windows that begin with "o" or with a space still pull hard: at the floor the model gives probability one half to each continuation of "o", so the window whose next character is a space pushes towards the space, the window whose next character is "r" pushes towards "r", and only their sum vanishes. Minibatch noise does not die out at a minimum of the loss. It dies out only where every single example is satisfied, and the floor exists precisely because that cannot happen.
@@ -108,7 +108,9 @@ Adam evolves the state $(\theta,m,v)$, not $\theta$ alone. It is a history-depen
 *Adam* keeps two running averages per coordinate, of the gradient and of its square, with $m_0=v_0=0$:
 $$m_k=\beta_1m_{k-1}+(1-\beta_1)g_k,\qquad v_k=\beta_2v_{k-1}+(1-\beta_2)\,g_k\odot g_k.$$
 Unrolled, $m_k=(1-\beta_1)\sum_{j\le k}\beta_1^{k-j}g_j$ is an average with geometric weights, whose weights add up to $1-\beta_1^k$ rather than to one because the sum started from zero. Dividing by that sum gives the bias-corrected averages $\hat m_k=m_k/(1-\beta_1^k)$ and $\hat v_k=v_k/(1-\beta_2^k)$, and the update is
-$$\theta_{k+1}=\theta_k-\eta_k\,\frac{\hat m_k}{\sqrt{\hat v_k}+\epsilon},\qquad\text{that is}\qquad\theta_{k+1}=\theta_k-\eta_k\,G_k\hat m_k,\quad G_k=\diag\Bigl(\frac1{\sqrt{\hat v_{k,i}}+\epsilon}\Bigr),$$
+$$\theta_{k+1}=\theta_k-\eta_k\,\frac{\hat m_k}{\sqrt{\hat v_k}+\epsilon},$$
+that is,
+$$\theta_{k+1}=\theta_k-\eta_k\,G_k\hat m_k,\qquad G_k=\diag\Bigl(\frac1{\sqrt{\hat v_{k,i}}+\epsilon}\Bigr),$$
 with square root and division taken coordinate by coordinate. So Adam is a diagonal preconditioner applied to a smoothed gradient, the *momentum* $\hat m$, and not to the gradient itself. Note that $v$ estimates the second moment of the gradient, not its variance: nothing is subtracted.
 
 ::: aside

@@ -106,6 +106,20 @@
 	const inY0 = $derived(Y(sqrtD) - 8);
 	const inScale = $derived(inH / (Math.ceil(gapMax / decade) * decade));
 	const ticks = $derived(Array.from({ length: Math.ceil(gapMax / decade) + 1 }, (_, k) => k * decade));
+	// every depth line named by its column (character and position), deepest at the bottom;
+	// labels that would touch are spread apart (11.5 px; more round the bold selected one) and joined to their lines by leaders
+	const depthLabels = $derived.by(() => {
+		const L = cols.map((c, j) => ({ j, y0: inY0 + c.gap * inScale })).sort((a, b) => a.y0 - b.y0);
+		let last = -Infinity, prev = -1;
+		for (const l of L) {
+			l.y = Math.max(l.y0 + 4, last + (l.j === col ? 17 : prev === col ? 13 : 11.5)); // room for the bold one
+			last = l.y; prev = l.j;
+		}
+		const over = last - (inY0 + inH + 4);
+		if (over > 0) for (const l of L) l.y -= over;
+		for (const l of L) l.moved = Math.abs(l.y - (l.y0 + 4)) > 1.5;
+		return L;
+	});
 
 	// right: four glyphs
 	const STAGES = [
@@ -206,7 +220,7 @@
 			</g>
 			{#each cols as c, j (j)}
 				{@const p0 = merid(c.x)}
-				<text class="tok fx-ln__lab" class:is-on={j === col} x={X(p0.a) + 7} y={Y(p0.r) + 5}>{showChar(chars[j])}</text>
+				<text class="tok fx-ln__lab" class:is-on={j === col} x={X(p0.a) + (p0.a < 0 ? -7 : 7)} y={Y(p0.r) + 4.5} text-anchor={p0.a < 0 ? 'end' : 'start'}>{showChar(chars[j])}<tspan class="fx-ln__pos" dx="1.5">{j + 1}</tspan></text>
 				{#if interactive}
 					<circle class="hit" cx={X(p0.a)} cy={Y(p0.r)} r="11" role="button" tabindex="0" aria-label="column {j + 1}" onclick={() => (col = j)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (col = j); } }} />
 				{/if}
@@ -230,7 +244,10 @@
 						<line class="fx-ln__depth" class:is-on={j === col} class:is-pending={!landed} x1={inX - 22} x2={inX + 22} y1={inY0 + c.gap * inScale} y2={inY0 + c.gap * inScale} />
 					{/each}
 				</g>
-				<text class="tok fx-ln__lab is-on" x={inX + 26} y={inY0 + sel.gap * inScale + 5}>{showChar(chars[col])}</text>
+				{#each depthLabels as L (L.j)}
+					{#if L.moved}<polyline class="leader" points="{inX + 23},{L.y0} {inX + 27},{L.y0} {inX + 33},{L.y - 4}" />{/if}
+					<text class="tok fx-ln__lab fx-ln__dlab" class:is-on={L.j === col} x={inX + 35} y={L.y}>{showChar(chars[L.j])}<tspan class="fx-ln__pos" dx="1.5">{L.j + 1}</tspan></text>
+				{/each}
 				<text class="lbl lbl--micro" x={inX - 26} y={inY0 + inH + 18}>√D − ‖x̂‖,</text>
 				<text class="lbl lbl--micro" x={inX - 26} y={inY0 + inH + 31}>magnified</text>
 			</g>
@@ -279,7 +296,9 @@
 	.fx-ln__trail.is-on { stroke-width: var(--line); opacity: 1; }
 	.fx-ln__start { fill: var(--paper); stroke: var(--value); stroke-width: var(--hair); }
 	.fx-ln__dot { fill: var(--value); }
-	.fx-ln__lab { font-size: 13px; fill: var(--ink-3); }
+	.fx-ln__lab { font-size: 13px; fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+	.fx-ln__dlab { font-size: 12px; }
+	.fx-ln__pos { font-family: var(--sans); font-size: 8.5px; font-weight: 400; fill: var(--ink-3); }
 	.fx-ln__lab.is-on { fill: var(--ink); font-weight: 600; font-size: 15px; }
 	.fx-ln__depth { stroke: var(--value); stroke-width: var(--hair); }
 	.fx-ln__depth.is-on { stroke-width: var(--heavy); }

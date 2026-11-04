@@ -37,11 +37,11 @@
 	const posAt = $derived(M[2].some((v) => v > 0) ? pick(2, 1) : pick(0, 1));
 </script>
 
-<HowToRead width={244} height={236} notes={[
+<HowToRead width={244} height={262} notes={[
 	{ ax: x0 + negAt[1] * c + c / 2 + 4, ay: y0 + negAt[0] * c + c / 2, side: 'right', len: x0 + 3 * c - (x0 + negAt[1] * c + c / 2 + 4) + 8, text: `open: negative,\n${fmt(M[negAt[0]][negAt[1]], 4)}` },
 	{ ax: x0 + posAt[1] * c + c / 2 + 4, ay: y0 + posAt[0] * c + c / 2, side: 'right', len: x0 + 3 * c - (x0 + posAt[1] * c + c / 2 + 4) + 8, text: `hatched: positive,\n${fmt(M[posAt[0]][posAt[1]], 4)}` },
 	{ ax: x0 + 3 * c + 2, ay: y0 - 24, side: 'right', len: 10, text: 'x: dots, value ink' },
-	{ ax: x0 - 30, ay: y0 + 3 * c + 2, side: 'below', len: 18, text: 'a square is the product of its\nrow’s bar and its column’s dot;\narea ∝ |product|', align: 'start', dx: -22 }
+	{ ax: x0 - 21, ay: y0 + 2.5 * c, side: 'below', len: 26, text: `a bar is the row’s entry of z̄, here\n${rows.map((a) => `${fmt(zbar[a], 3)}`).join(', ')}; the target’s row\nis the large negative one. A square\nis the product of its row’s bar and its\ncolumn’s dot; area ∝ |product|`, align: 'start', dx: -30 }
 ]}>
 	{#snippet glyph()}
 		<g class="fx">
@@ -57,7 +57,7 @@
 			{#each rows as a, i (a)}
 				{@const len = (Math.abs(zbar[a]) / zm) * 18}
 				<rect class="bar--covector" style:fill={zbar[a] < 0 ? 'none' : null} x={zbar[a] >= 0 ? x0 - 22 : x0 - 22 - len} y={y0 + i * c + c * 0.25} width={Math.max(0.6, len)} height={c * 0.5} />
-				<text x={x0 - 43} y={y0 + i * c + c / 2 + 5} text-anchor="end" font-size="15" style="font-family: var(--serif); fill: var(--ink-2)">{ch(a)}</text>
+				<text x={x0 - 44} y={y0 + i * c + c / 2 + 5} text-anchor="end" font-size="15" style="font-family: var(--serif); fill: var(--ink-2)">{ch(a)}</text>
 			{/each}
 			<text x={x0 - 25} y={y0 - 8} style="font-family: var(--serif); font-style: italic; font-size: 13px; fill: var(--ink)">z</text>
 			<line x1={x0 - 24} x2={x0 - 18.6} y1={y0 - 17.5} y2={y0 - 17.5} style="stroke: var(--ink); stroke-width: 0.9px" />

@@ -67,7 +67,7 @@
 	<line class="cstrip__ctx" x1={cx(start) - step * 0.42} x2={cx(start + pos) + step * 0.42} y1={y + 5} y2={y + 5} />
 	<path class="cstrip__bracket" d="M{cx(start) - step / 2 + 1} {y + 10} v5 H{cx(start + T - 1) + step / 2 - 1} v-5" />
 	{#if showTarget && target < n}
-		<path class="cstrip__caret" d="M{cx(target) - 4} {y - 19} L{cx(target)} {y - 14} L{cx(target) + 4} {y - 19}" />
+		<path class="cstrip__caret" d="M{cx(target) - 4} {y - 25} L{cx(target)} {y - 20} L{cx(target) + 4} {y - 25}" /><!-- clear of an ascender (b, d, t) -->
 	{/if}
 	{#if interactive}
 		<rect class="hit hit--drag" x={cx(start) - step / 2} y={y + 8} width={step * T} height="14" role="slider" tabindex="0" aria-label="{label}: window {start + 1}, position {pos + 1}" aria-valuenow={start + 1} aria-valuemin="1" aria-valuemax={maxStart + 1} onpointerdown={down} onpointermove={move} onpointerup={up} onkeydown={key} />

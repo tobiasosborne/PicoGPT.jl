@@ -48,9 +48,14 @@
 	const narrow = $derived(W < 640);
 	const labelW = $derived(narrow ? 0 : 112);
 	const countW = $derived(narrow ? 0 : 54);
-	// widest station, in cells: γβ (2) + gap + 4 × (8 + 1) + 3 gaps … and MLP: 2 + gap + 9 + gap + 33
-	const widthCells = $derived(Math.max(2.25 + 2.2 + 4 * (D + 1.25) + 3 * 1.6, 2.25 + 2.2 + (D + 1.25) + 2.2 + (F + 1.25)));
-	const c = $derived(Math.max(4.2, Math.min(interactive ? 13 : 7.5, (W - labelW - countW - 10) / widthCells)));
+	// γ and β stand apart by GB cells so that each name fits over its own column
+	const GB = 1.2;
+	// widest station, in cells: γ β + gap + 4 × (8 + 1) + 3 gaps … and MLP: γ β + gap + 9 + gap + 33
+	const widthCells = $derived(Math.max(2 + GB + 2.2 + 4 * (D + 1.25) + 3 * 1.6, 2 + GB + 2.2 + (D + 1.25) + 2.2 + (F + 1.25)));
+	const c = $derived(Math.max(4.2, Math.min(interactive ? 13 : 8.5, (W - labelW - countW - 10) / widthCells)));
+	// characters labelling E's columns and W_out's rows: no larger than the cell pitch allows
+	const tokFs = $derived(Math.min(11.5, c * 1.2)); // across: E's columns
+	const rowFs = $derived(Math.min(11.5, c * 1.08)); // down: W_out's rows, one line per row
 	const gx = $derived(labelW + 6);
 	const nameH = 26;
 
@@ -66,13 +71,13 @@
 		};
 		const gap = 1.6 * c, ggap = 2.2 * c;
 		// station 1: embedding
-		let x = gx + 2 * c + ggap;
+		let x = gx + (2 + GB) * c + ggap; // over W_q and W_1
 		put('E', x, y + c * 1.1);
 		stations.push({ key: 'embed', title: 'embedding', y0: y, y1: y + c * 1.1 + D * c, names: ['E'] });
 		y += c * 1.1 + D * c + 3.1 * c + nameH;
 		// station 2: LN1 + attention
 		x = gx;
-		x = put('gamma1', x, y); x = put('beta1', x + 0.25 * c, y);
+		x = put('gamma1', x, y); x = put('beta1', x + GB * c, y);
 		x += ggap;
 		for (const h of ['q', 'k', 'v', 'o']) { x = put('W' + h, x, y); x = put('b' + h, x + 0.25 * c, y); x += gap; }
 		stations.push({ key: 'attn', title: 'attention', y0: y, y1: y + D * c, names: ['gamma1', 'beta1', 'Wq', 'bq', 'Wk', 'bk', 'Wv', 'bv', 'Wo', 'bo'] });
@@ -80,7 +85,7 @@
 		// station 3: LN2 + MLP (8-row things centred on the 32-row W1)
 		const mid = y + ((F - D) / 2) * c;
 		x = gx;
-		x = put('gamma2', x, mid); x = put('beta2', x + 0.25 * c, mid);
+		x = put('gamma2', x, mid); x = put('beta2', x + GB * c, mid);
 		x += ggap;
 		x = put('W1', x, y); x = put('b1', x + 0.25 * c, y);
 		x += ggap;
@@ -89,8 +94,8 @@
 		y += F * c + 2.4 * c + nameH;
 		// station 4: final LN + readout
 		x = gx;
-		x = put('gammaf', x, y); x = put('betaf', x + 0.25 * c, y);
-		x += ggap;
+		x = put('gammaf', x, y); x = put('betaf', x + GB * c, y);
+		x += ggap + 1.2 * c; // a lane for W_out's row labels (the characters)
 		x = put('Wout', x, y); x = put('bout', x + 0.25 * c, y);
 		stations.push({ key: 'out', title: 'readout', y0: y, y1: y + D * c, names: ['gammaf', 'betaf', 'Wout', 'bout'] });
 		y += D * c + 2.6 * c;
@@ -183,12 +188,12 @@
 			{@const on = hover?.b.name === b.name}
 			{#if b.name === 'E'}
 				{#each specimen.vocab as ch, j (j)}
-					<text class="tok fx-anat__tok" x={b.x + c * (j + 0.5)} y={b.y - 4} text-anchor="middle">{showChar(ch)}</text>
+					<text class="tok fx-anat__tok" x={b.x + c * (j + 0.5)} y={b.y - 4} text-anchor="middle" font-size={tokFs}>{showChar(ch)}</text>
 				{/each}
 			{/if}
 			{#if b.name === 'Wout'}
 				{#each specimen.vocab as ch, i (i)}
-					<text class="tok fx-anat__tok" x={b.x - 5} y={b.y + c * (i + 0.5) + 3.5} text-anchor="end">{showChar(ch)}</text>
+					<text class="tok fx-anat__tok" x={b.x - 0.9 * c} y={b.y + c * (i + 0.5) + rowFs * (ch === ' ' ? -0.02 : 0.28)} text-anchor="middle" font-size={rowFs}>{showChar(ch)}</text>
 				{/each}
 			{/if}
 			<!-- the name, over the block -->
@@ -227,7 +232,7 @@
 	.fx-anat :global(.m) { font-family: var(--serif); font-style: italic; font-size: 14px; fill: var(--ink); }
 	.fx-anat :global(.sub) { font-size: 9.5px; }
 	.fx-anat__name.is-on :global(.m) { font-weight: 700; }
-	.fx-anat__tok { font-size: 11.5px; fill: var(--ink-2); }
+	.fx-anat__tok { fill: var(--ink-2); }
 	.fx-anat__frame { fill: none; stroke: var(--rule-2); stroke-width: var(--hair); }
 	.fx-anat__frame.is-on { stroke: var(--ink-3); }
 	.fx-anat__cell { fill: none; stroke: var(--ink); stroke-width: 1px; }

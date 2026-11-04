@@ -131,9 +131,10 @@
 			<text class="lbl lbl--micro" class:lbl--strong={p >= 0.1} x={x} y={yBarBase - hB - 6} text-anchor="middle">{fmtProb(p, 2)}</text>
 		{/each}
 		{#if !narrow}
-			<text class="lbl lbl--micro" x={padL - 8} y={yBarBase - hB + 8} text-anchor="end">1</text>
-			<text class="lbl lbl--micro" x={padL - 8} y={yBarBase + 3} text-anchor="end">0</text>
-			<text class="lbl" x={padL - 8} y={yBarBase - hB / 2 + 4} text-anchor="end"><tspan class="m">q</tspan></text>
+			<!-- the scale of the factor bars, beside the first of them -->
+			<text class="lbl lbl--micro" x={xs[1] - 12} y={yBarBase - hB + 8} text-anchor="end">1</text>
+			<text class="lbl lbl--micro" x={xs[1] - 12} y={yBarBase + 3} text-anchor="end">0</text>
+			<text class="lbl" x={xs[1] - 12} y={yBarBase - hB / 2 + 4} text-anchor="end"><tspan class="m">q</tspan></text>
 		{/if}
 
 		<!-- the characters -->
@@ -166,17 +167,22 @@
 		<!-- inset: the whole distribution at the opened position -->
 		{#if !narrow}
 			<g class="fx-chain__inset">
-				<text class="lbl lbl--micro" x={ix} y={iy - 30}>at position {sel + 2}, given</text>
-				<text class="tok fx-chain__ictx" x={ix} y={iy - 12}>{ctxSel}</text>
+				{#if ctxSel.length <= 4}
+					<!-- a short context goes on the title line, clear of the main figure's bar labels -->
+					<text class="lbl lbl--micro" x={ix} y={iy - 30}>at position {sel + 2}, given ‘<tspan class="tok fx-chain__ictx">{ctxSel}</tspan>’</text>
+				{:else}
+					<text class="lbl lbl--micro" x={ix} y={iy - 30}>at position {sel + 2}, given</text>
+					<text class="tok fx-chain__ictx" x={ix} y={iy - 12}>{ctxSel}</text>
+				{/if}
 				<line class="axis" x1={ix} x2={ix + ibar * V} y1={iy + ih} y2={iy + ih} />
 				{#each pSel as v, a (a)}
 					{@const x = ix + ibar * (a + 0.5)}
 					<rect class="bar--value" x={x - ibar * 0.3} y={iy + ih - v * ih} width={ibar * 0.6} height={v * ih} />
-					{#if a === ySel}<rect class="fx-ctx__next" x={x - 7} y={iy + ih + 3} width="14" height="17" />{/if}
+					{#if a === ySel}<line class="fx-chain__next" x1={x - 6} x2={x + 6} y1={iy + ih + 21} y2={iy + ih + 21} />{/if}
 					{#if v >= 0.1}<text class="lbl lbl--micro lbl--strong" x={x} y={iy + ih - v * ih - 5} text-anchor="middle">{fmtProb(v, 2).replace(/^0\./, '.')}</text>{/if}
 					<text class="tok fx-chain__ich" x={x} y={iy + ih + 15} text-anchor="middle">{showChar(specimen.vocab[a])}</text>
 				{/each}
-				<text class="lbl lbl--micro" x={ix} y={iy + ih + 36}>outlined: what came next</text>
+				<text class="lbl lbl--micro" x={ix} y={iy + ih + 36}>underlined: what came next</text>
 			</g>
 		{/if}
 	</svg>
@@ -203,5 +209,5 @@
 	.fx-chain__tlbl { font-weight: 600; }
 	.fx-chain__ictx { font-size: 15px; white-space: pre; }
 	.fx-chain__ich { font-size: 14px; }
-	.fx-chain :global(.fx-ctx__next) { fill: none; stroke: var(--ink); stroke-width: 0.8px; }
+	.fx-chain__next { stroke: var(--ink); stroke-width: 1.4px; }
 </style>

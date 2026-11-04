@@ -27,8 +27,8 @@ The token sequence `prompt` extended by n tokens, each drawn from softmax(z/τ),
 the logits after the last T tokens. τ = 0 always takes the likeliest token.
 """
 function generate(θ, c::Config, prompt, n; τ = 1, rng = Random.default_rng())
-    n ≥ 0 && isfinite(τ) && τ ≥ 0 || throw(ArgumentError("generation needs n ≥ 0 and finite τ ≥ 0"))
-    n == 0 || !isempty(prompt) || throw(ArgumentError("generation needs a nonempty prompt"))
+    n ≥ 0 && isfinite(τ) && τ ≥ 0 || throw(ArgumentError("need n ≥ 0 and a finite τ ≥ 0"))
+    n == 0 || !isempty(prompt) || throw(ArgumentError("need a nonempty prompt"))
     τ = eltype(θ)(τ)
     x = collect(prompt)
     for _ in 1:n

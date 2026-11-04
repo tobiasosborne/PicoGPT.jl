@@ -30,7 +30,7 @@ import { PDFDocument, PDFName, PDFString, PDFNumber, PDFArray, PDFNull, PDFHexSt
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const WEB = path.join(ROOT, 'web');
-const WORK = path.join(HERE, '.work');
+const WORK = process.env.PRINT_WORK ? path.resolve(process.env.PRINT_WORK) : path.join(HERE, '.work');   // PRINT_WORK: a separate work dir, so two builds can run at once
 const STAGE = path.join(WORK, 'site');
 const PROOF = path.join(HERE, 'proof');
 

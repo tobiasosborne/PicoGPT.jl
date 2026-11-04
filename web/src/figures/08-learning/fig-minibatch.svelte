@@ -78,10 +78,18 @@
 				x: X(p[0]) + (right ? 8 : -8), y0: Y(p[1]) + 4,
 				text: firstStep(+p[2])
 			})).sort((a, b) => a.y0 - b.y0);
-			let last = -Infinity;
+			// keep the labels inside the panel: below its header, above its rms note
+			const top = oy + 12, bottom = oy + side - 20;
+			let last = top - 12.5;
 			for (const L of grp) { L.y = Math.max(L.y0, last + 12.5); last = L.y; }
-			const over = last - (oy + side - 2);
+			const over = last - bottom;
 			if (over > 0) for (const L of grp) L.y -= over;
+			for (const L of grp) {
+				// a label that would leave the panel sideways goes to the other side of its mark
+				const w = 6.2 * L.text.length;
+				if (L.right && L.x + w > ox + side) { L.right = false; L.dx -= 6.8; L.x = L.dx - 8; }
+				else if (!L.right && L.x - w < ox) { L.right = true; L.dx += 6.8; L.x = L.dx + 8; }
+			}
 			for (const L of grp) { L.leader = Math.abs(L.y - L.y0) > 2.5; if (L.leader) L.x += right ? 6 : -6; out.push(L); }
 		}
 		return out;
@@ -133,11 +141,17 @@
 	{@const sc = side / 2 / fr.r}
 	{@const X = (v) => ox + side / 2 + (v - fr.cx) * sc}
 	{@const Y = (v) => oy + side / 2 - (v - fr.cy) * sc}
+	<!-- batches whose gradients coincide (to half a unit of the drawing) print as one mark: count the places -->
+	{@const places = new Set(c.pts.map((p) => `${Math.round(X(p[0]) * 2)},${Math.round(Y(p[1]) * 2)}`)).size}
+	{@const hidden = Math.hypot(X(0) - X(s.g[0]), Y(0) - Y(s.g[1])) < 9}
 	<g>
 		<text class="lbl lbl--head" x={ox} y={oy - 10}><tspan class="m">b</tspan> = {c.b}</text>
-		<text class="lbl lbl--micro" x={ox + side} y={oy - 10} text-anchor="end">{c.n} {c.n === 1 ? 'batch' : 'batches'}</text>
+		<text class="lbl lbl--micro" x={ox + side} y={oy - 10} text-anchor="end">{c.n} {c.n === 1 ? 'batch' : 'batches'}{#if places < c.n * 0.8}, in {places} places{/if}</text>
 		<!-- the origin: zero gradient -->
-		{#if X(0) > ox && X(0) < ox + side && Y(0) > oy && Y(0) < oy + side}
+		{#if hidden && c.b === M}
+			<text class="lbl lbl--micro" x={X(s.g[0])} y={Y(s.g[1]) + 20} text-anchor="middle">0 lies under the cross</text>
+		{/if}
+		{#if !hidden && X(0) > ox && X(0) < ox + side && Y(0) > oy && Y(0) < oy + side}
 			<line class="axis" x1={X(0) - 5} x2={X(0) + 5} y1={Y(0)} y2={Y(0)} />
 			<line class="axis" x1={X(0)} x2={X(0)} y1={Y(0) - 5} y2={Y(0) + 5} />
 			<text class="lbl lbl--micro" x={X(0) - 5} y={Y(0) + 13} text-anchor="end">0</text>

@@ -69,7 +69,7 @@ $$H(p,q)=-\sum_ap_a\log q_a .$$
 When $q=p$ it is the *entropy* $H(p)=-\sum_ap_a\log p_a$, the surprise that even a perfect predictor must expect. The difference is the *Kullback–Leibler divergence*:
 $$H(p,q)=H(p)+\KL(p\,\|\,q),\qquad \KL(p\,\|\,q)=\sum_{a:\,p_a>0}p_a\log\frac{p_a}{q_a}.$$
 (Add and subtract $\sum_ap_a\log p_a$.) The divergence is never negative. For every $t>0$, $-\log t\ge1-t$, with equality only at $t=1$. So
-$$\KL(p\,\|\,q)=\sum_{a:\,p_a>0}p_a\Bigl(-\log\frac{q_a}{p_a}\Bigr)\;\ge\;\sum_{a:\,p_a>0}p_a\Bigl(1-\frac{q_a}{p_a}\Bigr)=1-\sum_{a:\,p_a>0}q_a\;\ge\;0,$$
+$$\begin{aligned}\KL(p\,\|\,q)&=\sum_{a:\,p_a>0}p_a\Bigl(-\log\frac{q_a}{p_a}\Bigr)\;\ge\;\sum_{a:\,p_a>0}p_a\Bigl(1-\frac{q_a}{p_a}\Bigr)\\&=1-\sum_{a:\,p_a>0}q_a\;\ge\;0,\end{aligned}$$
 with equality exactly when $q_a=p_a$ wherever $p_a>0$ and $q$ puts no mass anywhere else, that is, when $q=p$. This is Gibbs' inequality, and it is the fact @ch-energies borrowed to prove that softmax minimises the free energy. Here it says something just as useful: *the expected surprise is smallest when the model predicts the true distribution, and the smallest value is the entropy of the truth.* The KL divergence measures, in nats, how much a prediction costs above that.
 
 ::: aside

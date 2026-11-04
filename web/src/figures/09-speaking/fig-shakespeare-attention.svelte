@@ -94,21 +94,50 @@
 	const tri = $derived(Math.min(interactive ? Infinity : 108, (W - 30 - (nCols - 1) * gapX) / nCols));
 	const cell = $derived(tri / Math.max(1, T));
 	const gridTop = $derived(yBars + 46);
-	const rowGap = $derived(interactive ? 48 : 52);
+	const rowGap = $derived(interactive ? 48 : 55);
 	const nRows = $derived(data ? Math.ceil(data.heads.length / nCols) : 0);
-	const H = $derived(gridTop + nRows * (tri + rowGap) + 4);
+	const gridEnd = $derived(gridTop + nRows * (tri + rowGap) + 4);
+	const H = $derived(gridEnd + (pool > 1 ? 17 : 0));
 	const pos = (k) => ({ x: 30 + (k % nCols) * ((W - 30) / nCols), y: gridTop + 22 + Math.floor(k / nCols) * (tri + rowGap) });
-	const minDot = $derived((0.36 / (cell * 0.56)) ** 2); // weights whose dot would be under 0.36 px
+	// In print a panel is ~108 units for ~83 characters, so a cell is ~1.3 units and a single
+	// weight of a diffuse head (≈ 1/i) would be a dot far below what paper can hold. Print
+	// therefore pools the triangle into blocks of `pool` readers × `pool` sources: one dot per
+	// block, area ∝ the block's weight averaged over its readers (each reader's weights in the
+	// block summed, then the mean taken over the block's readers), so a block row still sums
+	// to one, as a row does. Nothing is dropped; the figure states the pooling.
+	const pool = $derived(interactive ? 1 : Math.max(1, Math.ceil(4.5 / cell)));
+	const minDot = $derived(pool > 1 ? 0 : (0.36 / (cell * 0.56)) ** 2); // web: weights whose dot would be under 0.36 px
 	// one path per dot radius (to 0.05 px): each dot is a zero-length, round-capped stroke
 	function dotPaths(h) {
-		const R = cell * 0.56, bins = new Map();
-		for (let i = 0; i < T; i++) {
-			const r = h.rows[i];
-			for (let k = 0; k < r.length; k += 2) {
-				const w = r[k + 1];
-				if (w < minDot) continue;
-				const bin = Math.max(1, Math.round((R * Math.sqrt(w)) / 0.05));
-				bins.set(bin, (bins.get(bin) ?? '') + `M${((r[k] + 0.5) * cell).toFixed(1)} ${((i + 0.5) * cell).toFixed(1)}h0`);
+		const bins = new Map();
+		const put = (r, x, y) => {
+			const bin = Math.max(1, Math.round(r / 0.05));
+			bins.set(bin, (bins.get(bin) ?? '') + `M${x.toFixed(1)} ${y.toFixed(1)}h0`);
+		};
+		if (pool === 1) {
+			const R = cell * 0.56;
+			for (let i = 0; i < T; i++) {
+				const r = h.rows[i];
+				for (let k = 0; k < r.length; k += 2) {
+					const w = r[k + 1];
+					if (w < minDot) continue;
+					put(R * Math.sqrt(w), (r[k] + 0.5) * cell, (i + 0.5) * cell);
+				}
+			}
+		} else {
+			const nb = Math.ceil(T / pool), sums = new Float64Array(nb * nb);
+			for (let i = 0; i < T; i++) {
+				const r = h.rows[i], I = Math.floor(i / pool);
+				for (let k = 0; k < r.length; k += 2) sums[I * nb + Math.floor(r[k] / pool)] += r[k + 1];
+			}
+			const mid = (B) => ((B * pool + Math.min(T, (B + 1) * pool)) / 2) * cell; // centre of block B
+			const R = pool * cell * 0.56;
+			for (let I = 0; I < nb; I++) {
+				const n = Math.min(T, (I + 1) * pool) - I * pool; // readers in this block
+				for (let J = 0; J <= I; J++) {
+					const w = sums[I * nb + J] / n;
+					if (w > 0) put(R * Math.sqrt(w), mid(J), mid(I));
+				}
 			}
 		}
 		return [...bins].map(([bin, d]) => ({ w: 2 * bin * 0.05, d }));
@@ -176,13 +205,16 @@
 					<g class="tri fx-sattn__dots" transform="translate({p.x} {p.y})">
 						{#each dotPaths(h) as dp (dp.w)}<path d={dp.d} stroke-width={dp.w} />{/each}
 					</g>
-					<line class="fx-sattn__row" x1={p.x} x2={p.x + (reader + 1) * cell} y1={p.y + (reader + 0.5) * cell} y2={p.y + (reader + 0.5) * cell} />
+					{#if interactive}<line class="fx-sattn__row" x1={p.x} x2={p.x + (reader + 1) * cell} y1={p.y + (reader + 0.5) * cell} y2={p.y + (reader + 0.5) * cell} />{/if}
 					<text class="lbl lbl--micro fx-sattn__st" x={p.x} y={p.y + tri + 16}>self {fmtDense(st.self)} · prev {fmtDense(st.prev)}{#if interactive} · copy {fmtDense(st.copy)}{:else}<tspan x={p.x} dy="13">copy {fmtDense(st.copy)}</tspan>{/if}</text>
 					{#if interactive}
 						<rect class="hit" x={p.x - 4} y={p.y - 22} width={tri + 8} height={tri + 44} role="button" tabindex="0" aria-label="layer {h.layer}, head {h.head}" aria-pressed={k === head} onclick={() => (headSel = k)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (headSel = k)} />
 					{/if}
 				</g>
 			{/each}
+			{#if pool > 1}
+				<text class="lbl lbl--micro fx-sattn__st" x={30} y={gridEnd + 12}>On paper each dot pools {pool} readers × {pool} sources: area ∝ the block’s weight, summed over its sources and averaged over its readers.</text>
+			{/if}
 		</svg>
 		{#if interactive}
 			<p class="readout" aria-live="polite">

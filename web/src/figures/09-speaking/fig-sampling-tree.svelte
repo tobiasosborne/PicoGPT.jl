@@ -122,7 +122,7 @@
 			{@const yText = y0 + colH + 30}
 			{@const uf = unseenFrom(row)}
 			<g>
-				{#if !interactive}<text class="lbl lbl--head" x={0} y={y0 + 10}>{tauLabel(row.tau)}</text>{/if}
+				{#if !interactive}<text class="lbl lbl--head" x={0} y={y0 - 8}>{tauLabel(row.tau)}</text>{/if}<!-- above the row, clear of the 0 of its axis -->
 				<!-- the prompt -->
 				{#each Array.from(prompt) as ch, k (k)}
 					<text class="tok fx-tree__prompt" x={cx(k)} y={yText} text-anchor="middle">{showChar(ch)}</text>

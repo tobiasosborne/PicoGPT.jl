@@ -1,0 +1,17 @@
+{
+	"name": "picogpt-print",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"description": "PicoGPT — the print edition: the web book's HTML under print.css, paginated by Paged.js in headless Chromium.",
+	"scripts": {
+		"pdf": "node build.mjs",
+		"proof": "node build.mjs --proof",
+		"pdf:reuse": "node build.mjs --skip-build --proof"
+	},
+	"devDependencies": {
+		"pagedjs": "0.4.3",
+		"pdf-lib": "1.17.1",
+		"playwright": "1.64.1"
+	}
+}

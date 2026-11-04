@@ -240,6 +240,7 @@
 .pp--contents { page: front; break-before: right; padding-top: 10mm; }
 .pp-h { font-variant-caps: all-small-caps; letter-spacing: 0.16em; font-size: 10pt; color: var(--ink); font-weight: 450; margin: 0 0 9mm; }
 .pg-toc { list-style: none; margin: 0; padding: 0; width: var(--pg-main); }
+.pagedjs_left_page .pp--contents .pg-toc { margin-left: var(--pg-shift); }
 .pg-toc__ch { position: relative; padding: 0 0 4.2mm; break-inside: avoid; }
 .pg-toc__num { position: absolute; right: calc(100% + 4mm); top: -0.5pt; font-size: 15pt; line-height: 1; font-weight: 250; color: var(--ink-3); font-variant-numeric: lining-nums; font-variation-settings: 'opsz' 48; }
 .pg-toc__head { font-size: 11.6pt; line-height: 14pt; display: flex; align-items: baseline; gap: 3mm; }
@@ -251,7 +252,7 @@
 .pg-toc__sec { white-space: normal; }
 .pg-toc__spage { color: var(--ink-3); font-variant-numeric: oldstyle-nums; white-space: nowrap; }
 .pg-toc__spage::after { content: target-counter(attr(href url), page); }
-.pg-toc__sep { color: var(--ink-3); }
+.pg-toc__sep::before { content: '·'; color: var(--ink-3); margin: 0 0.45em; }
 .pg-toc__ch--planned .pg-toc__title, .pg-toc__ch--planned .pg-toc__num { color: var(--ink-3); }
 .pg-toc__ch--planned .pg-toc__gist { color: var(--ink-3); }
 .pg-toc__state { font-size: 7pt; font-variant-caps: all-small-caps; letter-spacing: 0.08em; color: var(--ink-3); }
@@ -305,6 +306,7 @@
    leaving a mark, and sets it in the notes column of the page its mark lands on */
 .pagedjs_page .print-edition-root .pg-note { position: absolute; float: none; margin: 0; width: var(--pg-notes); }
 .pg-note-mark { display: block; height: 0; margin: 0; }
+.pg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 span.pg-note-mark { display: inline; }
 
 /* versos: the main column moves right, notes go to the left (outer) margin */

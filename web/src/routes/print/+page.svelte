@@ -14,6 +14,7 @@
 	let { data } = $props();
 	const specimen = $derived(makeSpecimen(data.specimen));
 	setContext('specimen', () => specimen);
+	setContext('artifacts', () => data.artifacts ?? {});
 	const cfg = $derived(specimen.config);
 	const loss0 = $derived(specimen.loss?.[0]);
 	const lossN = $derived(specimen.loss?.at(-1));
@@ -93,7 +94,7 @@
 					<p class="pg-toc__gist">{c.gist}</p>
 					{#if c.sections.length}
 						<p class="pg-toc__secs">
-							{#each c.sections as s, k (s.id)}<span class="pg-toc__sec"><a href="#{s.id}">{@html s.html}</a>&nbsp;<a class="pg-toc__spage" href="#{s.id}" aria-hidden="true"></a></span>{#if k < c.sections.length - 1}<span class="pg-toc__sep"> · </span>{/if}{/each}
+							{#each c.sections as s, k (s.id)}<span class="pg-toc__sec"><a href="#{s.id}">{@html s.html}</a>&nbsp;<a class="pg-toc__spage" href="#{s.id}" aria-hidden="true"></a></span>{#if k < c.sections.length - 1}<span class="pg-toc__sep" aria-hidden="true"></span>{/if}{/each}
 						</p>
 					{/if}
 				</li>

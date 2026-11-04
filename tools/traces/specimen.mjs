@@ -1,5 +1,5 @@
 // The specimen, its corpus, and a recorder for training runs.
-import { SPECIMEN_CONFIG, createModel, createBatch, init, step, forward, backward }
+import { SPECIMEN_CONFIG, SPECIMEN_RECIPE, createModel, createBatch, init, step, forward, backward }
   from '../../web/src/specimen/index.mjs';
 
 export const corpus = 'to be or not to be';
@@ -16,14 +16,14 @@ export function windows(T = SPECIMEN_CONFIG.T) {
   return createBatch(x, y);
 }
 
-// The run every trace records: AdamW, warmup + cosine, clipped. Seed 0.
-export const STEPS = 700;
-export const OPT = { optimizer: 'adamw', lr: 1e-2, clipNorm: 1,
-                     schedule: { warmupSteps: 20, totalSteps: STEPS, minLR: 1e-4 } };
-export const TRAIN = 'lr 1e-2, 20 warmup steps, cosine to 1e-4, clip 1, seed 0';
+// The run every trace records: the book's canonical specimen recipe (BRIEF §13), seed 1.
+export const OPT = SPECIMEN_RECIPE;
+export const STEPS = OPT.steps;
+export const TRAIN = `AdamW, η ${OPT.eta} → ${OPT.eta_min} (warmup ${OPT.warmup}, cosine), β₂ ${OPT.beta2}, ` +
+                     `weight decay ${OPT.weight_decay} on matrices, clip ${OPT.clip}`;
 
 // Train from seed, calling observe(model, trace, t, batch) before every update.
-export function run({ seed = 0, steps = STEPS, opt = OPT, observe = () => {} } = {}) {
+export function run({ seed = 1, steps = STEPS, opt = OPT, observe = () => {} } = {}) {
   const model = createModel(SPECIMEN_CONFIG, init(SPECIMEN_CONFIG, seed));
   const batch = windows();
   for (let t = 0; t < steps; t++) {

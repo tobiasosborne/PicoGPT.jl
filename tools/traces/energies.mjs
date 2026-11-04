@@ -2,15 +2,15 @@
 // real logit vectors z, followed from β = 0 (the uniform centre) towards β → ∞ (a corner).
 // The simplex is projected onto the plane by sending vertex a to the a-th corner of a
 // heptagon — a linear map, so the simplex's straight edges stay straight.
-import { run, TRAIN, vocab } from './specimen.mjs';
+import { run, TRAIN, STEPS, vocab } from './specimen.mjs';
 import { svg, polyline, simplify, save, ink, stroke } from './svg.mjs';
 
 const V = vocab.length, moments = 40;
+const at = new Set(Array.from({ length: moments }, (_, k) => Math.round((STEPS - 1) * (k / (moments - 1)) ** 2)));
 const columns = [];
 run({ observe: (m, tr, t) => {
-  const k = Math.round(Math.sqrt(t / 699) * (moments - 1));
-  if (Math.round((699 * (k / (moments - 1)) ** 2)) !== t) return;
-  for (let n = 0; n < tr.Z.shape[1]; n++) columns.push({ z: Float64Array.from(tr.Z.column(n)), late: t > 350 });
+  if (!at.has(t)) return;
+  for (let n = 0; n < tr.Z.shape[1]; n++) columns.push({ z: Float64Array.from(tr.Z.column(n)), late: t > STEPS / 2 });
 }});
 
 const gibbs = (z, β) => {

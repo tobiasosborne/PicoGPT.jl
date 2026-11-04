@@ -32,6 +32,10 @@ One draw needs one uniform random number $u\in[0,1)$. Stack the probabilities $p
 ::: {.code file="src/sample.jl" fn="generate"}
 :::
 
+::: aside
+Beginnings and endings. This sampler requires a non-empty prompt; it supplies neither $P(x_1)$ nor a decision to stop. We choose the prompt and the number of draws. Other models add beginning- and end-of-sequence symbols (BOS and EOS) to learn these choices. The first distribution in @fig-sampling-tree is $q(\cdot\mid\text{␣ at position 1})$, not an unconditional beginning of text. Sliding the window re-embeds its retained characters at positions $1,\dots,T$; the positional codes change, and attention need not stay unchanged (@sec-rotation).
+:::
+
 ## Temperature in practice {#sec-temperature-practice}
 
 The model was trained at $\tau=1$, so $p=\softmax(z)$ is the distribution that training fitted to the data, and $\tau=1$ is the only temperature at which samples are drawn from the model itself. Every other temperature is a deliberate distortion, in one of two directions (@ch-energies).
@@ -60,23 +64,23 @@ At temperature $2$ the outlined segments widen. Branches that were negligible be
 
 ## A real model {#sec-real-model}
 
-The specimen can only recite. To see what next-character prediction can do, the same code trains a larger model on *Tiny Shakespeare*: about a million characters from Shakespeare's plays, $V=65$ distinct characters (letters in both cases, punctuation, space, newline, and one digit, 3). The model has $D=128$, $H=4$ heads, $L=4$ blocks and a context of $T=256$ characters, and its 810,049 parameters are trained in Julia in Float32, with AdamW, a warmup-and-cosine schedule and clipping (@ch-learning). Each step reads 32 windows of 256 characters. The last tenth of the text is held out: the model never trains on it, so its loss there measures prediction rather than memory.
+The specimen can only recite. To see what next-character prediction can do, the same code trains a larger model on *Tiny Shakespeare*: about a million characters from Shakespeare's plays, $V=65$ distinct characters (letters in both cases, punctuation, space, newline, and one digit, 3). The model has $D=128$, $H=4$ heads, $L=4$ blocks and a context of $T=256$ characters, and its {{value:shakespeareParams}} parameters are trained in Julia in Float32, with AdamW, a warmup-and-cosine schedule and clipping (@ch-learning). Each step reads 32 windows of 256 characters. The last tenth of the text is held out: the model never trains on it, so its loss there tests prediction on text excluded from training. The held-out portion is the contiguous tail of the same file: the same plays continue across the split.
 
 ::: {.figure #fig-shakespeare-checkpoints}
-The Tiny Shakespeare model in training. Left: its loss, the mean surprise per character, on its training text (solid) and on held-out text it never saw (open circles), with $\log 65$, uniform guessing, for reference; the step axis is logarithmic. Right: what the model wrote at $\tau=1$ at each saved checkpoint, starting from a newline, with the share of its words that occur in the training text.
+The Tiny Shakespeare model in training. Left: its loss, the mean surprise per character, on its training text (solid) and on held-out text it never saw (open circles), with $\log 65$, uniform guessing, for reference; the step axis is $\log(1+\text{step})$. Right: what the model wrote at $\tau=1$ at each saved checkpoint, starting from a newline, with the share of its words that occur in the training text.
 :::
 
-The loss starts at $\log 65$, where it must: the untrained model's logits are nearly equal, and its first sample is every character of the vocabulary in random order, capitals, punctuation and the one digit alike. Within a hundred steps it has learned which characters are common: spaces, newlines, lower-case vowels. By a few hundred steps the strings have the shape of words and lines. By a thousand the text has the layout of a play, with speaker names in capitals, a colon and a line break, and lines of roughly the length of verse. By the end, most words are real words.
+The loss starts near $\log 65$: the untrained model's logits are nearly equal, and its first sample is every character of the vocabulary in random order, capitals, punctuation and the one digit alike. Within a hundred steps it has learned which characters are common: spaces, newlines, lower-case vowels. By a few hundred steps the strings have the shape of words and lines. By a thousand the text has the layout of a play, with speaker names in capitals, a colon and a line break, and lines of roughly the length of verse. By the end, most words are real words.
 
 A loss in nats is easier to feel through its exponential. If a model's loss is $\mathcal L$, then $e^{\mathcal L}$, the *perplexity*, is the number of equally likely characters that would cost the same surprise: $65$ at the start, and, at the end, a handful (read it off the figure). Two curves diverge as training goes on. The loss on the training text keeps falling; the loss on held-out text falls more slowly and then flattens. The gap between them is what the model has memorised about its particular million characters rather than learned about Shakespeare's.
 
 ::: {.figure #fig-shakespeare-temperature}
-The trained model writing from the same prompt at four temperatures. Words that never occur in the training text are underlined with dots; the bar above each column is the share of words that do.
+The trained model writing from the same prompt at four temperatures. Here a word is a maximal run of at least two letters, lower-cased; “real” means present in the training portion of the corpus. Single-letter words are excluded. Words absent from that portion are underlined with dots; the bar above each column is the share of words that do.
 :::
 
 @fig-shakespeare-temperature shows the dial at work. At $\tau=\frac12$ every word is real, and the text is safe and repetitive, leaning on the commonest words. At $\tau=1$ a few invented words appear. At $\tau=1.5$ a third of the words are invented, and spelling decays.
 
-Here, honestly, is what the model has learned. It spells common words. It knows the format of a play: who speaks is set in capitals and followed by a colon and a line break, and speeches are broken into lines of verse length. It knows where capitals and punctuation go. It strings two or three words together with a plausible rhythm. And here is what it has not learned. It does not know what any word means. Its sentences have no syntax beyond a few words. The speakers do not speak to each other, nothing happens, and names are invented as freely as words. Every one of these is a statement about next-character statistics: what can be predicted from the last few characters, it predicts; what needs more than that, it does not.
+Here, honestly, is what the model has learned. It spells common words. It knows the format of a play: who speaks is set in capitals and followed by a colon and a line break, and speeches are broken into lines of verse length. It knows where capitals and punctuation go. It strings two or three words together with a plausible rhythm. These samples provide no evidence of word meanings or syntax extending beyond a few words. The speakers do not speak to each other, nothing happens, and names are invented as freely as words. These observations concern the samples and their next-character statistics; they do not establish everything the model can or cannot represent.
 
 ## Inside the real model {#sec-inside}
 

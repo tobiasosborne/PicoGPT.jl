@@ -133,7 +133,7 @@
 
 <div class="fx fx-sling" use:measure={(w) => (width = w)}>
 	{@html job.tag}
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 		aria-label={job.value
 			? `Adam at a constant learning rate: after reaching the floor the loss jumps back up ${job.value.constant.spikes.length} times, at steps ${job.value.constant.spikes.map((sp) => spikeStep(job.value.constant, sp)).join(', ')}. With the cosine schedule: ${job.value.cosine.spikes.length} such ${job.value.cosine.spikes.length === 1 ? 'jump' : 'jumps'}${job.value.cosine.spikes.length ? `, at step${job.value.cosine.spikes.length === 1 ? '' : 's'} ${job.value.cosine.spikes.map((sp) => spikeStep(job.value.cosine, sp)).join(', ')}` : ''}.`
 			: 'Adam at the floor, computing'}>

@@ -27,6 +27,20 @@ export function fmt(x, digits = 2) {
 	const s = Math.abs(x).toFixed(digits);
 	return (x < 0 && +s !== 0 ? '−' : '') + s;
 }
+/** Probabilities keep their finite endpoint gap. Compact labels use ≈1; readouts
+ *  spell out 1−gap. Exact 0 and 1 remain available for masks and frozen limits. */
+export function fmtProb(p, digits = 2, detail = false) {
+	if (!Number.isFinite(p) || p < 0 || p > 1) return '—';
+	if (p === 0 || p === 1) return String(p);
+	const sci = (v) => {
+		const [mantissa, exponent] = v.toExponential(1).split('e');
+		const superscript = { '-': '⁻', '+': '⁺', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+		return `${mantissa}×10${String(+exponent).split('').map((c) => superscript[c]).join('')}`;
+	};
+	if (p > 1 - 0.5 * 10 ** -digits) return detail ? `1−${sci(1 - p)}` : '≈1';
+	if (p < 0.5 * 10 ** -digits) return detail ? sci(p) : '≈0';
+	return fmt(p, digits);
+}
 export function fmtDense(x, digits = 2) {
 	const s = fmt(x, digits);
 	return s.replace(/^(−?)0\./, '$1.');

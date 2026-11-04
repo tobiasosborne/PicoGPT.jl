@@ -90,6 +90,14 @@
 			const hint = document.createElement('style');
 			hint.textContent = '.print-edition-root .dict__where::after { content: ", p. 000"; }';
 			document.head.append(hint);
+			// The dictionary starts with its heading and introduction on the first page.
+			// Reserve that space when filling its first two columns.
+			let firstReserve = 0;
+			for (let n = dictionary.previousElementSibling; n; n = n.previousElementSibling) {
+				const style = getComputedStyle(n);
+				firstReserve += n.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+				if (n.matches('h2')) break;
+			}
 			const pages = [];
 			let columns, col, side = 0;
 			const nextPage = () => {
@@ -100,7 +108,7 @@
 			nextPage();
 			for (const unit of units) {
 				col.append(unit);
-				if (col.getBoundingClientRect().height > blockH - 8 * PX_PER_MM && col.children.length > 1) {
+				if (col.getBoundingClientRect().height > blockH - 8 * PX_PER_MM - (pages.length === 1 ? firstReserve : 0) && col.children.length > 1) {
 					unit.remove();
 					if (side === 0) { side = 1; col = columns.children[1]; } else nextPage();
 					col.append(unit);

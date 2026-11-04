@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import temml from 'temml';
 import { extract, highlight } from './julia.js';
+import { expandProse } from './prose-values.js';
 import { MACROS } from './macros.js';
 import { OUTLINE, BOOK } from '../outline.js';
 
@@ -168,15 +169,15 @@ export function renderChapter(slug) {
 	const chapters = listChapters();
 	const c = chapters.find((x) => x.slug === slug && x.exists);
 	if (!c) return null;
-	const md = fs.readFileSync(c.path, 'utf8');
+	const md = expandProse(fs.readFileSync(c.path, 'utf8'), ROOT);
 	const index = bookIndex();
-	const key = [fs.statSync(c.path).mtimeMs, fs.statSync(FILTER).mtimeMs, index.key, sourcesKey(md)].join('#');
+	const key = [fs.statSync(c.path).mtimeMs, fs.statSync(FILTER).mtimeMs, index.key, sourcesKey(md), ...['artifacts/specimen.json', 'artifacts/shakespeare/loss.json'].map((f) => fs.statSync(path.join(ROOT, f)).mtimeMs)].join('#');
 	const hit = cache.get(slug);
 	if (hit?.key === key) return hit.value;
 
 	const label = c.unnumbered ? '' : String(c.num);
 	const prefix = c.unnumbered ? 'E' : label;
-	let html = execFileSync(pandocBin(), ['--from', 'markdown+smart', '--to', 'html5', '--wrap=none', '--lua-filter', FILTER, '-M', `chapter=${prefix}`, '-M', `index=${index.path}`, c.path], { encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'pipe'] });
+	let html = execFileSync(pandocBin(), ['--from', 'markdown+smart', '--to', 'html5', '--wrap=none', '--lua-filter', FILTER, '-M', `chapter=${prefix}`, '-M', `index=${index.path}`], { input: md, encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['pipe', 'pipe', 'pipe'] });
 
 	const metaMatch = html.match(/<!--BOOKMETA (.*?)-->/);
 	const meta = metaMatch ? JSON.parse(metaMatch[1]) : {};

@@ -8,7 +8,7 @@ A block makes two corrections to the stream of columns, $X\leftarrow X+f(X)$, ea
 | maths | physics | ML |
 |---|---|---|
 | $X\in\R^{D\times N}$, updated by $X\leftarrow X+f(X)$ | the state, evolved in depth | residual stream |
-| $x_{k+1}=x_k+f_k(x_k)$ | an explicit Euler step | residual connection, skip connection |
+| $x_{k+1}=x_k+f_k(x_k)$ | Euler form, with no small-step assumption | residual connection, skip connection |
 | $\Pi=I-\one\one^\T/D$ | projection out of the uniform mode | mean subtraction, centring |
 | $\hat x=\Pi x/\sigma$, $\lVert\hat x\rVert\lesssim\sqrt D$ | projection to (just inside) a sphere | layer normalisation, LayerNorm |
 | $y=\gamma\odot\hat x+\beta$ | a diagonal affine map | gain, bias, scale and shift |
@@ -30,10 +30,10 @@ Each line has the shape of a familiar formula. For an ordinary differential equa
 $$x_{k+1}=x_k+h\,f(s_k,x_k).$$
 A residual update $X_{k+1}=X_k+f_k(X_k)$ is exactly an update of this form, with step $h=1$ and a vector field $f_k$ that is different at every step, since every branch has parameters of its own. The specimen has $L=1$ block and therefore two steps; a model with $L$ blocks takes $2L$. Depth plays the role of time, and the stream is the state being evolved rather than a state discarded and rebuilt at every layer.
 
-The analogy is a statement about the form of the update, and no more. Nothing in the architecture makes the steps small, or makes $f_k$ depend smoothly on $k$, so the model is not a discretisation of some underlying flow and nothing converges to one as layers are added. What the form does give is a default. A branch that outputs zero leaves the stream untouched, so a block can only *refine* the state it is handed; a freshly initialised model whose branches are small is close to the identity, and the embedding survives it intact. The other gift arrives in @ch-pulling-back: the derivative of $x\mapsto x+f(x)$ is $I+Df$, and the $I$ is a road along which the gradient travels back without passing through any branch.
+The analogy is a statement about the form of the update, and no more. Nothing in the architecture makes the steps small, or makes $f_k$ depend smoothly on $k$, so the model is not a discretisation of some underlying flow and nothing converges to one as layers are added. What the form does give is a default. A branch that outputs zero leaves the stream untouched, so a block can preserve the state it is handed, though its updates need not be small; a freshly initialised model whose branches are small is close to the identity, and the embedding survives it intact. The other gift arrives in @ch-pulling-back: the derivative of $x\mapsto x+f(x)$ is $I+Df$, and the $I$ is a road along which the gradient travels back without passing through any branch.
 
 ::: aside
-Residual connections come from image recognition: He, Zhang, Ren and Sun, [*Deep Residual Learning for Image Recognition* (CVPR 2016)](https://arxiv.org/abs/1512.03385). The name records the idea that a branch need only learn the *residual* $f(x)=\text{target}-x$, a correction to the identity, rather than the whole map. Reading the stack of updates as an Euler scheme goes back to [Weinan E (2017)](https://doi.org/10.1007/s40304-017-0103-z) and to [Haber and Ruthotto (2017)](https://arxiv.org/abs/1705.03341); [Chen, Rubanova, Bettencourt and Duvenaud (2018)](https://arxiv.org/abs/1806.07366) took the limit seriously and made the depth continuous ("neural ODEs"). The transformer of this book does not.
+Residual connections come from image recognition: He, Zhang, Ren and Sun, [*Deep Residual Learning for Image Recognition* (CVPR 2016)](https://arxiv.org/abs/1512.03385). The name records the idea that a branch need only learn the *residual* $f(x)=\text{target}-x$, a correction to the identity, rather than the whole map. Reading the stack of updates as an Euler scheme goes back to [Weinan E (2017)](https://doi.org/10.{{value:specimenParams}}/s40304-017-0103-z) and to [Haber and Ruthotto (2017)](https://arxiv.org/abs/1705.03341); [Chen, Rubanova, Bettencourt and Duvenaud (2018)](https://arxiv.org/abs/1806.07366) took the limit seriously and made the depth continuous ("neural ODEs"). The transformer of this book does not.
 :::
 
 @fig-residual-stem draws the whole model in this picture. Each token is a vertical stem along which its column flows downwards. The two branches of the block leave the stem, compute, and merge back at a $+$. All the maps act on one column at a time, except attention, which reaches across to the earlier stems: it is still the only place where tokens meet.
@@ -52,7 +52,7 @@ Read geometrically, LayerNorm does three things.
 
 *It centres.* $\Pi$ is symmetric and $\Pi^2=\Pi$, its kernel is the line spanned by $\one$ and its image is the hyperplane $\one^\perp$ of vectors whose entries sum to zero. So $u=\Pi x$ is the orthogonal projection of $x$ onto $\one^\perp$: the component of $x$ along $\one$, the *uniform mode* in which every entry moves together, is removed and nothing else is touched.
 
-*It scales.* If $\varepsilon$ were zero, $\hat x=\sqrt D\,u/\lVert u\rVert$ would lie on the sphere of radius $\sqrt D$ in $\one^\perp$; equivalently, the root mean square of its entries would be exactly 1. With $\varepsilon>0$,
+*It scales.* If $\varepsilon$ were zero, $\hat x=\sqrt D\,u/\lVert u\rVert$ would lie on the sphere $S^{D-2}$ of radius $\sqrt D$ in $\one^\perp$; equivalently, the root mean square of its entries would be exactly 1. With $\varepsilon>0$,
 $$\lVert\hat x\rVert^2=\frac{\lVert u\rVert^2}{\sigma^2}=D\Bigl(1-\frac{\varepsilon}{\sigma^2}\Bigr)<D,$$
 so the column lands *just inside* that sphere, by an amount that depends on the column: the shorter $u$ was, the deeper it lands. The point of $\varepsilon$ is the column with $u=0$, whose entries are all equal; there $\hat x=0$ instead of $0/0$.
 
@@ -64,10 +64,10 @@ There is an exact sphere one dimension up. Scale $(u,\sqrt{D\varepsilon})$ to le
 
 Centring and scaling do not change the direction of $u$. Up to the tiny effect of $\varepsilon$, what LayerNorm keeps of a column is the unit vector $u/\lVert u\rVert$ and nothing else; it forgets two numbers, the component along $\one$ and the length of what is left. @fig-layernorm-sphere draws exactly those two numbers. Each column $x$ becomes the point
 $$(a,r)=\Bigl(\frac{\one^\T x}{\sqrt D},\ \lVert\Pi x\rVert\Bigr),\qquad a^2+r^2=\lVert x\rVert^2,$$
-in a half-plane whose horizontal axis is the direction $\one/\sqrt D$ and whose vertical axis is distance from it. The circle of radius $\sqrt D$ is the sphere $\lVert x\rVert=\sqrt D$. Centring moves every point horizontally onto the vertical axis; scaling moves it along that axis to just below the top of the circle; and since this picture records only the two forgotten numbers, every column of the window arrives at the same place in it.
+in a half-plane whose horizontal axis is the direction $\one/\sqrt D$ and whose vertical axis is distance from it. The circle of radius $\sqrt D$ is the sphere $\lVert x\rVert=\sqrt D$. Centring moves every point horizontally onto the vertical axis; scaling moves it along that axis to just below the top of the circle; and since this picture records only the two forgotten numbers, the columns nearly coincide in these coordinates only: their directions in $\one^\perp$ remain different.
 
 ::: {.figure #fig-layernorm-sphere window=1 column=4}
-LayerNorm, geometrically, for the second normalisation of the block, the one in front of the MLP. On the left every column of the window is a point $(\one^\T x/\sqrt D,\ \lVert\Pi x\rVert)$; centring moves it across onto the vertical axis, scaling moves it along that axis to just inside the circle $\lVert x\rVert=\sqrt D$, and the gain and offset move it off again. The inset magnifies how far inside each column lands. On the right, one column as a spoke glyph at each stage, with the dotted circle at root mean square 1. [Run the stages, or click a column.]{.web}
+LayerNorm, geometrically, for the second normalisation of the block, the one in front of the MLP. The left panel records the two coordinates removed by ideal centring and scaling; coincidence here does not mean equal vectors. Every column of the window is a point $(\one^\T x/\sqrt D,\ \lVert\Pi x\rVert)$; centring moves it across onto the vertical axis, scaling moves it along that axis to just inside the circle $\lVert x\rVert=\sqrt D$, and the gain and offset move it off again. The inset magnifies how far inside each column lands. On the right, one column as a spoke glyph at each stage, with the dotted circle at root mean square 1. [Run the stages, or click a column.]{.web}
 :::
 
 Why normalise at all? The stream accumulates: every branch adds to it, and nothing in the forward pass ever shrinks it. A branch that read the raw stream would see inputs whose size depends on how much has been written before, and would have to work at every scale. A normalised copy has a fixed size, so each branch sees its input on the same footing, whatever its depth. The price is that a branch cannot see the mean or the length of a column; whatever the model wants a branch to know must be written in the direction. In @ch-pulling-back the same geometry reappears in the derivative: the pullback of LayerNorm projects the incoming adjoint onto $\one^\perp$ and onto the tangent space of the sphere, so no gradient ever asks to change what LayerNorm forgets.
@@ -108,7 +108,7 @@ The specimen as one composition of maps, from characters to a single number. Eac
 
 All the parameters together are one vector $\theta\in\R^p$. Counting along the arrows,
 $$\begin{aligned}p&=\underbrace{DV}_{E}+L\bigl(\underbrace{4D^2+4D}_{\text{attention}}+\underbrace{2DF+F+D}_{\text{MLP}}+\underbrace{4D}_{\LN_1,\,\LN_2}\bigr)+\underbrace{2D}_{\LN_f}+\underbrace{DV+V}_{\text{readout}}\\&=2DV+V+2D+L\,(4D^2+2DF+9D+F),\end{aligned}$$
-which for the specimen is $p=1007$. Neither the context length $T$ nor the number of heads $H$ appears: positions are a fixed code and heads only partition rows that are already counted. In the code the named parameters $E,\gamma_1,\dots,b_{\text{out}}$ are *views* onto one vector, in a fixed order, so that an optimiser in @ch-learning sees nothing but a point in $\R^p$ and a vector of the same length to move it by.
+which for the specimen is $p={{value:specimenParams}}$. Neither the context length $T$ nor the number of heads $H$ appears: positions are a fixed code and heads only partition rows that are already counted. In the code the named parameters $E,\gamma_1,\dots,b_{\text{out}}$ are *views* onto one vector, in a fixed order, so that an optimiser in @ch-learning sees nothing but a point in $\R^p$ and a vector of the same length to move it by.
 
 ::: aside
 The order is binding: $E$; then for each block $\gamma_1$ $\beta_1$ $W_q$ $b_q$ $W_k$ $b_k$ $W_v$ $b_v$ $W_o$ $b_o$ $\gamma_2$ $\beta_2$ $W_1$ $b_1$ $W_2$ $b_2$; then $\gamma_f$ $\beta_f$ $W_{\text{out}}$ $b_{\text{out}}$; each matrix column by column. `carve(θ, c)` in `src/parameters.jl` cuts $\theta$ into these views, and `flatten` glues the gradients back together in the same order.
@@ -158,7 +158,7 @@ Let $S\subseteq\{1,\dots,F\}$ be the set of units that fire at $\hat f$, and $P_
 :::
 
 ::: exercise
-Try it in @fig-layernorm-sphere. Which column of the window lands deepest inside the sphere? Check your answer against the first exercise, using $\lVert\Pi x\rVert$ from the readout.
+Try it in @fig-layernorm-sphere. Which column of the window lands deepest inside the sphere? Check your answer against the first exercise, [using $\lVert\Pi x\rVert$ from the readout.]{.web} [using the inset that magnifies the radial shortfall.]{.print}
 :::
 
 ::: exercise

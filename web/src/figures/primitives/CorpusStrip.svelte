@@ -11,7 +11,7 @@
 		T = 8,
 		start = $bindable(0), // 0-based window start
 		pos = $bindable(0), // 0-based position in the window (the last context character)
-		maxStart = corpus.length - T,
+		maxStart = Math.max(0, corpus.length - T - 1),
 		x = 0,
 		y = 0, // baseline of the type
 		width = 480,
@@ -60,7 +60,7 @@
 		{@const inCtx = k >= start && k <= start + pos}
 		<text class="tok cstrip__ch" class:is-win={inWin} class:is-ctx={inCtx} class:is-last={k === start + pos} class:is-target={showTarget && k === target} x={cx(k)} y={y} text-anchor="middle">{showChar(ch)}</text>
 		{#if interactive}
-			<rect class="hit" x={cx(k) - step / 2} y={y - 20} width={step} height="26" role="button" tabindex="-1" aria-label="choose ‘{showChar(ch)}’ at {k + 1}" onclick={() => choose(k)} onkeydown={() => {}} />
+			<rect class="hit" x={cx(k) - step / 2} y={y - 20} width={step} height="26" role="button" tabindex="0" aria-label="choose ‘{showChar(ch)}’ at {k + 1}" onclick={() => choose(k)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(k); } }} />
 		{/if}
 	{/each}
 	<!-- context underline, window bracket, target mark -->

@@ -34,13 +34,13 @@ $$-\log q_y=\lse(z)-z_y .$$
 
 ## The loss {#sec-loss}
 
-A training batch of $B$ windows of length $T$ makes $N=TB$ predictions; for the specimen that is $10\times8=80$. Write $c_n$ for the context of prediction $n$, the characters of its window up to and including position $t$, and $y_n$ for the character that follows. The *loss* is the mean surprise,
+A training batch of $B$ windows of length $T$ makes $N=TB$ predictions; for the specimen that is $10\times8={{value:predictions}}$. Write $c_n$ for the context of prediction $n$, the characters of its window up to and including position $t$, and $y_n$ for the character that follows. The *loss* is the mean surprise,
 $$\mathcal L(\theta)=\frac1N\sum_{n=1}^{N}-\log q_\theta(y_n\mid c_n)=\frac1N\sum_{n=1}^{N}\Bigl[\lse(z_n)-Z_{y_n,n}\Bigr].$$
 In matrix form, with $Y\in\{0,1\}^{V\times N}$ the matrix whose column $n$ is the one-hot vector $e_{y_n}$,
 $$\mathcal L=\frac1N\Bigl[\sum_n\lse(Z_{:,n})-\langle Y,Z\rangle_F\Bigr].$$
 The number $\log V$ is the yardstick. A model that knows nothing and says so, $q_a=1/V$, pays exactly $\log V$ for every prediction. The specimen is initialised with small random parameters, so its logits start near zero and its predictions near uniform, and its first loss is close to $\log V$. That is not a bound, however: a confident wrong prediction costs more than $\log V$, and without limit.
 
-@fig-surprise shows all eighty charges at once. Each row is one training window, set under the corpus where it lies, and each bar stands under the character it predicts. The outline is what the untrained model pays; the solid bar is what the model pays after the chosen number of training steps. Run the training and watch the bars fall.
+@fig-surprise shows all eighty charges at once. Each row is one training window, set under the corpus where it lies, and each bar stands under the character it predicts. The outline is what the untrained model pays; the solid bar is what the model pays after the chosen number of training steps. [Run the training and watch the bars fall.]{.web} [The stages show the bars falling during training.]{.print}
 
 ::: {.figure #fig-surprise}
 The surprise $-\log q(y)$ of each of the specimen's eighty predictions. Row $b$ is training window $b$, placed under the corpus; each bar stands under the character it predicts. Outlines: the untrained model. Solid bars: the model during training, replayed exactly as it was trained. The dashed hairline is $\log V$, uniform guessing; the loss is the mean of all the bars.
@@ -83,7 +83,7 @@ $$\mathcal L(\theta)=\sum_c\frac{n_c}{N}\,H(\hat p_c,q_c)=\underbrace{\sum_c\fra
 The first term does not depend on $\theta$ at all; it is a property of the corpus and of the way it was cut into windows. The second is never negative, and vanishes only if the model predicts, for every context, exactly what followed it. So the first term is a floor that no model, however large, can go below.
 
 For most contexts $\hat p_c$ is a single character with probability one, and its entropy is zero. Which contexts are left open? A context is a window prefix, and every prefix of length two or more occurs in the specimen's training set either once or always with the same successor. The contexts of length one are different: there the model sees one character and nothing before it. Two windows begin with "o": in one the "o" of "to" is followed by a space, in the other the "o" of "or" is followed by "r". Three windows begin with a space, followed by "b", "o" and "n". For those contexts the best possible prediction is $\hat p_c$, uniform on two and on three characters, and the floor is
-$$\mathcal L_{\min}=\frac{2\log2+3\log3}{80}.$$
+$$\mathcal L_{\min}=\frac{2\log2+3\log3}{{{value:predictions}}}.$$
 @fig-cross-entropy-kl computes this from the corpus and the windows, and splits the loss into floor and divergence at every step of training.
 
 ::: {.figure #fig-cross-entropy-kl}
@@ -142,5 +142,5 @@ Consider @fig-cross-entropy-kl at step 0. [Drag the training back to that step.]
 :::
 
 ::: exercise
-In @fig-surprise, point at the five bars that do not fall. For each, write down the context the model sees and the characters that follow that context in the training set, and check that the bar settles at $\log 2$ or $\log 3$.
+In @fig-surprise, identify the five bars that do not fall. For each, write down the context the model sees and the characters that follow that context in the training set, and check that the bar settles at $\log 2$ or $\log 3$.
 :::

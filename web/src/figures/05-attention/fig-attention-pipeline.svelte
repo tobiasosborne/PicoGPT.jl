@@ -14,7 +14,7 @@
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import SpokeGlyph from '../primitives/SpokeGlyph.svelte';
-	import { fmt, showChar, clamp, maxAbs, spokeScale, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, maxAbs, spokeScale, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -22,7 +22,7 @@
 	const d = $derived(specimen.d);
 	const sqrtD = $derived(Math.sqrt(d));
 	// svelte-ignore state_referenced_locally
-	const start = clamp((+attrs.window || 11) - 1, 0, 10);
+	const start = clamp((+attrs.window || 10) - 1, 0, specimen.windows.length - 1);
 	// svelte-ignore state_referenced_locally
 	let reader = $state(clamp((+attrs.reader || 8) - 1, 0, 7));
 	// svelte-ignore state_referenced_locally
@@ -98,7 +98,7 @@
 		return {
 			who: `‘${showChar(tr.chars[i])}’, position ${i + 1}, head ${head + 1}`,
 			temp: atModel ? `τ = √d = ${fmt(sqrtD, 0)}, the model’s own temperature` : `τ = ${fmt(tau, 2)} (the model uses √d = ${fmt(sqrtD, 0)})`,
-			reads: best.map((b) => `‘${showChar(tr.chars[b.j])}’ ${fmt(b.w)}`).join(', '),
+			reads: best.map((b) => `‘${showChar(tr.chars[b.j])}’ at ${b.j + 1} ${fmtProb(b.w, 2, true)}`).join(', '),
 			entropy: `entropy ${fmt(H, 2)} of a possible ${fmt(Math.log(n), 2)} nats`
 		};
 	});
@@ -106,7 +106,7 @@
 </script>
 
 <div class="fx fx-pipe" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Attention for reader {readout.who}: weights {readout.reads}">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Attention for reader {readout.who}: weights {readout.reads}">
 		<!-- row labels (direct labelling) -->
 		{#if !narrow}
 			<g class="fx-pipe__rows">
@@ -124,7 +124,7 @@
 					<text
 						class="lbl fx-pipe__head"
 						class:is-on={h === head}
-						x={xR + (h ? 30 : -30)}
+						x={Math.min(W - 24, xR + (h ? 30 : -30))}
 						y={Y.char - 4}
 						text-anchor="middle"
 						role="button"
@@ -143,7 +143,7 @@
 		{#each tr.chars as ch, j (j)}
 			<text class="tok fx-pipe__char" class:tok--reader={j === i} class:tok--future={j > i} x={xs[j]} y={Y.char + 14} text-anchor="middle">{showChar(ch)}</text>
 			{#if interactive}
-				<rect class="hit" x={xs[j] - step / 2} y={Y.char - 10} width={step} height="34" role="button" tabindex="-1" aria-label="reader at position {j + 1}" onclick={() => (reader = j)} onkeydown={() => {}} />
+				<rect class="hit" x={xs[j] - step / 2} y={Y.char - 10} width={step} height="34" role="button" tabindex="0" aria-label="reader at position {j + 1}" onclick={() => (reader = j)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (reader = j); } }} />
 			{/if}
 		{/each}
 
@@ -169,7 +169,7 @@
 		{#each weights as w, j (j)}
 			{@const h = w * bH}
 			<rect class="bar--value" x={xs[j] - Math.min(9, step * 0.16)} y={Y.weight + 30 - h} width={Math.min(18, step * 0.32)} height={h} />
-			<text class="lbl lbl--micro lbl--num" class:lbl--strong={w >= 0.1} x={xs[j]} y={Y.weight + 30 - h - 6} text-anchor="middle">{fmt(w, 2)}</text>
+			<text class="lbl lbl--micro lbl--num" class:lbl--strong={w >= 0.1} x={xs[j]} y={Y.weight + 30 - h - 6} text-anchor="middle">{fmtProb(w, 2)}</text>
 		{/each}
 
 		<!-- temperature: drag along the log axis in the reader's column -->

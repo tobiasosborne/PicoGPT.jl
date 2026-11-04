@@ -104,14 +104,15 @@
 
 <div class="fx fx-mlp" use:measure={(w) => (width = w)}>
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" tabindex={interactive ? 0 : -1} onkeydown={key}
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (composite figure supports arrow-key navigation) -->
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} tabindex={interactive ? 0 : -1} onkeydown={key}
 		aria-label="The MLP of column {col + 1}: {fire} of {F} hidden units fire; the update y has length {fmt(Math.hypot(...y), 2)}.">
 		<!-- the window (click a character) and the input f̂ -->
 		<g>
 			{#each chars as ch, j (j)}
 				<text class="tok fx-mlp__char" class:tok--reader={j === col} x={charX(j)} y={34} text-anchor="middle">{showChar(ch)}</text>
 				{#if interactive}
-					<rect class="hit" x={charX(j) - 14} y={12} width="28" height="30" role="button" tabindex="-1" aria-label="column {j + 1}" onclick={() => (col = j)} onkeydown={() => {}} />
+					<rect class="hit" x={charX(j) - 14} y={12} width="28" height="30" role="button" tabindex="0" aria-label="column {j + 1}" onclick={() => (col = j)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (col = j); } }} />
 				{/if}
 			{/each}
 			{#if !narrow}
@@ -156,8 +157,8 @@
 					{/if}
 				</g>
 				{#if interactive}
-					<rect class="hit" x={xs(k) - slot / 2} y={z - uAmp - 6} width={slot} height={gy + rU + 16 - (z - uAmp - 6)} role="button" tabindex="-1"
-						aria-label="unit {k + 1}" onpointerenter={() => (unit = k)} onpointerleave={() => (unit = -1)} onclick={() => (unit = k)} onkeydown={() => {}} />
+					<rect class="hit" x={xs(k) - slot / 2} y={z - uAmp - 6} width={slot} height={gy + rU + 16 - (z - uAmp - 6)} role="button" tabindex="0"
+						aria-label="unit {k + 1}" onpointerenter={() => (unit = k)} onfocus={() => (unit = k)} onpointerleave={() => (unit = -1)} onblur={() => (unit = -1)} onclick={() => (unit = k)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (unit = k); } }} />
 				{/if}
 			{/each}
 		{/each}

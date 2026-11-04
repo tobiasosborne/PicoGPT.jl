@@ -29,7 +29,7 @@ const paths = Array.from({ length: p }, (_, i) =>
 
 save(process.argv[2] ?? '/tmp/pulling-back.svg', svg({ width, height, paths,
   title: `Every component of the gradient ∇θ ∈ ℝ^${p}, followed through the same training run as the cover.`,
-  desc: `Time runs down the plate on a logarithmic scale (${steps} steps, ${TRAIN}). Each path is one component ` +
+  desc: `Time runs down the plate on a log(1 + step/8) scale (${steps} steps, ${TRAIN}). Each path is one component ` +
         `of ∂ℓ/∂θᵢ (before clipping), averaged as Adam averages it (first moment, β₁ = 0.9, bias-corrected), placed horizontally at asinh(∂ℓ/∂θᵢ / g₀) with g₀ = ${g0.toExponential(2)} ` +
         `(the initial root-mean-square component): linear near zero, logarithmic beyond. ` +
         `As the loss reaches its floor every component falls back to zero.` }));

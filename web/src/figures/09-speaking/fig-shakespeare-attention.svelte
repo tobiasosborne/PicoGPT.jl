@@ -15,7 +15,7 @@
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import Arcs from '../primitives/Arcs.svelte';
-	import { fmt, fmtDense, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, fmtDense, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const data = $derived(getContext('artifacts')?.()?.shakespeare?.attention ?? null);
@@ -67,6 +67,16 @@
 	let readerSel = $state(-1);
 	let hover = $state(-1);
 	const reader = $derived(hover >= 0 ? hover : readerSel >= 0 ? readerSel : repeat?.R?.[Math.floor((repeat?.R?.length ?? 0) / 3)] ?? T - 1);
+
+	function readerKey(e) {
+		let next = reader;
+		if (e.key === 'ArrowLeft') next = Math.max(0, reader - 1);
+		else if (e.key === 'ArrowRight') next = Math.min(T - 1, reader + 1);
+		else if (e.key === 'Home') next = 0;
+		else if (e.key === 'End') next = T - 1;
+		else return;
+		e.preventDefault(); hover = -1; readerSel = next;
+	}
 
 	// geometry
 	const W = $derived(layoutWidth(width, mode, 340));
@@ -124,11 +134,14 @@
 	{#if !data}
 		<p class="fig__pending">The Shakespeare model’s attention patterns (artifacts/shakespeare/attention.json) are not present in this build.</p>
 	{:else}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Attention of all {data.heads.length} heads on a passage of {T} characters; copy weight at most {fmt(Math.max(...stats.map((s) => s.copy)), 2)}">
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Attention of all {data.heads.length} heads on a passage of {T} characters; copy weight at most {fmt(Math.max(...stats.map((s) => s.copy)), 2)}">
 			<!-- arcs: what the reader reads in the chosen head -->
 			<g class="fx-sattn__arcs">
 				<Arcs xs={xsAll} y={yText - 16} A={rowFor} {reader} dir={-1} wmax={9} aspect={0.5} hmax={interactive ? 84 : 50} labels={!narrow} labelAt={0.15} loop={5} />
 			</g>
+			{#if interactive}
+				<rect class="hit" x={pad} y={yText - 16} width={W - 2 * pad} height={yBars - yText + 20} role="slider" tabindex="0" aria-label="reader position in the passage (arrow keys)" aria-valuemin="1" aria-valuemax={T} aria-valuenow={reader + 1} aria-valuetext={ctxLabel(reader)} onkeydown={readerKey} />
+			{/if}
 			<!-- the passage -->
 			{#each chars as c, i (i)}
 				<text class="tok fx-sattn__ch" class:is-reader={i === reader} class:is-nl={c === '\n' || c === ' '} x={xc(i)} y={yText} text-anchor="middle" style:font-size="{Math.min(13, cw * 1.3)}px">{show(c)}</text>
@@ -137,7 +150,7 @@
 					<rect class="bar--value fx-sattn__bar" x={xc(i) - cw * 0.3} y={yBars - h} width={cw * 0.6} height={h} />
 				{/if}
 				{#if interactive}
-					<rect class="hit" x={xc(i) - cw / 2} y={yText - 16} width={cw} height={yBars - yText + 20} role="button" tabindex="-1" aria-label="reader {i + 1}" onpointerenter={() => (hover = i)} onpointerleave={() => (hover = -1)} onclick={() => (readerSel = i)} onkeydown={() => {}} />
+					<rect class="hit" x={xc(i) - cw / 2} y={yText - 16} width={cw} height={yBars - yText + 20} role="presentation" aria-label="reader {i + 1}" onpointerenter={() => (hover = i)} onpointerleave={() => (hover = -1)} onclick={() => (readerSel = i)} onkeydown={() => {}} />
 				{/if}
 			{/each}
 			<line class="axis" x1={pad} x2={W - pad} y1={yBars} y2={yBars} />
@@ -174,7 +187,7 @@
 		{#if interactive}
 			<p class="readout" aria-live="polite">
 				<span class="readout__who">Layer {data.heads[head].layer}, head {data.heads[head].head}; reader {ctxLabel(reader)}.</span>
-				<span class="readout__part">It reads {topReads.map((o) => `${ctxLabel(o.j)} ${fmt(o.w, 2)}`).join(', ') || 'nothing above 0.05'}. The model’s favourite for the next character is ‘{show(data.next[reader].best)}’ ({fmt(data.next[reader].pBest, 2)}){data.next[reader].p != null ? `; the true one, ‘${show(chars[reader + 1])}’, got ${fmt(data.next[reader].p, 2)}` : ''}.</span>
+				<span class="readout__part">It reads {topReads.map((o) => `${ctxLabel(o.j)} ${fmtProb(o.w, 2, true)}`).join(', ') || 'nothing above 0.05'}. The model’s favourite for the next character is ‘{show(data.next[reader].best)}’ ({fmtProb(data.next[reader].pBest, 2, true)}){data.next[reader].p != null ? `; the true one, ‘${show(chars[reader + 1])}’, got ${fmtProb(data.next[reader].p, 2, true)}` : ''}.</span>
 				<span class="readout__hint">Point at a character to follow it through every head; click a head to draw its arcs. ¶ is a line break and · a space.</span>
 			</p>
 		{/if}

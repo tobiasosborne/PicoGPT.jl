@@ -57,7 +57,7 @@
 	// The τ-ruler stands on the lowest rung: a rung kτ above it is e^k times less occupied.
 	// F marks the free energy −τ ln 𝒵. A pure drawing: the figure owns the state and passes
 	// handlers for dragging (onrung, onrail, onruler) if it wants them.
-	import { fmt, showChar, clamp } from './scales.js';
+	import { fmt, fmtProb, showChar, clamp } from './scales.js';
 
 	let {
 		z = [],
@@ -100,7 +100,7 @@
 	const above = $derived(clip ? E.filter((e) => e > Emax).length : 0);
 	const yOf = (e) => y + ((Emax - e) / (Emax - Emin)) * height;
 	const yTrue = $derived(E.map((e) => yOf(e)));
-	const yShelf = $derived(dodge(yTrue.map((v, a) => (shown[a] ? v : -1e6 - a * gap)), gap));
+	const yShelf = $derived(dodge(yTrue.map((v, a) => (shown[a] ? v : -1e6 - a * gap)), Math.max(gap, small ? 18 : 23)));
 	const xLabel = $derived(x + lead + 2);
 	const xBar = $derived(x + lead + (small ? 14 : 18) + (showZ ? 44 : 0));
 	const F = $derived(showF ? freeEnergy(z, tau) : null);
@@ -164,7 +164,7 @@
 	{#if F != null && Number.isFinite(F) && F >= Emin}
 		<g class="ladder__F">
 			<path d="M{x - 1} {yOf(F)} l-6 -3.5 l0 7 z" />
-			{#if !small}<text class="ladder__Fl" x={x - 10} y={yOf(F) + 5} text-anchor="end">F</text>{/if}
+			{#if !small}<text class="ladder__Fl" x={x - 10} y={yOf(F) + 5} text-anchor="end">𝓕</text>{/if}
 		</g>
 	{/if}
 
@@ -181,10 +181,10 @@
 			{#if track}<line class="ladder__track" x1={xBar} x2={xBar + pScale} y1={ys} y2={ys} />{/if}
 			<rect class="bar--value ladder__bar" x={xBar} y={ys - barH / 2} width={Math.max(0, pa * pScale)} height={barH} />
 			{#if pLabels === 'all' || (pLabels === 'big' && pa >= 0.05)}
-				<text class="lbl lbl--micro ladder__p" class:lbl--strong={pa >= 0.1} x={xBar + pa * pScale + 5} y={ys + 3.5}>{fmt(pa, 2)}</text>
+				<text class="lbl lbl--micro ladder__p" class:lbl--strong={pa >= 0.1} x={xBar + pa * pScale + 5} y={ys + 3.5}>{fmtProb(pa, 2)}</text>
 			{/if}
 			{#if onrung}
-				<rect class="handle-hit ladder__hit" x={x + 2} y={Math.min(yt, ys) - gap / 2} width={xBar - x + Math.max(40, pa * pScale + 34)} height={Math.abs(yt - ys) + gap} role="slider" tabindex="0" aria-label="energy of ‘{showChar(labels[a])}’" aria-valuenow={e} aria-valuetext="E = {fmt(e, 2)}, p = {fmt(pa, 3)}" onpointerdown={(ev) => onrung(a, ev)} onkeydown={(ev) => onrungkey?.(a, ev)} />
+				<rect class="handle-hit ladder__hit" x={x + 2} y={Math.min(yt, ys) - gap / 2} width={xBar - x + Math.max(40, pa * pScale + 34)} height={Math.abs(yt - ys) + gap} role="slider" tabindex="0" aria-label="energy of ‘{showChar(labels[a])}’" aria-valuenow={e} aria-valuetext="E = {fmt(e, 2)}, p = {fmtProb(pa, 3, true)}" onpointerdown={(ev) => onrung(a, ev)} onkeydown={(ev) => onrungkey?.(a, ev)} />
 			{/if}
 		</g>
 		{/if}
@@ -209,7 +209,7 @@
 	.ladder__tau { font-family: var(--serif); font-style: italic; font-size: 15px; fill: var(--ink); }
 	.ladder__k { font-style: normal; }
 	.ladder__F path { fill: var(--ink); }
-	.ladder__Fl { font-family: var(--serif); font-style: italic; font-size: 14px; fill: var(--ink); }
+	.ladder__Fl { font-family: var(--math); font-style: italic; font-size: 14px; fill: var(--ink); }
 	.ladder__railhit { cursor: ns-resize; }
 	.ladder__hit { cursor: ns-resize; }
 	:global([data-mode='print']) .ladder__bar { transition: none; }

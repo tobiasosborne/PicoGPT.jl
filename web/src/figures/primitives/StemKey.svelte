@@ -21,7 +21,7 @@
 		{ ax: x - w.x0 / 2 - 1, ay: (Y.f1 + Y.x0) / 2 + 8, side: 'left', len: 18, text: `width: the size\nof the column,\n‖x‖/√D = ${fmt(rms(x0))}` },
 		{ ax: (x + bx) / 2 + 4, ay: Y.f1 + 2, side: 'above', len: 22, text: 'the branch\nreads a copy', align: 'start', dx: -2 },
 		{ ax: bx - 2, ay: Y.p1 - 7, side: 'right', len: 20, text: `returns its\nupdate ${label}, of\nwidth ${fmt(rms(a))}` },
-		{ ax: x - 5, ay: Y.p1, side: 'left', len: 18, text: `⊕: x ← x + ${label},\nan Euler step` },
+		{ ax: x - 5, ay: Y.p1, side: 'left', len: 18, text: `⊕: x ← x + ${label},\nEuler form; no\nsmall-step assumption` },
 		{ ax: x + rG * 0.7, ay: Y.mid + rG * 0.7, side: 'right', len: 24, text: 'a spoke glyph:\nthe column at\nthat depth' }
 	]);
 </script>

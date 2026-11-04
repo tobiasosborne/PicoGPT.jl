@@ -134,13 +134,13 @@
 <div class="fx fx-ss" use:measure={(w) => (width = w)}>
 	{@html job.tag}
 	{#if !data}
-		<svg viewBox="0 0 {W} 70" width={W} height="70" role="img" aria-label="computing three gradient-descent runs and their curvature">
+		<svg viewBox="0 0 {W} 70" width={W} height="70" role={interactive ? 'group' : 'img'} aria-label="computing three gradient-descent runs and their curvature">
 			<text class="lbl lbl--micro" x="0" y="22">running gradient descent three times and measuring the curvature along the way…</text>
 			<line class="rule" x1="0" x2={W} y1="36" y2="36" />
 			<line class="fx-ss__progress" x1="0" x2={W * job.progress} y1="36" y2="36" />
 		</svg>
 	{:else}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="{readout.who} {readout.parts}">
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="{readout.who} {readout.parts}">
 			{#each data.runs as r, c (r.eta)}
 				{@const p = pos(c)}
 				{@const y0 = p.y + head + lossH + 12}
@@ -163,7 +163,7 @@
 						<line class="axis" x1={xs(k)} x2={xs(k)} y1={y0 + sharpH} y2={y0 + sharpH + 3.5} />
 						<text class="lbl lbl--micro" x={xs(k)} y={y0 + sharpH + 13} text-anchor="middle">{k}</text>
 					{/each}
-					<text class="lbl lbl--micro" x={colW - Rc} y={y0 + sharpH + 25} text-anchor="end">step (logarithmic)</text>
+					<text class="lbl lbl--micro" x={colW - Rc} y={y0 + sharpH + 25} text-anchor="end">log(1 + step)</text>
 					{#if c === 0 || narrow}<text class="fx-ss__lam" x={Lc - 6} y={y0 - 5} text-anchor="end"><tspan class="m">Λ</tspan></text>{/if}
 					<!-- the stability line 2/η -->
 					<line class="fx-ss__limit" x1={Lc} x2={colW - Rc} y1={ys(2 / r.eta, y0)} y2={ys(2 / r.eta, y0)} />

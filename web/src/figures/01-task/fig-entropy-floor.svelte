@@ -80,7 +80,7 @@
 </script>
 
 <div class="fx fx-floor" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="The entropy floor: of {cells.length} predictions, {costly.length} cannot be made certain; the mean of the smallest possible surprises is {fmt(floor, 4)} nats.">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="The entropy floor: of {cells.length} predictions, {costly.length} cannot be made certain; the mean of the smallest possible surprises is {fmt(floor, 4)} nats.">
 		{#each cells as c (c.b * 64 + c.t)}
 			{@const x = xc(c.b + c.t + 1)}
 			{@const y = yRow(c.b)}
@@ -94,7 +94,7 @@
 			{/if}
 			<text class="tok fx-floor__ch" class:is-dim={hover && !same(c)} class:is-on={same(c)} x={x} y={y} text-anchor="middle" font-size={fs}>{ch(c.y)}</text>
 			{#if interactive}
-				<rect class="hit" x={x - cw / 2} y={y - rowH * 0.4} width={cw} height={rowH} role="presentation" onpointerenter={() => (hover = c)} onpointerleave={() => (hover = null)} />
+				<rect class="hit" x={x - cw / 2} y={y - rowH * 0.4} width={cw} height={rowH} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (hover = c)} onfocus={() => (hover = c)} onpointerleave={() => (hover = null)} onblur={() => (hover = null)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (hover = c); } }} />
 			{/if}
 		{/each}
 		{#each train.x as _, b (b)}

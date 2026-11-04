@@ -67,12 +67,12 @@
 <div class="fx fx-init" use:measure={(w) => (width = w)}>
 	{@html job.tag}
 	{#if !data}
-		<svg viewBox="0 0 {W} 60" width={W} height="60" role="img" aria-label="computing initial activations">
+		<svg viewBox="0 0 {W} 60" width={W} height="60" role={interactive ? 'group' : 'img'} aria-label="computing initial activations">
 			<line class="rule" x1="0" x2={W} y1="30" y2="30" />
 			<line class="fx-init__progress" x1="0" x2={W * job.progress} y1="30" y2="30" />
 		</svg>
 	{:else}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 			aria-label="Root-mean-square sizes at initialisation. Initial loss, median over {SEEDS} seeds: {readout.parts.join('; ')}; ln V = {fmt(lnV, 3)}">
 			{#each SCHEMES as s, c (c)}
 				<text class="lbl lbl--head" x={colX(c)} y="14">{narrow ? s.short : s.name}</text>
@@ -131,8 +131,8 @@
 			{/if}
 			{#if interactive}
 				{#each [...ROWS.map((_, k) => [k, yr(k) - rowH / 2, rowH]), [ROWS.length, yH - 20, 36], [ROWS.length + 1, yL - 20, 36]] as [k, y, h] (k)}
-					<rect class="hit" x="0" {y} width={W} height={h} role="button" tabindex="-1" aria-label={rowWords(k)}
-						onpointerenter={() => (hover = k)} onpointerleave={() => (hover = -1)} onclick={() => (hover = k)} onkeydown={() => {}} />
+					<rect class="hit" x="0" {y} width={W} height={h} role="button" tabindex="0" aria-label={rowWords(k)}
+						onpointerenter={() => (hover = k)} onfocus={() => (hover = k)} onpointerleave={() => (hover = -1)} onblur={() => (hover = -1)} onclick={() => (hover = k)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (hover = k); } }} />
 				{/each}
 			{/if}
 		</svg>

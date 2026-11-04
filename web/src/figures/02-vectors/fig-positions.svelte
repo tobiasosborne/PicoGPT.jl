@@ -63,15 +63,13 @@
 </script>
 
 <div class="fx fx-pos" use:measure={(w) => (width = w)}>
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (composite figure supports arrow-key navigation) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}
 		height={H}
-		role={interactive ? 'slider' : 'img'}
+		role={interactive ? 'group' : 'img'}
 		tabindex={interactive ? 0 : undefined}
-		aria-valuemin={interactive ? 1 : undefined}
-		aria-valuemax={interactive ? T : undefined}
-		aria-valuenow={interactive ? sel + 1 : undefined}
 		aria-label="The positional code, position {sel + 1}: {readout}"
 		onkeydown={key}
 	>
@@ -121,8 +119,8 @@
 
 		{#if interactive}
 			{#each P as _, t (t)}
-				<rect class="hit" x={xt(t) - span / (T - 1) / 2} y={top - 6} width={span / (T - 1)} height={band * D + 34} role="button" tabindex="-1" aria-label="position {t + 1}" onpointerenter={() => (sel = t)} onclick={() => (sel = t)} onkeydown={() => {}} />
-				{#if !narrow}<rect class="hit" x={mx + hc * t} y={top} width={hc} height={band * D} role="presentation" onpointerenter={() => (sel = t)} />{/if}
+				<rect class="hit" x={xt(t) - span / (T - 1) / 2} y={top - 6} width={span / (T - 1)} height={band * D + 34} role="button" tabindex="0" aria-label="position {t + 1}" onpointerenter={() => (sel = t)} onfocus={() => (sel = t)} onclick={() => (sel = t)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (sel = t); } }} />
+				{#if !narrow}<rect class="hit" x={mx + hc * t} y={top} width={hc} height={band * D} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (sel = t)} onfocus={() => (sel = t)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (sel = t); } }} />{/if}
 			{/each}
 		{/if}
 	</svg>

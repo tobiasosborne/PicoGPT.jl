@@ -188,7 +188,7 @@
 		<text class="lbl lbl--micro" x={X(k)} y={Tp + ph + (compact ? 12 : 14)} text-anchor="middle">{k}</text>
 	{/each}
 	{#if xLabel && !compact}
-		<text class="lbl lbl--micro loss__xl" x={L + pw} y={Tp + ph + 25} text-anchor="end">{xLabel}{xScale === 'log' ? ' (logarithmic)' : ''}</text>
+		<text class="lbl lbl--micro loss__xl" x={L + pw} y={Tp + ph + 25} text-anchor="end">{xScale === 'log' ? `log(1 + ${xLabel})` : xLabel}</text>
 	{/if}
 	{#each yTicks as v (v)}
 		<line class="axis" x1={L - 3.5} x2={L} y1={excess ? Y(10 ** v) : Y(v)} y2={excess ? Y(10 ** v) : Y(v)} />

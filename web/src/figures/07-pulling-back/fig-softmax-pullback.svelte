@@ -124,7 +124,7 @@
 
 <div class="fx fx-spb" use:measure={(v) => (width = v)}>
 	{#if interactive}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 			aria-label="Softmax pullback, head {head + 1}, window {win + 1}: the weights A, the adjoint Ā on the whole square, and the score adjoint S̄, which is zero above the diagonal and has zero row sums.">
 			<!-- head names -->
 			{#each [0, 1] as h (h)}
@@ -173,7 +173,7 @@
 		</p>
 	{:else}
 		{@const PH = pc * T + 62}
-		<svg viewBox="0 0 {W} {PH}" width={W} height={PH} role="img" aria-label="The softmax pullback of head {head + 1} in four stages: A, Ā, Ā minus its row mean, and S̄.">
+		<svg viewBox="0 0 {W} {PH}" width={W} height={PH} role={interactive ? 'group' : 'img'} aria-label="The softmax pullback of head {head + 1} in four stages: A, Ā, Ā minus its row mean, and S̄.">
 			{#each printPhases as ph, k (k)}
 				{@const x = 20 + k * (pc * T + 22 + pgap)}
 				{@const y = 34}

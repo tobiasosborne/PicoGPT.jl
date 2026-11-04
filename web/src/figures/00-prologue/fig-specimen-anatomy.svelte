@@ -127,15 +127,36 @@
 			size: b.p.size, from: b.p.offset + 1, to: b.p.offset + b.p.size, at: b.p.offset + k + 1, role: ROLE[b.name]
 		};
 	};
+	function parameterKey(e) {
+		let k = hover ? hover.b.p.offset + hover.k : 0;
+		if (e.key === 'ArrowRight' || e.key === 'ArrowDown') k++;
+		else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') k--;
+		else if (e.key === 'Home') k = 0;
+		else if (e.key === 'End') k = specimen.paramCount - 1;
+		else return;
+		e.preventDefault(); k = Math.max(0, Math.min(specimen.paramCount - 1, k));
+		const b = lay.placed.find((b) => k >= b.p.offset && k < b.p.offset + b.p.size);
+		const q = k - b.p.offset;
+		hover = { b, k: q, i: q % b.rows, j: Math.floor(q / b.rows) };
+	}
+
 	const info = $derived(describe(hover));
 </script>
 
 <div class="fx fx-anat" use:measure={(w) => (width = w)}>
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard navigation on the composite drawing) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}
 		height={H}
-		role="img"
+		role={interactive ? 'slider' : 'img'}
+		tabindex={interactive ? 0 : undefined}
+		aria-valuemin={interactive ? 1 : undefined}
+		aria-valuemax={interactive ? specimen.paramCount : undefined}
+		aria-valuenow={interactive ? (info?.at ?? 1) : undefined}
+		aria-valuetext={interactive && info ? `${info.name}${info.idx} = ${info.v}` : undefined}
+		onkeydown={parameterKey}
+		onfocus={() => { if (!hover) { const b = lay.placed[0]; hover = { b, k: 0, i: 0, j: 0 }; } }}
 		aria-label="All {specimen.paramCount} parameters of the trained specimen, block by block: {lay.stations.map((s) => `${s.title} ${count(s.names)}`).join(', ')}."
 		onpointermove={(e) => interactive && (hover = locate(e))}
 		onpointerleave={() => (hover = null)}

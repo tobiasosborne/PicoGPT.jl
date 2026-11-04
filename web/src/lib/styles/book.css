@@ -326,3 +326,8 @@
 .print-edition-root .dict__entry { font-size: 7.6pt; line-height: 10.4pt; }
 .print-edition-root .dict__head { font-size: 15pt; }
 .print-edition-root .dict__where::after { content: ', p.\2009' target-counter(attr(href url), page); }
+
+/* Edition-specific prose shares one source. */
+.print { display: none; }
+
+.names__cue { font: var(--fs-micro) var(--sans); font-variant-caps: all-small-caps; color: var(--ink-2); margin-bottom: 0.5em; }

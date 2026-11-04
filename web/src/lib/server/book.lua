@@ -193,7 +193,7 @@ local function claim(el)
 end
 
 local function names(el)
-  local out = { pandoc.RawBlock('html', '<div class="names" role="group" aria-label="Three names">') }
+  local out = { pandoc.RawBlock('html', '<div class="names" role="group" aria-label="Three names, defined in this chapter"><p class="names__cue">Three names · defined in this chapter</p>') }
   for _, b in ipairs(el.content) do table.insert(out, b) end
   table.insert(out, pandoc.RawBlock('html', '</div>'))
   return out

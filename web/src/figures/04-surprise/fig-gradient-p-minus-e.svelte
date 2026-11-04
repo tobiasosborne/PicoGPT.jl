@@ -13,7 +13,7 @@
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import CorpusStrip from '../primitives/CorpusStrip.svelte';
-	import { fmt, showChar, clamp, maxAbs, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, maxAbs, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -77,7 +77,7 @@
 {/snippet}
 
 <div class="fx fx-grad" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Prediction after ‘{ctx}’ of ‘{showChar(vocab[y])}’: p = {fmt(p[y], 3)}, loss {fmt(loss, 3)}; gradient {g.map((v, a) => `${showChar(vocab[a])} ${fmt(v, 2)}`).join(', ')}">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Prediction after ‘{ctx}’ of ‘{showChar(vocab[y])}’: p = {fmtProb(p[y], 3, true)}, loss {fmt(loss, 3)}; gradient {g.map((v, a) => `${showChar(vocab[a])} ${fmt(v, 2)}`).join(', ')}">
 		<CorpusStrip corpus={specimen.corpus} {T} bind:start bind:pos {maxStart} x={narrow ? 6 : L - 20} y={Y.strip} width={narrow ? W - 12 : Math.min(520, W - L)} showTarget {interactive} label="prediction" />
 		<!-- untrained / trained -->
 		{#each [false, true] as tr (tr)}
@@ -162,7 +162,7 @@
 	{#if interactive}
 		<p class="readout" aria-live="polite">
 			<span class="readout__who">Window {start + 1}, position {pos + 1}, {trained ? 'trained' : 'untrained'}.</span>
-			<span class="readout__part">After ‘{Array.from(ctx).map(showChar).join('')}’ came ‘{showChar(vocab[y])}’, given {fmt(p[y], 3)}. Descent raises its logit (gradient {fmtS(g[y])}) and lowers each other logit in proportion to its probability.{#if shared}{' '}Summed over the {peers.length} windows with this context, the pulls nearly cancel when the model predicts what followed: largest remaining component {fmtS(Math.max(...gsum.map(Math.abs)))}.{/if}</span>
+			<span class="readout__part">After ‘{Array.from(ctx).map(showChar).join('')}’ came ‘{showChar(vocab[y])}’, given {fmtProb(p[y], 3, true)}. Descent raises its logit (gradient {fmtS(g[y])}) and lowers each other logit in proportion to its probability.{#if shared}{' '}Summed over the {peers.length} windows with this context, the pulls nearly cancel when the model predicts what followed: largest remaining component {fmtS(Math.max(...gsum.map(Math.abs)))}.{/if}</span>
 			<span class="readout__hint">Click a character of the line to choose the prediction of the next one; drag the bracket to move the window. Switch between untrained and trained at the top right.</span>
 		</p>
 	{/if}

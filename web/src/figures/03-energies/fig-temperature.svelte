@@ -35,7 +35,7 @@
 			.split(',')
 			.map((s) => s.split(':').map((v) => +v - 1))
 			.map(([w, p]) => {
-				const start = clamp(w, 0, specimen.corpus.length - T), pos = clamp(p, 0, T - 1);
+				const start = clamp(w, 0, specimen.windows.length - 1), pos = clamp(p, 0, T - 1);
 				const tr = specimen.windowTrace(start);
 				return { start, pos, z: tr.Z[pos], ctx: tr.chars.slice(0, pos + 1).map(showChar).join('') };
 			})
@@ -73,7 +73,7 @@
 </script>
 
 <div class="fx fx-temp" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="The Gibbs distribution of {contexts.length} contexts at temperatures from 0 to infinity: entropies {contexts.map((c) => TAUS.map((t) => fmt(entropy(gibbs(c.z, t.t)), 2)).join(', ')).join('; ')}">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="The Gibbs distribution of {contexts.length} contexts at temperatures from 0 to infinity: entropies {contexts.map((c) => TAUS.map((t) => fmt(entropy(gibbs(c.z, t.t)), 2)).join(', ')).join('; ')}">
 		{#each contexts as c, r (r)}
 			{@const y0 = r * rowH}
 			{@const R = simW / 2 - 18}
@@ -108,7 +108,7 @@
 						<text class="lbl fx-temp__tau" x={g.x - 4} y={y0 + g.y - 14}><tspan class="m">τ</tspan> {t.t === 0 || t.t === Infinity ? t.label : '= ' + t.label}</text>
 						<EnergyLadder z={c.z} labels={specimen.vocab} tau={t.t} {p} x={g.x} y={y0 + g.y} height={ladH} {Emin} {Emax} {pScale} lead={interactive ? 15 : 10} gap={14} barH={6} small pLabels="big" track={false} ticks={5} />
 						<text class="lbl lbl--micro" x={g.x - 4} y={y0 + g.y + ladH + 18}><tspan class="m">H</tspan> = {fmt(entropy(p), 2)}</text>
-						{#if interactive}<rect class="hit" x={g.x - 20} y={y0 + g.y - 30} width={colW} height={ladH + 56} />{/if}
+						{#if interactive}<rect class="hit" x={g.x - 20} y={y0 + g.y - 30} width={colW} height={ladH + 56} role="button" tabindex="0" aria-label="read temperature column {k + 1}" onfocus={() => (hover = k)} onblur={() => (hover = -1)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hover = k; } }} />{/if}
 					</g>
 				{/each}
 			</g>

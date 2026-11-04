@@ -30,10 +30,10 @@ What changes is the text the model sees. A token covers about four characters of
 The specimen has about a thousand parameters, and the Shakespeare model of @ch-speaking a little under a million. Published language models have had from hundreds of millions to hundreds of billions.
 
 ::: {.figure #fig-scale}
-How big is big. Each square has area proportional to a parameter count, and each is drawn inside the next as a single mark. From the left: the specimen; the Shakespeare model, trained on the works of Shakespeare; GPT-2, the largest of the 2019 models, with 1.5 billion parameters ([Radford et al., 2019](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)); and GPT-3, with 175 billion ([Brown et al., 2020](https://arxiv.org/abs/2005.14165)). These two published counts are the only numbers in the book that were not computed from our own models.
+How big is big. Each panel is drawn the same size; in its corner sits the previous model at its true relative scale. The specimen panel shows one square per parameter, with a minimum visible size for the smallest entries. From the left: the specimen; the Shakespeare model, trained on the works of Shakespeare; the largest GPT-2 (2019) ([Radford et al., 2019](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)); and GPT-3 ([Brown et al., 2020](https://arxiv.org/abs/2005.14165)). These counts are published measurements, rather than computations from our own models.
 :::
 
-Size has a second axis, the data. The specimen sees the same 80 predictions at every step. A large model sees trillions of tokens, most of them only once. Over many orders of magnitude, the loss reached by such models falls smoothly, close to a power law in the number of parameters and in the number of tokens trained on,^[Kaplan et al., [*Scaling Laws for Neural Language Models* (2020)](https://arxiv.org/abs/2001.08361); Hoffmann et al., [*Training Compute-Optimal Large Language Models* (2022 preprint)](https://arxiv.org/abs/2203.15556).] and the practice of the field is largely the practice of exploiting that regularity. None of it requires a new map; all of it requires more of the same ones.
+Size has a second axis, the data. The specimen sees the same {{value:predictions}} predictions at every step. A large model sees trillions of tokens, most of them only once. Over many orders of magnitude, the loss reached by such models falls smoothly, close to a power law in the number of parameters and in the number of tokens trained on,^[Kaplan et al., [*Scaling Laws for Neural Language Models* (2020)](https://arxiv.org/abs/2001.08361); Hoffmann et al., [*Training Compute-Optimal Large Language Models* (2022 preprint)](https://arxiv.org/abs/2203.15556).] and the practice of the field is largely the practice of exploiting that regularity. None of it requires a new map; all of it requires more of the same ones.
 
 ### Hardware
 
@@ -43,7 +43,7 @@ Two costs we never felt dominate at scale. Attention computes a $T\times T$ scor
 
 ### Precision
 
-The specimen computes in 64-bit floating point, so that the Julia and the JavaScript can agree to twelve decimal places and every figure is exact. The Shakespeare model trains in 32 bits. Large models train with 16-bit numbers for most of the arithmetic, keeping a 32-bit copy of the parameters for the update and, in the narrowest formats, rescaling the loss so that small gradients survive the coarser grid.^[Micikevicius et al., [*Mixed Precision Training* (ICLR 2018)](https://arxiv.org/abs/1710.03740).] They are often served with fewer bits still. The maps are the same; the rounding is not, and a good part of the engineering is in keeping it harmless.
+The specimen computes in 64-bit floating point, with the Julia and JavaScript implementations checked against one another. Arrays agree to $10^{-12}$ absolute; the recorded loss curve to $10^{-9}$ absolute. A replay that fails the latter check is discarded. The Shakespeare model trains in 32 bits. Large models train with 16-bit numbers for most of the arithmetic, keeping a 32-bit copy of the parameters for the update and, in the narrowest formats, rescaling the loss so that small gradients survive the coarser grid.^[Micikevicius et al., [*Mixed Precision Training* (ICLR 2018)](https://arxiv.org/abs/1710.03740).] They are often served with fewer bits still. The maps are the same; the rounding is not, and a good part of the engineering is in keeping it harmless.
 
 ### Other architectures
 
@@ -63,7 +63,7 @@ A model trained only to predict the next token of a large text continues text; i
 
 ## A dictionary of jargon {#sec-dictionary}
 
-Every term of the field defined in this book, in alphabetical order, with its names in mathematics and in physics and the chapter that defines it. The dictionary is assembled when the book is built, from the names tables at the head of each chapter; it is exactly as complete as they are.
+Every term given three names in this book, in alphabetical order, with its names in mathematics and in physics and the chapter that defines it. The dictionary is assembled when the book is built, from the names tables at the head of each chapter; it is exactly as complete as they are.
 
 ::: dictionary
 :::

@@ -12,7 +12,7 @@ A text is a finite sequence over a finite alphabet. By the chain rule of probabi
 | $x=(x_1,\dots,x_m)\in\mathcal A^m$ | a configuration, a history | sequence, text |
 | the prefix $x_{\le t}=(x_1,\dots,x_t)$ | the past | context, prompt |
 | $q(\,\cdot\mid x_{\le t})\in\Delta^{V-1}$ | a conditional law, a transition kernel | next-token prediction |
-| $P(x)=\prod_t q(x_{t+1}\mid x_{\le t})$ | a chain of conditional experiments | autoregressive model |
+| $P(x)=q(x_1)\prod_t q(x_{t+1}\mid x_{\le t})$ | a chain of conditional experiments | autoregressive model |
 | the largest $t$ the map accepts, $T$ | the length of the memory | context length, context window |
 | $-\log q(x_{t+1}\mid x_{\le t})$ | surprisal | per-token loss |
 | the pairs $(x_{\le t},x_{t+1})$ we fit | the sample | training set |
@@ -50,7 +50,7 @@ Cutting the context at $T$ symbols is a modelling decision, not a consequence of
 The specimen as a map from contexts to distributions. Column $t$ is the context $x_{\le t}$, the first $t$ characters of the window; below it are the seven probabilities $q_\theta(a\mid x_{\le t})$, one bar per character $a$, in the order of the alphabet. The character that actually comes next is marked. [Drag the window along the line.]{.web}
 :::
 
-Most columns are a single bar of height one: after `o be o`, the specimen is sure that `r` comes next, and it is right. The first column is different. Given only `o`, the specimen splits its mass almost evenly between ␣ and `r`. That is not a mistake, and we come back to it in @sec-floor-task.
+Most columns put almost all their mass on one character: after `o be o`, the specimen gives `r` a probability close to one, and it is right. The small remaining mass is real; finite logits never give exact certainty. The first column is different. Given only `o`, the specimen splits its mass almost evenly between ␣ and `r`. That is not a mistake, and we come back to it in @sec-floor-task.
 
 ## The probability of a text {#sec-probability}
 
@@ -74,13 +74,15 @@ The unit matters little: in bits, using $\log_2$, every surprise is multiplied b
 
 The model accepts at most $T$ symbols, so we cut the corpus into *windows*: every run of $T$ consecutive characters that has one more character after it. For a window starting at $s$, the *input* is $x_s,\dots,x_{s+T-1}$ and the *target* is the same run shifted by one, $x_{s+1},\dots,x_{s+T}$. Position $t$ of the window is asked for the character that follows its prefix. A corpus of $m$ characters has $m-T$ windows; the specimen's line has ten.
 
+
+
+One window yields $T$ predictions, not one. A single pass of the model computes all $T$ distributions of a window together, each conditioned only on its own prefix; @ch-attention shows how the model keeps position $t$ from reading positions after $t$, so that the targets are not visible to the predictions they test. Stacking the $B$ windows side by side gives the $N=T\cdot B$ columns of the arrays in every later chapter. For the specimen, $B=10$ and $N={{value:predictions}}$.
+
+The windows overlap, so the same stretch of text is predicted several times, from contexts of different lengths. That is deliberate. It also means that the objective is an average over these {{value:predictions}} conditional predictions, not the probability of the line counted once.
+
 ::: {.figure #fig-training-windows}
 The whole training set. The corpus is at the top; below it, each row is one window, its inputs in ink and, offset by one place, its targets in value ink. Every target is one prediction, and the ten windows of eight make the $N=T\cdot B$ columns that the model processes at once.
 :::
-
-One window yields $T$ predictions, not one. A single pass of the model computes all $T$ distributions of a window together, each conditioned only on its own prefix; @ch-attention shows how the model keeps position $t$ from reading positions after $t$, so that the targets are not visible to the predictions they test. Stacking the $B$ windows side by side gives the $N=T\cdot B$ columns of the arrays in every later chapter. For the specimen, $B=10$ and $N=80$.
-
-The windows overlap, so the same stretch of text is predicted several times, from contexts of different lengths. That is deliberate. It also means that the objective is an average over these 80 conditional predictions, not the probability of the line counted once.
 
 ## What no model can learn {#sec-floor-task}
 
@@ -89,7 +91,7 @@ Could a model make every surprise zero? Only if every context determines its nex
 The best a model can do with a context $c$ that occurs $n_c$ times, followed $n_{c,a}$ times by $a$, is to predict the observed frequencies $q(a\mid c)=n_{c,a}/n_c$. (That this is optimal is Gibbs' inequality, proved in @ch-surprise.) The mean surprise is then the entropy of the text's own next-character statistics,
 $$H_{\min}=\frac1N\sum_c\sum_a n_{c,a}\log\frac{n_c}{n_{c,a}}.$$
 Every other context of the specimen's windows is followed by one character only, and contributes nothing. The two windows that start with `o` each cost at least $\log 2$, the three that start with ␣ each cost at least $\log 3$, and so
-$$H_{\min}=\frac{2\log 2+3\log 3}{80}\ \text{nats}.$$
+$$H_{\min}=\frac{2\log 2+3\log 3}{{{value:predictions}}}\ \text{nats}.$$
 It is a property of the text and of the way we cut it, not of any model. A perfect specimen would sit exactly on this floor, and @ch-learning shows how close training gets.
 
 ::: aside
@@ -97,7 +99,7 @@ The floor depends on the cut as well as on the text: windows of another length s
 :::
 
 ::: {.figure #fig-entropy-floor}
-The floor under the loss. The 80 predictions of the training set, laid out as in @fig-training-windows; each is drawn at the smallest surprise any model can achieve on it. Only five are not free, all at the first position of a window. [Point at one to see which characters share its context.]{.web}
+The floor under the loss. The {{value:predictions}} predictions of the training set, laid out as in @fig-training-windows; each is drawn at the smallest surprise any model can achieve on it. Only five are not free, all at the first position of a window. [Point at one to see which characters share its context.]{.web}
 :::
 
 
@@ -125,7 +127,7 @@ A table that lists $q(\,\cdot\mid c)$ for every context $c$ of length $1$ to $T$
 :::
 
 ::: exercise
-A *bigram* model is a language model whose prediction depends on the last symbol only, $q(\,\cdot\mid x_{\le t})=q(\,\cdot\mid x_t)$. How many free numbers does it have? Find the bigram model with the smallest mean surprise on the specimen's 80 predictions, and show that its mean surprise is larger than $H_{\min}$. Which contexts does a bigram model confuse that the specimen does not?
+A *bigram* model is a language model whose prediction depends on the last symbol only, $q(\,\cdot\mid x_{\le t})=q(\,\cdot\mid x_t)$. How many free numbers does it have? Find the bigram model with the smallest mean surprise on the specimen's {{value:predictions}} predictions, and show that its mean surprise is larger than $H_{\min}$. Which contexts does a bigram model confuse that the specimen does not?
 :::
 
 ::: {.exercise #ex-floor-longer}

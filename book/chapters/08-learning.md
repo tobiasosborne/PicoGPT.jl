@@ -21,22 +21,22 @@ Learning is a walk downhill in $\R^p$: gradient descent is Euler's method for th
 
 Fix the training set: the ten windows of the corpus, eighty predictions in all. The loss of @ch-surprise is then one function on the space of parameters,
 $$\ell:\R^p\to\R,\qquad\theta\longmapsto\frac1N\sum_{n=1}^N-\log p_\theta(y_n\mid\text{context}_n),$$
-with $p=1007$ and $N=80$, and @ch-pulling-back computes its gradient $\nabla\ell(\theta)\in\R^p$ at the cost of about one forward pass. Training means finding a $\theta$ where $\ell$ is small. Two numbers frame the answer. A model that has learned nothing and spreads its probability evenly over the $V$ characters pays $\ln V$ nats per prediction: that is *uniform guessing*. And no model can pay less than the *entropy floor* of @sec-floor-surprise, because five of the eighty predictions are made from a context of a single character that the windows continue in different ways. Two windows begin with "o" and three with a space, so the floor is $(2\ln2+3\ln3)/80$ nats, and not zero.
+with $p={{value:specimenParams}}$ and $N={{value:predictions}}$, and @ch-pulling-back computes its gradient $\nabla\ell(\theta)\in\R^p$ at the cost of about one forward pass. Training means finding a $\theta$ where $\ell$ is small. The loss is convex as a function of the logits $Z$: each column contributes a positive multiple of the covariance matrix of @ch-energies to its Hessian. Its composition with the model is not convex in $\theta$, so the local descent argument below gives no guarantee of a global minimum. Two numbers frame the answer. A model that has learned nothing and spreads its probability evenly over the $V$ characters pays $\ln V$ nats per prediction: that is *uniform guessing*. And no model can pay less than the *entropy floor* of @sec-floor-surprise, because five of the eighty predictions are made from a context of a single character that the windows continue in different ways. Two windows begin with "o" and three with a space, so the floor is $(2\ln2+3\ln3)/{{value:predictions}}$ nats, and not zero.
 
-@fig-train-live runs the whole of this chapter in front of you. Every step is a forward pass on the ten windows, a backward pass, and one update of all the parameters. It starts at $\theta_0$, the specimen's initial parameters, and with the settings it opens with it repeats the training run whose result the rest of the book has been looking at, number for number.
+[@fig-train-live runs the whole of this chapter in front of you.]{.web} [@fig-train-live summarises the recorded training run.]{.print} Every step is a forward pass on the ten windows, a backward pass, and one update of all the parameters. It starts at $\theta_0$, the specimen's initial parameters. [With its opening settings the live figure replays the run used throughout the book.]{.web}
 
 ::: {.figure #fig-train-live window=1 reader=8}
-The specimen learning. Every step is a forward pass, a backward pass and an update of all the parameters. The curve is the loss, with the line of uniform guessing at $\ln V$ and the entropy floor of the corpus; above it, what the model writes after "to be or" at a few steps along the way. Each parameter is one square; the arcs show what the last character reads. [Press ▶ to train live; under the live curve is the learning rate of every step.]{.web} [Drag the learning rate on its axis, change the optimiser or the schedule, or start again from another seed.]{.web}
+The specimen learning. Every step is a forward pass, a backward pass and an update of all the parameters. The curve is the loss, with the line of uniform guessing at $\ln V$ and the entropy floor of the corpus; above it, what the model writes after "to be or" at a few steps along the way. [Each parameter is one square; the arcs show what the last character reads.]{.web} [The printed plate records the loss and samples; @fig-specimen-anatomy shows the parameters.]{.print} [Press ▶ to train live; under the live curve is the learning rate of every step.]{.web} [Drag the learning rate on its axis, change the optimiser or the schedule, or start again from another seed.]{.web}
 :::
 
 ::: aside
-The faint curve is the run recorded in `artifacts/specimen.json` by the Julia code. The browser's run is a separate computation, by the JavaScript engine, from the same $\theta_0$ with the same settings; the two curves agree to the last few digits of a double.
+[The faint curve is the run recorded in `artifacts/specimen.json` by the Julia code. The browser's run is a separate computation, by the JavaScript engine, from the same $\theta_0$ with the same settings; the replay is checked against the recorded losses.]{.web} [The printed curve replays the run recorded in `artifacts/specimen.json`, from its stored initial parameters and recipe.]{.print} Arrays agree to $10^{-12}$ absolute; the recorded loss curve to $10^{-9}$ absolute. A replay that fails the latter check is discarded.
 :::
 
-Three things happen, in this order. For the first few steps almost nothing does: the loss sits on the line of uniform guessing and the model writes noise. Then the loss falls steeply, and the samples pass through a phase of spaces and frequent letters, then of the right words in the wrong places, before they settle on "not to be". Finally the curve flattens onto the floor and stays there. The step axis is logarithmic, so the late, slow part of the run takes most of the width of the picture but little of its time.
+Three things happen, in this order. For the first few steps almost nothing does: the loss sits on the line of uniform guessing and the model writes noise. Then the loss falls steeply, and the samples pass through a phase of spaces and frequent letters, then of the right words in the wrong places, before they settle on "not to be". Finally the curve flattens onto the floor and stays there. The step axis is $\log(1+\text{step})$, with $+1$ so step 0 can be drawn; it gives the early steps more room than a linear axis would.
 
 ::: aside
-The cover of this book is the same story told with every parameter: each of its 1007 hairlines is one coordinate $\theta_i$ followed through a training run, with time running down the page on a logarithmic scale. Its run starts from a different $\theta_0$ (it was drawn by the JavaScript engine's own initialisation), so its numbers are not the ones of this chapter; its shape is.
+The cover of this book is the same story told with every parameter: each of its {{value:specimenParams}} hairlines is one coordinate $\theta_i$ followed through a training run, with time running down the page on a logarithmic scale. The trace records its own initialisation and recipe in its plate caption; a seed identifies draws only within the engine that made them. In the live figure, seed 0 means the stored $\theta_0$, not a fresh random draw.
 :::
 
 ## Gradient flow and its Euler steps {#sec-flow}
@@ -75,6 +75,10 @@ At the start the sharpness is well below $2/\eta$, and the loss falls as the lem
 This is the *edge of stability*, found by [Cohen, Kaur, Li, Kolter and Talwalkar (2021)](https://arxiv.org/abs/2103.00065) in networks far larger than the specimen. The sharpness is measured here as in @ch-pulling-back: a Hessian–vector product is a central difference of two pulled-back gradients, and power iteration on it finds the largest eigenvalue without ever forming the Hessian.
 :::
 
+::: aside
+Three indices play different roles: text position $t$ labels token columns, depth labels successive residual updates, and training step $k$ labels changes of $\theta$. The Euler form in @ch-block concerns depth; gradient flow concerns training time. Pulling an adjoint back reverses the depth computation, not the training trajectory.
+:::
+
 ## Minibatches {#sec-minibatch}
 
 The specimen computes its gradient on all ten windows at every step. A real training set does not allow that: the Shakespeare model of @ch-speaking has a million windows to choose from, and each step looks at a few dozen. Write the loss as a mean over $M$ examples, $\ell=\tfrac1M\sum_{i=1}^M\ell_i$, choose $b$ of them at random, $I_1,\dots,I_b$, and use
@@ -99,6 +103,8 @@ The parameters of a network are not alike. In the specimen the embedding, the at
 
 The remedy is a *preconditioner*: a positive definite $G$, and the step $\theta\leftarrow\theta-\eta Gg$. Such a step is still steepest descent, measured in a different metric: $-Gg$ minimises $\inner{g}{s}+\tfrac12s^\T G^{-1}s$, the first-order change of the loss plus a penalty on the length of $s$ in the norm of $G^{-1}$. Newton's method takes $G$ to be the inverse Hessian. That costs $p^2$ numbers to store, and finding it costs more; the practical choice is diagonal, one scale per coordinate, estimated from the gradients as they arrive.
 
+Adam evolves the state $(\theta,m,v)$, not $\theta$ alone. It is a history-dependent dynamics, not a discretisation of $\dot\theta=-\nabla\ell$.
+
 *Adam* keeps two running averages per coordinate, of the gradient and of its square, with $m_0=v_0=0$:
 $$m_k=\beta_1m_{k-1}+(1-\beta_1)g_k,\qquad v_k=\beta_2v_{k-1}+(1-\beta_2)\,g_k\odot g_k.$$
 Unrolled, $m_k=(1-\beta_1)\sum_{j\le k}\beta_1^{k-j}g_j$ is an average with geometric weights, whose weights add up to $1-\beta_1^k$ rather than to one because the sum started from zero. Dividing by that sum gives the bias-corrected averages $\hat m_k=m_k/(1-\beta_1^k)$ and $\hat v_k=v_k/(1-\beta_2^k)$, and the update is
@@ -106,7 +112,7 @@ $$\theta_{k+1}=\theta_k-\eta_k\,\frac{\hat m_k}{\sqrt{\hat v_k}+\epsilon},\qquad
 with square root and division taken coordinate by coordinate. So Adam is a diagonal preconditioner applied to a smoothed gradient, the *momentum* $\hat m$, and not to the gradient itself. Note that $v$ estimates the second moment of the gradient, not its variance: nothing is subtracted.
 
 ::: aside
-Kingma and Ba, [*Adam: A Method for Stochastic Optimization* (ICLR 2015)](https://arxiv.org/abs/1412.6980). The name is short for adaptive moment estimation. The specimen uses $\beta_1=0.9$, $\beta_2=0.95$ and $\epsilon=10^{-8}$; the $\epsilon$ is Adam's own and has nothing to do with the $\varepsilon$ of LayerNorm.
+Kingma and Ba, [*Adam: A Method for Stochastic Optimization* (ICLR 2015)](https://arxiv.org/abs/1412.6980). The name is short for adaptive moment estimation. The specimen uses $\beta_1=0.9$, $\beta_2=0.95$ and $\epsilon=10^{-8}$; the $\epsilon$ is Adam's own and has nothing to do with the $\varepsilon$ of LayerNorm. Both are written `ε` in Julia, as arguments of different functions.
 :::
 
 What does the division do? If the gradient of a coordinate were the same at every step, $g$, then $\hat m_k=g$ and $\hat v_k=g^2$ exactly, for every $k$, thanks to the bias correction, and the step would be
@@ -117,10 +123,10 @@ In this limit Adam is *sign descent*: every coordinate moves by the same amount 
 What Adam changes. For each parameter, grouped by array: the size of its gradient (bars), which is how far gradient descent would move it per unit of learning rate, and how far AdamW actually moves it, in the same unit (dots). At the first update every dot sits at one, except those of the key bias, whose gradient is zero up to rounding. [Scrub through the training run.]{.web}
 :::
 
-A consequence worth remembering: Adam's step does not change if the loss is multiplied by a constant, while the step of gradient descent scales with it. For gradient descent $\eta$ has the units of $\theta^2$ per unit of loss; for Adam it has the units of $\theta$, and it is roughly the distance each coordinate moves per step. That is why the two need such different learning rates, which you can confirm in @fig-train-live by switching between them.
+A consequence worth remembering: Adam's step does not change if the loss is multiplied by a constant, while the step of gradient descent scales with it. For gradient descent $\eta$ has the units of $\theta^2$ per unit of loss; for Adam it has the units of $\theta$, and it is roughly the distance each coordinate moves per step. That is why the two need such different learning rates[, which you can confirm in @fig-train-live by switching between them]{.web}.
 
 ::: aside
-The division is also where rounding enters. The key bias $b_k$ has a gradient that is exactly zero in exact arithmetic (@sec-bk), and in floating point a few units of rounding error. Gradient descent multiplies that by $\eta$ and nothing happens. Adam divides it by its own square root plus $\epsilon$; for a gradient far below $\epsilon$ this is a division by about $\epsilon$, which turns rounding into steady motion. The readout of @fig-train-live shows how far $b_k$ has strayed from zero, a number that should not exist.
+The division is also where rounding enters. The key bias $b_k$ has a gradient that is exactly zero in exact arithmetic (@sec-bk), and in floating point a few units of rounding error. Gradient descent multiplies that by $\eta$ and nothing happens. Adam divides it by its own square root plus $\epsilon$; for a gradient far below $\epsilon$ this is a division by about $\epsilon$, which turns rounding into steady motion. [The readout of @fig-train-live shows how far $b_k$ has strayed from zero, a number that should not exist.]{.web}
 :::
 
 **Weight decay.** It is common to pull the parameters gently towards zero, so that they grow no larger than the data demand. One way is to add $\tfrac\lambda2\lVert\theta\rVert^2$ to the loss, which adds $\lambda\theta$ to the gradient; for plain gradient descent the step becomes $\theta\leftarrow(1-\eta\lambda)\theta-\eta g$, a multiplicative shrinking of every coordinate. With Adam the two ideas come apart. Added to the gradient, $\lambda\theta$ passes through the preconditioner and is rescaled coordinate by coordinate, so coordinates with large gradients hardly decay at all. *AdamW* keeps the decay out of the moments and applies it directly:
@@ -242,7 +248,7 @@ Prove that $\operatorname{clip}_c(g)$ is the unique point of the closed ball $\{
 :::
 
 ::: exercise
-[In @fig-train-live, switch to gradient descent and train. Then drag $\eta$ upwards until the run learns within two hundred steps, and further until it fails.]{.web} Compare the two learning rates with the sharpness in @fig-step-size.
+[In @fig-train-live, switch to gradient descent and train. Each drag reruns from $\theta_0$: you are comparing runs, not steering one. Then drag $\eta$ upwards until the run learns within two hundred steps, and further until it fails.]{.web} Compare the two learning rates with the sharpness in @fig-step-size.
 :::
 
 ::: exercise

@@ -59,7 +59,7 @@
 	{#if !loss}
 		<p class="fig__pending">The Shakespeare model’s training record (artifacts/shakespeare/loss.json) is not present in this build.</p>
 	{:else}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Loss of the Shakespeare model from {fmt(loss.val[0], 2)} to {fmt(loss.val.at(-1), 2)} nats on held-out text over {sMax} steps; uniform guessing {fmt(loss.uniform, 2)}">
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Loss of the Shakespeare model from {fmt(loss.val[0], 2)} to {fmt(loss.val.at(-1), 2)} nats on held-out text over {sMax} steps; uniform guessing {fmt(loss.uniform, 2)}">
 			<!-- axes -->
 			<line class="axis" x1={L} x2={L} y1={plotTop} y2={yBase} />
 			{#each Array.from({ length: Math.floor(yMax) + 1 }, (_, k) => k) as v (v)}
@@ -73,7 +73,7 @@
 				<line class="axis" x1={xOf(s)} x2={xOf(s)} y1={yBase} y2={yBase + 4} />
 				<text class="lbl lbl--micro" x={xOf(s)} y={yBase + 16} text-anchor="middle">{s.toLocaleString('en').replace(/,/g, ' ')}</text>
 			{/each}
-			<text class="lbl lbl--micro" x={cx1} y={yBase + 32} text-anchor="end">training step (logarithmic)</text>
+			<text class="lbl lbl--micro" x={cx1} y={yBase + 32} text-anchor="end">log(1 + training step)</text>
 
 			<!-- uniform guessing -->
 			<line class="fx-ckpt__uni" x1={L} x2={cx1} y1={yOf(loss.uniform)} y2={yOf(loss.uniform)} />
@@ -103,7 +103,7 @@
 					{#each lines(smp.text) as ln, j (j)}
 						<text class="fx-ckpt__text" x={xS} y={yb + 24 + j * 14.5} xml:space="preserve">{ln}</text>
 					{/each}
-					{#if interactive}<rect class="hit" x={xS - 4} y={yb - 4} width={W - xS + 4} height={blockH - 6} />{/if}
+					{#if interactive}<rect class="hit" x={xS - 4} y={yb - 4} width={W - xS + 4} height={blockH - 6} role="button" tabindex="0" aria-label="read checkpoint {k + 1}" onfocus={() => (pick = k)} onblur={() => (pick = -1)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick = k; } }} />{/if}
 				</g>
 			{/each}
 		</svg>

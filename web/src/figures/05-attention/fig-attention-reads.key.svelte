@@ -4,11 +4,11 @@
 	import { getContext } from 'svelte';
 	import HowToRead from '../primitives/HowToRead.svelte';
 	import Arcs from '../primitives/Arcs.svelte';
-	import { fmt, showChar, clamp } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp } from '../primitives/scales.js';
 
 	let { attrs = {} } = $props();
 	const specimen = $derived(getContext('specimen')());
-	const start = $derived(clamp((+attrs.window || 11) - 1, 0, specimen.corpus.length - specimen.config.T));
+	const start = $derived(clamp((+attrs.window || 10) - 1, 0, specimen.windows.length - 1));
 	const i = $derived(clamp((+attrs.reader || 8) - 1, 2, specimen.config.T - 1));
 	const tr = $derived(specimen.windowTrace(start));
 	// the detail: the reader and its strongest source in each head (true weights)
@@ -32,10 +32,10 @@
 </script>
 
 <HowToRead width={240} height={262} notes={[
-	{ ax: topX, ay: topY, side: 'above', len: 14, text: `width ∝ weight: ‘${showChar(tr.chars[i])}’ reads\n‘${showChar(tr.chars[idx[top.k]])}’ with ${fmt(top.w)} in head 1`, align: 'middle' },
+	{ ax: topX, ay: topY, side: 'above', len: 14, text: `width ∝ weight: ‘${showChar(tr.chars[i])}’ at ${i + 1} reads\n‘${showChar(tr.chars[idx[top.k]])}’ at ${idx[top.k] + 1} with ${fmtProb(top.w)} in head 1`, align: 'middle' },
 	{ ax: xs[2] + loopR * 0.72, ay: yb - 30 - loopR * 1.7, side: 'right', len: 8, text: 'loop:\nitself' },
 	{ ax: xs[2] + 14, ay: yb - 9, side: 'right', len: 10, text: 'reader' },
-	{ ax: xs[0] + 6, ay: yb + 9 + 10, side: 'below', len: 52, text: 'head 1 above the line,\nhead 2 below; one\ndetail of the figure', align: 'start', dx: -6 }
+	{ ax: xs[0] + 6, ay: yb + 9 + 10, side: 'below', len: 52, text: 'head 1 above the line,\nhead 2 below; arrows\npoint to sources', align: 'start', dx: -6 }
 ]}>
 	{#snippet glyph()}
 		<g class="fx" style="font-family: var(--sans)">

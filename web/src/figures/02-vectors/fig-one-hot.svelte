@@ -64,15 +64,13 @@
 </script>
 
 <div class="fx fx-onehot" use:measure={(w) => (width = w)}>
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (composite figure supports arrow-key navigation) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}
 		height={H}
-		role={interactive ? 'slider' : 'img'}
+		role={interactive ? 'group' : 'img'}
 		tabindex={interactive ? 0 : undefined}
-		aria-valuemin={interactive ? 1 : undefined}
-		aria-valuemax={interactive ? V : undefined}
-		aria-valuenow={interactive ? a + 1 : undefined}
 		aria-label="One-hot vector of ‘{chA}’ and its embedding: {readout.what}"
 		onkeydown={key}
 	>
@@ -88,7 +86,7 @@
 				<circle class="fx-onehot__zero" cx={x} cy={yHot} r="2.2" />
 			{/if}
 			{#if interactive}
-				<rect class="hit" x={x - cell / 2} y={yChar - 30} width={cell} height={yHot - yChar + 44} role="button" tabindex="-1" aria-label="character {showChar(ch)}" onclick={() => pick(j)} onkeydown={() => {}} />
+				<rect class="hit" x={x - cell / 2} y={yChar - 30} width={cell} height={yHot - yChar + 44} role="button" tabindex="0" aria-label="character {showChar(ch)}" onclick={() => pick(j)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(j); } }} />
 			{/if}
 		{/each}
 		<text class="m" x={mx - 12} y={yHot + 5} text-anchor="end">e<tspan class="sub" dy="4">{a + 1}</tspan></text>
@@ -136,7 +134,7 @@
 			{#each Array.from({ length: D * V }) as _, k (k)}
 				{@const i = k % D}
 				{@const j = Math.floor(k / D)}
-				<rect class="hit" x={mx + cell * j} y={my + cell * i} width={cell} height={cell} role="presentation" onpointerenter={() => (hover = { i, j })} onpointerleave={() => (hover = null)} onclick={() => pick(j)} />
+				<rect class="hit" x={mx + cell * j} y={my + cell * i} width={cell} height={cell} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (hover = { i, j })} onfocus={() => (hover = { i, j })} onpointerleave={() => (hover = null)} onblur={() => (hover = null)} onclick={() => pick(j)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(j); } }} />
 			{/each}
 		{/if}
 	</svg>

@@ -21,7 +21,7 @@
 		{ ax: X(kc) + 1, ay: Y(values[kc] ?? 1), side: 'right', len: cx + cw - X(kc) + 4, text: 'the loss after k\nsteps: the mean\nsurprise, in nats' },
 		{ ax: X(xMax) - 2, ay: Y(lnV), side: 'right', len: 10, text: `uniform guessing,\nln V = ${fmt(lnV, 2)}` },
 		{ ax: X(xMax) - 2, ay: Y(floor), side: 'right', len: 10, text: `entropy floor,\n${fmt(floor, 4)}: the\ncorpus’s ambiguity` },
-		{ ax: X(10), ay: cy + Tp + ph + 2, side: 'below', len: 22, text: 'steps, on a log scale:\n0, 1, 10, 100, …', align: 'start', dx: -40 }
+		{ ax: X(10), ay: cy + Tp + ph + 2, side: 'below', len: 22, text: 'log(1 + step):\n+1 lets step 0 be drawn', align: 'start', dx: -40 }
 	]);
 </script>
 

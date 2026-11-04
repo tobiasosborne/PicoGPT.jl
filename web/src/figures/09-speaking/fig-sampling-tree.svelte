@@ -16,7 +16,7 @@
 	import { measure } from '../primitives/measure.js';
 	import Scrubber from '../primitives/Scrubber.svelte';
 	import { gibbs, entropy } from '../primitives/EnergyLadder.svelte';
-	import { fmt, showChar, clamp, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -98,7 +98,7 @@
 </script>
 
 <div class="fx fx-tree" use:measure={(w) => (width = w)}>
-	<svg bind:this={svgEl} viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="The specimen continues ‘{prompt}’ at {tauLabel(rows[0].tau)}: ‘{textOf(rows[0])}’">
+	<svg bind:this={svgEl} viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="The specimen continues ‘{prompt}’ at {tauLabel(rows[0].tau)}: ‘{textOf(rows[0])}’">
 		{#if interactive}
 			<!-- temperature -->
 			<text class="lbl lbl--head" x={L - (narrow ? 26 : 0)} y="30">temperature</text>
@@ -151,7 +151,7 @@
 						{/if}
 						<text class="tok fx-tree__ch" x={x} y={yText} text-anchor="middle">{showChar(vocab[a0])}</text>
 						{#if interactive}
-							<rect class="hit" x={x - cw / 2} y={y0 - 4} width={cw} height={colH + 44} role="button" tabindex="-1" aria-label="step {k + 1}" onpointerenter={() => (hover = k)} onpointerleave={() => (hover = -1)} onkeydown={() => {}} />
+							<rect class="hit" x={x - cw / 2} y={y0 - 4} width={cw} height={colH + 44} role="button" tabindex="0" aria-label="step {k + 1}" onpointerenter={() => (hover = k)} onfocus={() => (hover = k)} onpointerleave={() => (hover = -1)} onblur={() => (hover = -1)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (hover = k); } }} />
 						{/if}
 					</g>
 				{/each}
@@ -174,7 +174,7 @@
 			{#if hv}
 				{@const order = hv.p.map((v, a) => ({ v, a })).sort((u, w) => w.v - u.v).filter((o) => o.v >= 0.005)}
 				<span class="readout__who">Step {hover + 1}, after ‘{Array.from(hv.ctx).map(showChar).join('')}’{hv.seen ? '' : ' (a context never seen in training)'}.</span>
-				<span class="readout__part">{order.map((o) => `‘${showChar(vocab[o.a])}’ ${fmt(o.v, 2)}`).join(', ')}{order.length < V ? ', the rest below 0.01' : ''}; entropy {fmt(hv.H, 2)} nats.{#if hv.u != null}{' '}The draw u = {fmt(hv.u, 3)} falls in ‘{showChar(vocab[hv.next - 1])}’.{:else}{' '}At τ → 0 there is no draw: the likeliest character is taken.{/if}</span>
+				<span class="readout__part">{order.map((o) => `‘${showChar(vocab[o.a])}’ ${fmtProb(o.v, 2, true)}`).join(', ')}{order.length < V ? ', the rest below 0.01' : ''}; entropy {fmt(hv.H, 2)} nats.{#if hv.u != null}{' '}The draw u = {fmt(hv.u, 3)} falls in ‘{showChar(vocab[hv.next - 1])}’.{:else}{' '}At τ → 0 there is no draw: the likeliest character is taken.{/if}</span>
 			{:else}
 				<span class="readout__who">{tauLabel(rows[0].tau)}:</span>
 				<span class="readout__part fx-tree__out">‘{Array.from(textOf(rows[0])).map(showChar).join('')}’</span>

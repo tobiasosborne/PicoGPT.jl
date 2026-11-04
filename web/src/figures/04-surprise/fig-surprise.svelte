@@ -14,7 +14,7 @@
 	import { getContext, onMount } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import Scrubber from '../primitives/Scrubber.svelte';
-	import { fmt, showChar, clamp, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -87,7 +87,7 @@
 </script>
 
 <div class="fx fx-surp" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Surprise of each of the {s.length} predictions at step {shownStep}; mean {fmt(loss, 4)} nats, uniform guessing {fmt(lnV, 2)}">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Surprise of each of the {s.length} predictions at step {shownStep}; mean {fmt(loss, 4)} nats, uniform guessing {fmt(lnV, 2)}">
 		<!-- the corpus: one column per character -->
 		{#each Array.from(specimen.corpus) as ch, k (k)}
 			{@const inCtx = sel && k >= sel.b && k <= sel.b + sel.t}
@@ -114,7 +114,7 @@
 					<rect class="bar--value fx-surp__bar" class:is-on={hover === nn} x={x - barW / 2 + 1.5} y={y0 - hOf(s[nn])} width={barW - 3} height={hOf(s[nn])} />
 					{#if s[nn] > sMax}<path class="fx-surp__cap" d="M{x - 3} {y0 - rowH + 7} l3 -3 l3 3" />{/if}
 					{#if interactive}
-						<rect class="hit" x={x - cw / 2} y={y0 - rowH + 2} width={cw} height={rowH} role="button" tabindex="-1" aria-label="window {b + 1}, position {tt + 1}" onpointerenter={() => (hover = nn)} onpointerleave={() => (hover = -1)} onkeydown={() => {}} />
+						<rect class="hit" x={x - cw / 2} y={y0 - rowH + 2} width={cw} height={rowH} role="button" tabindex="0" aria-label="window {b + 1}, position {tt + 1}" onpointerenter={() => (hover = nn)} onfocus={() => (hover = nn)} onpointerleave={() => (hover = -1)} onblur={() => (hover = -1)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (hover = nn); } }} />
 					{/if}
 				{/each}
 			</g>
@@ -134,7 +134,7 @@
 		<p class="readout" aria-live="polite">
 			{#if readout}
 				<span class="readout__who">Window {readout.b + 1}, position {readout.t + 1}.</span>
-				<span class="readout__part">After ‘{readout.ctx}’ the next character is ‘{readout.y}’. At step {shownStep} the model gives it {fmt(readout.q, 3)}, a surprise of {fmt(readout.s, 3)} nats (untrained: {fmt(readout.s0, 2)}).</span>
+				<span class="readout__part">After ‘{readout.ctx}’ the next character is ‘{readout.y}’. At step {shownStep} the model gives it {fmtProb(readout.q, 3, true)}, a surprise of {fmt(readout.s, 3)} nats (untrained: {fmt(readout.s0, 2)}).</span>
 			{:else}
 				<span class="readout__hint">Point at a bar to see its context and its numbers. Press play or drag along the line to train the model again, step by step, as it was trained.</span>
 			{/if}

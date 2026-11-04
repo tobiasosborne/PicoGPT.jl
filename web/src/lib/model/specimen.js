@@ -18,7 +18,7 @@ export function makeSpecimen(data) {
 	const model = createModel(config, Float64Array.from(data.theta));
 	const layout = parameterLayout(config);
 	const windows = [];
-	for (let s = 0; s + T <= data.corpus.length; s++) windows.push(s);
+	for (let s = 0; s + T < data.corpus.length; s++) windows.push(s);
 	const cache = new Map();
 
 	const ids = (text) => Array.from(text, (ch) => data.vocab.indexOf(ch) + 1);
@@ -66,9 +66,8 @@ export function makeSpecimen(data) {
 	}
 
 	// ── Chapters 6–8: training, gradients and adjoints (lib/model/learning.js) ──────
-	// The training set is every window with a complete target (B = 10, not the 11 of
-	// `windows`). `recipe` is the artifact's run; `run(opts)` starts a fresh one from θ₀
-	// (or opts.theta0), and reproduces the artifact's loss trajectory to ~1e-13.
+	// Display and training windows both require a complete target (B = 10). `recipe` is the artifact's run; `run(opts)` starts a fresh one from θ₀
+	// (or opts.theta0), and is checked against the artifact's loss trajectory to 1e-9 absolute.
 	const train = learning.trainingBatch(data.corpus, data.vocab, T);
 	const floorInfo = learning.entropyFloor(data.corpus, T);
 	const recipe = learning.recipeFrom(data.provenance?.hyper, data.provenance?.steps);

@@ -12,7 +12,7 @@
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import { dodge } from '../primitives/EnergyLadder.svelte';
-	import { fmt, showChar, clamp, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -23,7 +23,7 @@
 	// svelte-ignore state_referenced_locally
 	let beta = $state(attrs.beta ? +attrs.beta : 1);
 
-	const start = $derived(clamp((+attrs.window || 3) - 1, 0, specimen.corpus.length - T));
+	const start = $derived(clamp((+attrs.window || 3) - 1, 0, specimen.windows.length - 1));
 	const pos = $derived(clamp((+attrs.position || 1) - 1, 0, T - 1));
 	const z = $derived(specimen.windowTrace(start).Z[pos]);
 	const ctx = $derived(specimen.windowTrace(start).chars.slice(0, pos + 1).map(showChar).join(''));
@@ -87,7 +87,7 @@
 	const blockH = $derived(2 * stripH + 150);
 	const top = $derived(interactive ? 84 : 36);
 	const H = $derived(top + states.length * blockH + 6);
-	const fmtP = (v) => (Number.isNaN(v) ? 'NaN' : fmt(v, 2));
+	const fmtP = (v) => (Number.isNaN(v) ? 'NaN' : fmtProb(v, 2));
 	const sup = (n) => String(n).replace('-', '−');
 </script>
 
@@ -110,7 +110,7 @@
 {/snippet}
 
 <div class="fx fx-lse" use:measure={(w) => (width = w)}>
-	<svg bind:this={svgEl} viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Exponentials of the logits after ‘{ctx}’ at β = {fmt(beta, 1)}, naive and shifted by the maximum">
+	<svg bind:this={svgEl} viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Exponentials of the logits after ‘{ctx}’ at β = {fmt(beta, 1)}, naive and shifted by the maximum">
 		{#if interactive}
 			<!-- β: drag along its track -->
 			<text class="lbl lbl--head" x={narrow ? 4 : 0} y="34">inverse</text>

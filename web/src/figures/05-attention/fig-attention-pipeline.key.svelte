@@ -8,7 +8,7 @@
 
 	let { attrs = {} } = $props();
 	const specimen = $derived(getContext('specimen')());
-	const start = $derived(clamp((+attrs.window || 11) - 1, 0, specimen.corpus.length - specimen.config.T));
+	const start = $derived(clamp((+attrs.window || 10) - 1, 0, specimen.windows.length - 1));
 	const i = $derived(clamp((+attrs.reader || 8) - 1, 0, specimen.config.T - 1));
 	const h = $derived(clamp((+attrs.head || 1) - 1, 0, 1));
 	const tr = $derived(specimen.windowTrace(start));

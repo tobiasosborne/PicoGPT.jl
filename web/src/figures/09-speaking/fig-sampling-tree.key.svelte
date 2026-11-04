@@ -5,7 +5,7 @@
 	import { getContext } from 'svelte';
 	import HowToRead from '../primitives/HowToRead.svelte';
 	import { gibbs } from '../primitives/EnergyLadder.svelte';
-	import { fmt, showChar } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar } from '../primitives/scales.js';
 
 	let { attrs = {} } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -24,7 +24,7 @@
 	{ ax: x - bw / 2, ay: y0 + h, side: 'left', len: 16, text: '1', dot: false },
 	{ ax: x - bw / 2 - 2, ay: y0 + h * 0.2, side: 'left', len: 14, text: 'the interval [0, 1]\ncut into the\nprobabilities, in\nvocabulary order' },
 	{ ax: x - bw / 2 - 6, ay: y0 + (st.u ?? 0) * h, side: 'left', len: 12, text: `u = ${fmt(st.u ?? 0, 3)}: a\nuniform random\nnumber` },
-	{ ax: x + bw / 2, ay: y0 + (F[a0] - p[a0]) * h + 10, side: 'right', len: 18, text: `solid: the segment u\nfalls in, ‘${showChar(vocab[a0])}’ (${fmt(p[a0], 2)})` },
+	{ ax: x + bw / 2, ay: y0 + (F[a0] - p[a0]) * h + 10, side: 'right', len: 18, text: `solid: the segment u\nfalls in, ‘${showChar(vocab[a0])}’ (${fmtProb(p[a0], 2)})` },
 	{ ax: x + bw / 2, ay: mid(alt) - 6, side: 'right', len: 18, text: `outlined: a path\nnot taken, ‘${showChar(vocab[alt])}’` }
 ]}>
 	{#snippet glyph()}

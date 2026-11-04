@@ -125,8 +125,8 @@
 .scrub__phase { position: absolute; top: 0.62rem; width: 0; height: 0.66rem; border-left: var(--hair) solid var(--ink-3); }
 .scrub__label { position: absolute; top: 0.85rem; left: 0; transform: translateX(-50%); white-space: nowrap; color: var(--ink-3); font-size: var(--fs-micro); }
 .scrub__phase--past .scrub__label { color: var(--ink); }
-.scrub__phase:first-of-type .scrub__label { transform: none; }
-.scrub__phase:last-of-type .scrub__label { transform: translateX(-100%); }
+.scrub__phase--first .scrub__label { transform: none; }
+.scrub__phase--last .scrub__label { transform: translateX(-100%); }
 .scrub__head { position: absolute; top: 0.95rem; width: 0.8rem; height: 0.8rem; margin: -0.4rem 0 0 -0.4rem; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--value); }
 .scrub--covector .scrub__head { border-color: var(--covector); }
 .scrub__track:focus-visible { outline: 1px dashed var(--ink-3); outline-offset: 3px; }
@@ -158,3 +158,9 @@ html.film .fig__foot { display: none; }
 /* focus inside figures: visible for the keyboard, quiet for the pointer */
 .fx svg *:focus { outline: none; }
 .fx svg *:focus-visible { outline: 1px dashed var(--ink-3); outline-offset: 2px; }
+
+.scrub__current { display: none; }
+@media (max-width: 47.99rem) {
+	.scrub__phase .scrub__label { display: none; }
+	.scrub__current { display: block; position: absolute; top: 1.47rem; left: 0; color: var(--ink); font-size: var(--fs-micro); }
+}

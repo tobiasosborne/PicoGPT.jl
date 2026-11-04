@@ -225,31 +225,39 @@ Paged.js in headless Chromium. There is **one renderer**. The seam for the PDF t
 - The print layout is scoped to `.print-edition-root`, not `@media print`, because Paged.js
   renders in screen media. It is also a faithful proof on screen.
 
-**Trim and grid.** 189 × 246 mm (crown quarto). Margins: top 18, bottom 21, inner 21, outer
+**Trim and grid.** 189 × 246 mm (crown quarto). Margins: top 18, bottom 21.7, inner 21, outer
 15 mm. Text block 153 mm = main column 104 mm + gap 5 + notes 44. The notes column sits in the
 **outer** margin: on versos the text column moves right and notes float left
 (`.pagedjs_left_page` rules). Without Paged.js the notes stay on the right.
 
 **Type.** Literata 9.6/13.6 pt; notes and captions 7.8 pt; labels 7 pt; code JuliaMono 7.1 pt;
-h2 15 pt; opening title 38 pt with the numeral in the margin; claim 13.5 pt italic. Hyphenated,
+h2 13.6 pt; opening title 38 pt with the numeral in the margin; claim 13.2 pt italic. Hyphenated,
 orphans and widows 2.
 
-**Running heads** (`string-set`): verso shows the folio at the outer corner, then the chapter in
-small caps; recto shows the current section in italic, then the folio. Old-style folios in
-Literata 8 pt. Named pages without heads: `front` (half-title, title, colophon, contents) and
-`frontis` (trace plates). The opening page clears the section head with an empty `string-set`
-marker (`.rh-clear`) instead of using a named page, because switching named pages
-mid-chapter makes Paged.js insert a page. Chapters open on a recto. The page break sits on the
-`<article>`: `break-before: left` when the chapter has a trace (so the trace falls on the
-verso facing the opening), `right` otherwise (the verso stays blank). Pages inserted by
-breaks are `:blank`, with no head and no folio.
+**Running heads and notes.** `print/paginate.js` draws the running heads after each page is
+laid out: verso = outer folio and chapter in small caps; recto = the first section beginning on
+the page (or the current section) in italic and outer folio. Folios are Literata 8 pt. Opening
+pages have a drop folio; front matter, trace plates and blank pages have no head. Margin notes
+are removed from the flow before pagination, placed at their anchor in the outer notes column,
+stacked and moved clear of wide figures, code and tables; a note that cannot fit carries to the
+next page. They never split or displace the main text.
+
+Chapters open on a recto. The break sits on the `<article>`: `break-before: left` when it has
+a trace (verso trace facing recto opening), `right` otherwise. Inserted `:blank` pages have no
+head or folio. The contents include the same model map as the web edition, as a separate plate.
 
 **Figures in print.** Static state; no scrubbers, readouts, hit areas or handles. Animations
 become small multiples of their phases. Figures lay out at `width / 0.78` and scale to the
 column, so a 12 px label prints at ≈ 7 pt (`PRINT_SCALE` in `scales.js`). `break-inside:
 avoid`; the key goes in the outer margin beside the caption. Colour is exact
-(`print-color-adjust: exact`). For one-colour printing the shape rules of §1.5 keep value and
-covector apart.
+(`print-color-adjust: exact`). Sentences marked `[text]{.web}` are omitted from print. The four
+tall plates have dedicated print spacing; labels keep the shared print scale. For one-colour
+printing the shape rules of §1.5 keep value and covector apart.
+
+**Vector paint.** Chromium rasterises rotated SVG hatch patterns and multiply blends over
+translucent marks. `print/paginate.js` expands hatch fills into real lines cut to each shape,
+turns patterned strokes into transverse dashes, drops those blends and restores paint-server
+references after Paged.js rewrites URLs. The PDF build checks for unintended raster images.
 
 **Code** keeps its line numbers (they are the real lines of the file) in the gutter; chunks
 avoid breaking. Cross-references print without underlines; the contents show page numbers

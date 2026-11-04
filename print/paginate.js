@@ -73,6 +73,46 @@
 			NOTES.push(n.outerHTML);
 			n.replaceWith(mark);
 		}
+		// Freeze the dictionary into page-sized pairs of columns. Paged.js loses
+		// entries when nested CSS columns fragment across pages. Measure the same
+		// paragraphs at the same column width, retaining the original reading order.
+		for (const dictionary of root.querySelectorAll('.dict')) {
+			const items = [...dictionary.querySelectorAll('.dict__head, .dict__entry')];
+			const units = [];
+			for (let i = 0; i < items.length; i++) {
+				if (items[i].classList.contains('dict__head')) {
+					const start = document.createElement('div');
+					start.append(items[i], items[++i]); units.push(start);
+				} else units.push(items[i]);
+			}
+			dictionary.replaceChildren(); dictionary.style.columnCount = 'auto';
+			// Reserve the width of the page numbers before target-counter is resolved.
+			const hint = document.createElement('style');
+			hint.textContent = '.print-edition-root .dict__where::after { content: ", p. 000"; }';
+			document.head.append(hint);
+			const pages = [];
+			let columns, col, side = 0;
+			const nextPage = () => {
+				columns = document.createElement('div'); columns.className = 'pg-dict-columns';
+				for (let k = 0; k < 2; k++) { const c = document.createElement('div'); c.className = 'pg-dict-column'; columns.append(c); }
+				dictionary.append(columns); pages.push(columns); side = 0; col = columns.children[0];
+			};
+			nextPage();
+			for (const unit of units) {
+				col.append(unit);
+				if (col.getBoundingClientRect().height > blockH - 8 * PX_PER_MM && col.children.length > 1) {
+					unit.remove();
+					if (side === 0) { side = 1; col = columns.children[1]; } else nextPage();
+					col.append(unit);
+				}
+			}
+			hint.remove();
+			const groups = pages.map((columns) => {
+				const group = document.createElement('div'); group.className = 'dict pg-dict-page';
+				group.setAttribute('role', 'list'); group.append(columns); return group;
+			});
+			dictionary.replaceWith(...groups);
+		}
 		for (const body of root.querySelectorAll('.chapter-body')) {
 			// the chapter's first paragraph opens with a line of small capitals
 			const first = body.querySelector(':scope > p, :scope > .noted > p');
@@ -341,6 +381,9 @@
 		// (unless text follows that figure, in which case the figure may float on). If they do
 		// not fit, the page breaks before the heading.
 		keepWithNext(h) {
+			// A deferred figure can move this heading to a roomier page. Recompute our
+			// own keep decision there instead of retaining the previous page's break.
+			if (h.dataset.pgKeepBreak) { delete h.dataset.breakBefore; delete h.dataset.pgKeepBreak; }
 			const body = this.rendered(h.parentNode);
 			if (!body || !body.firstChild) return;
 			const b = this.layout.bounds;
@@ -370,10 +413,25 @@
 			}
 			probe.remove();
 			if (beyond(hr)) return; // already overflowing: the break will fall earlier
-			if (bottom > b.bottom + 0.5 && hr.top - b.top > 3 * this.lineH) h.dataset.breakBefore = 'page';
+			if (bottom > b.bottom + 0.5 && hr.top - b.top > 3 * this.lineH) { h.dataset.breakBefore = 'page'; h.dataset.pgKeepBreak = '1'; }
 		}
 
 		layoutNode(node) {
+			// Paged.js does not keep nested two-column groups intact on its own. Decide
+			// before laying one out, while a break can still fall before the whole group.
+			if (node.nodeType === 1 && node.classList.contains('dict') && node.parentNode?.classList?.contains('chapter-body')) {
+				if (node.dataset.pgDictBreak) { delete node.dataset.breakBefore; delete node.dataset.pgDictBreak; }
+				const body = this.rendered(node.parentNode);
+				if (!body) return;
+				const probe = node.cloneNode(true);
+				body.append(probe);
+				const r = probe.getBoundingClientRect(), b = this.layout.bounds;
+				probe.remove();
+				if (r.left < b.right - 1 && r.bottom > b.bottom - 2 && r.top > b.top + 2) {
+					node.dataset.breakBefore = 'page'; node.dataset.pgDictBreak = '1';
+				}
+				return;
+			}
 			if (node.nodeType === 1 && (node.tagName === 'H2' || node.tagName === 'H3') && node.parentNode?.classList?.contains('chapter-body')) return this.keepWithNext(node);
 			if (node.nodeType !== 1 || !node.classList.contains('pg-anchor')) return;
 			const fig = node.nextElementSibling;

@@ -79,9 +79,10 @@
 	>
 		<span class="scrub__rail"></span>
 		<span class="scrub__done" style:width="{t * 100}%"></span>
-		{#each phases as p (p.at)}
-			<span class="scrub__phase" class:scrub__phase--past={t >= p.at - 1e-6} style:left="{p.at * 100}%"><span class="scrub__label label">{p.label}</span></span>
+		{#each phases as p, i (p.at)}
+			<span class="scrub__phase" class:scrub__phase--first={i === 0} class:scrub__phase--last={i === phases.length - 1} class:scrub__phase--current={p.label === current} class:scrub__phase--past={t >= p.at - 1e-6} style:left="{p.at * 100}%"><span class="scrub__label label">{p.label}</span></span>
 		{/each}
+		<span class="scrub__current label" aria-hidden="true">{current}</span>
 		<span class="scrub__head" style:left="{t * 100}%"></span>
 	</div>
 </div>

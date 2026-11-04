@@ -10,9 +10,9 @@ Character $a$ becomes the column $Ee_a$ of a learned matrix $E\in\R^{D\times V}$
 | a standard basis vector $e_a\in\R^V$ | a pure state, an occupation-number basis vector | one-hot vector |
 | $E\in\R^{D\times V}$, column $a$ is $Ee_a$ | a coupling of each symbol to $D$ modes | embedding matrix, token embedding |
 | $x\mapsto E[:,x]=EC$, with $C$ one-hot | evaluating a linear map on basis states | embedding lookup |
-| the dimension $D$ of the columns | the number of modes | model dimension, $d_{\text{model}}$, width |
+| the dimension $D$ of the columns | the number of modes | model dimension, width |
 | $P_t=\bigl(\sin\omega_rt,\cos\omega_rt\bigr)_{r}$, fixed | phases of $D/2$ oscillators | sinusoidal positional encoding |
-| $X_0=E[:,x]+P\in\R^{D\times T}$ | the initial condition | input embeddings, residual stream at layer 0 |
+| $X_0=E[:,x]+P\in\R^{D\times T}$ | the initial condition | input embeddings |
 :::
 
 ## One-hot vectors {#sec-one-hot}
@@ -32,7 +32,7 @@ $$EC=\bigl(E_{:,x_1},\dots,E_{:,x_T}\bigr)=E[:,x]\in\R^{D\times T}.$$
 In matrix form the lookup is a product with a one-hot matrix; in code it is indexing, and $C$ is never formed. The specimen has $D=8$ and $V=7$, so $E$ holds 56 of its parameters. Training adjusts them like all the others.
 
 ::: {.figure #fig-one-hot char=5}
-A character becomes a vector. The alphabet is a row of seven slots, and the one-hot vector $e_a$ fills one of them; the embedding returns column $a$ of $E$, drawn as a spoke glyph with one spoke for each of its eight components. Click another character.
+A character becomes a vector. The alphabet is a row of seven slots, and the one-hot vector $e_a$ fills one of them; the embedding returns column $a$ of $E$, drawn as a spoke glyph with one spoke for each of its eight components. [Click another character.]{.web}
 :::
 
 The vectors in this book are drawn as spoke glyphs: component $k$ is a spoke at angle $2\pi(k-1)/D$ from twelve o'clock, clockwise, with length proportional to $\lvert x_k\rvert$ and a filled tip for a positive component, an open one for a negative. The key in the margin is drawn from the figure's own vector. All the glyphs of one figure share one scale, so lengths can be compared across a figure but not between figures.
@@ -44,7 +44,7 @@ Why should a character be a point in $\R^8$, when $\R^7$ would hold seven orthog
 What does training do to $E$? @fig-embedding-matrix shows the matrix before and after. At the start its entries are drawn independently from a standard normal distribution: seven random directions in $\R^8$, which are already far from one another. Training moves them, but not far. The specimen learns its text mostly in the maps that come later, which see the columns of $E$ only through the linear maps they apply to them.
 
 ::: {.figure #fig-embedding-matrix}
-The embedding matrix $E\in\R^{8\times7}$ during training. Each column belongs to a character, drawn as squares whose area is $\lvert E_{ia}\rvert$, filled where $E_{ia}>0$, and again as a spoke glyph. Scrub through the 200 training steps; the faint glyphs are where the columns started.
+The embedding matrix $E\in\R^{8\times7}$ during training. Each column belongs to a character, drawn as squares whose area is $\lvert E_{ia}\rvert$, filled where $E_{ia}>0$, and again as a spoke glyph. The faint glyphs are where the columns started. [Scrub through the 200 training steps.]{.web}
 :::
 
 ## Positions as Fourier features {#sec-positions}
@@ -57,7 +57,7 @@ $$\omega_r=10000^{-2r/D},\qquad r=0,\dots,D/2-1,\quad t=1,\dots,T.$$
 Position 1 is phase zero. Each pair of rows is a clock hand turning at angular velocity $\omega_r$ per step; the first turns by one radian per step, the last by about $10^{-4\cdot(D-2)/D}$. For the specimen, $D=8$ gives four clocks, with $\omega_r=1,\,10^{-1},\,10^{-2},\,10^{-3}$. Every column has the same length, $\lVert P_t\rVert^2=\sum_r(\sin^2+\cos^2)=D/2$: the positions lie on a product of $D/2$ circles, a torus inside the sphere of radius $\sqrt{D/2}$.
 
 ::: {.figure #fig-positions}
-The positional code $P\in\R^{8\times8}$. Each row is a sampled sinusoid: the hairline is $\sin(\omega_r\tau)$ or $\cos(\omega_r\tau)$ for continuous $\tau$, and the stems are its values at the eight positions, the entries of $P$. On the right are the same numbers as a matrix, with area $\lvert P_{it}\rvert$, filled where positive, and column $t$, the vector added at position $t$, as a spoke glyph. Point at a position.
+The positional code $P\in\R^{8\times8}$. Each row is a sampled sinusoid: the hairline is $\sin(\omega_r\tau)$ or $\cos(\omega_r\tau)$ for continuous $\tau$, and the stems are its values at the eight positions, the entries of $P$. On the right are the same numbers as a matrix, with area $\lvert P_{it}\rvert$, filled where positive, and column $t$, the vector added at position $t$, as a spoke glyph. [Point at a position.]{.web}
 :::
 
 The fast clock tells neighbours apart; the slow ones barely move over eight positions. They are there for longer contexts: with $T=256$, as in the Shakespeare model of @ch-speaking, the slowest of its clocks still turns by less than a tenth of a radian over the whole window, and in between the clocks cover every scale of distance.
@@ -75,13 +75,13 @@ $$P_s\cdot P_t=\sum_{r=0}^{D/2-1}\cos\bigl(\omega_r(t-s)\bigr).$$
 The inner product of two positions depends only on their distance. The Gram matrix $P^\T P$ is constant along its diagonals: it is a Toeplitz matrix, with $D/2$ on the diagonal. It does not simply fall off with distance. The fast clock has period $2\pi$, a little more than six steps, so on that clock positions six apart are nearly in phase again, and only the slower clocks keep them apart.
 
 ::: {.figure #fig-rotation shift=3}
-A shift is a rotation. Each circle is one frequency $\omega_r$: the dots are the eight positions, at angle $\omega_r(t-1)$, and the hands are $P_t$ and $P_{t+k}$. Shifting by $k$ turns every hand by $\omega_rk$, whatever $t$ is. Right: the inner products $P_s\cdot P_t$, constant along each diagonal. Drag a hand round its circle to change $t$, or the shift $k$ along its scale.
+A shift is a rotation. Each circle is one frequency $\omega_r$: the dots are the eight positions, at angle $\omega_r(t-1)$, and the hands are $P_t$ and $P_{t+k}$. Shifting by $k$ turns every hand by $\omega_rk$, whatever $t$ is. Right: the inner products $P_s\cdot P_t$, constant along each diagonal. [Drag a hand round its circle to change $t$, or the shift $k$ along its scale.]{.web}
 :::
 
 None of this makes the trained model translation invariant. The model never sees $P$ alone; it sees $E[:,x]+P$, through learned maps that can use absolute position as freely as relative position. The rotation property guarantees only that relative position is *available* as a linear function of the code.
 
 ::: aside
-Rotary position embeddings (Su et al., 2021), now used by most large language models whose design is published, take the rotation literally: instead of adding $P_t$, they rotate the query and key vectors of @ch-attention by $R(t)$ before the inner product, so that a score depends on positions only through $t-s$.
+Rotary position embeddings ([Su et al., 2021](https://arxiv.org/abs/2104.09864)), now used by most large language models whose design is published, take the rotation literally: instead of adding $P_t$, they rotate the query and key vectors of @ch-attention by $R(t)$ before the inner product, so that a score depends on positions only through $t-s$.
 :::
 
 ## The first state {#sec-x0}
@@ -91,7 +91,7 @@ $$X_0=E[:,x]+P\in\R^{D\times T},\qquad (X_0)_{it}=E_{i,x_t}+P_{it}.$$
 In matrix form, $X_0=EC+P$; for a batch of windows, the same $P$ is added to each, column by column. Addition rather than concatenation keeps the width at $D$: the character and the position share the same coordinates, superposed, and the learned maps that follow must separate them. The same character at two positions is now two different vectors, and the same position holds a different vector for each character.
 
 ::: {.figure #fig-x0 window=1}
-What enters the first block. For each position of the window, top to bottom: the column $E_{:,x_t}$ of the character, the positional code $P_t$, and their sum $X_0[:,t]$, all on one scale. Repeated characters, joined by a hairline above, share their top glyph and differ below. Drag the window along the line.
+What enters the first block. For each position of the window, top to bottom: the column $E_{:,x_t}$ of the character, the positional code $P_t$, and their sum $X_0[:,t]$, all on one scale. Repeated characters, joined by a hairline above, share their top glyph and differ below. [Drag the window along the line.]{.web}
 :::
 
 From here on, $X\in\R^{D\times N}$, one column per token, is called the *residual stream*, for reasons that @ch-block explains. Every block reads it and adds to it; nothing else ever writes to it.
@@ -102,7 +102,7 @@ How does the loss reach $E$? Hold the characters $x$ fixed: then $dX_0=dE\,C$, a
 $$\langle\bar X_0,dX_0\rangle=\operatorname{tr}\bigl(\bar X_0^\T dE\,C\bigr)=\langle\bar X_0C^\T,dE\rangle,\qquad\text{so}\qquad \bar E=\bar X_0C^\T,\quad \bar E_{:,a}=\sum_{n:\,x_n=a}\bar X_{0,:,n}.$$
 Column $a$ of $\bar E$ collects the adjoints of every token that is the character $a$. The adjoint of a lookup is a *scatter-add*. The positional code is fixed, so it receives no adjoint, and the characters themselves are integers, so they have none. @ch-pulling-back derives every other pullback in the same way.
 
-## In the code {#sec-code}
+## In the code {#sec-code-vectors}
 
 The positional code is a comprehension over rows and positions:
 

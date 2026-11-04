@@ -70,6 +70,7 @@
 .print-edition-root a { text-decoration: none; color: inherit; }
 
 /* things that exist only on screen */
+.print-edition-root .web,
 .print-edition-root .readout,
 .print-edition-root .scrub,
 .print-edition-root .hit,
@@ -83,7 +84,9 @@
 /* ── running text ── */
 .print-edition-root .flow p { text-wrap: pretty; }
 .print-edition-root .flow > p + p,
-.print-edition-root .flow > .noted + p { text-indent: 1.25em; }
+.print-edition-root .flow > .noted + p,
+.print-edition-root .flow > p + .noted > p,
+.print-edition-root .flow > .noted + .noted > p { text-indent: 1.25em; }
 /* the opening line of a chapter's text, in small capitals: the first paragraph is marked by
    print/paginate.js, wherever it falls (the web's :first-child rule would also catch the first
    paragraph of every page) */
@@ -198,6 +201,10 @@
 /* ── the dictionary of jargon (epilogue) ── */
 .print-edition-root .flow > .dict { width: var(--wide); }
 .print-edition-root .dict { columns: 2; column-gap: 6mm; }
+.print-edition-root .pg-dict-page { columns: auto; break-inside: avoid; }
+.print-edition-root .pg-dict-page + .pg-dict-page { margin-top: 0; }
+.print-edition-root .pg-dict-columns { display: flex; gap: 6mm; break-inside: avoid; }
+.print-edition-root .pg-dict-column { width: calc((100% - 6mm) / 2); display: flow-root; }
 .print-edition-root .dict__head { font-size: 15pt; margin: 3mm 0 1mm; }
 .print-edition-root .dict__entry { font-size: 7.6pt; line-height: 10.2pt; margin-bottom: 1.1mm; }
 
@@ -372,8 +379,24 @@ span.pg-note-mark { display: inline; }
 @media print {
 	:root { --paper: #ffffff; }
 	html, body { background: #ffffff; }
-	.rhead, .chapnav, .inktoggle, .readout, .scrub, .cover__tools, .frontis--empty { display: none !important; }
+	.web, .rhead, .chapnav, .inktoggle, .readout, .scrub, .cover__tools, .frontis--empty { display: none !important; }
 	.fig, .code__chunk, .names, .exercise { break-inside: avoid; }
 	.flow h2, .flow h3 { break-after: avoid; }
 	a { text-decoration: none; }
 }
+
+/* The same contents map as the web edition, composed as one print plate. */
+.pp--map { page: front; break-before: left; break-inside: avoid; }
+.print-edition-root .pp--map .pp-h { margin-bottom: 5mm; }
+.print-edition-root .pp--map .map__row { grid-template-columns: 96px 5mm minmax(0, 1fr) 38mm 5mm; column-gap: 2mm; break-inside: avoid; }
+.print-edition-root .pp--map .map__rail { min-height: 12mm; }
+.print-edition-root .pp--map .map__num { font-size: 15pt; padding-block: 2.5mm; }
+.print-edition-root .pp--map .map__text { padding-block: 1.5mm; }
+.print-edition-root .pp--map .map__title { font-size: 10pt; }
+.print-edition-root .pp--map .map__gist { font-size: 7pt; line-height: 9pt; }
+.print-edition-root .pp--map .map__where { padding-block: 1.5mm; }
+.print-edition-root .pp--map .map__station { font-size: 7pt; }
+.print-edition-root .pp--map .map__maths { font-size: 7pt; }
+.print-edition-root .pp--map .map__note, .print-edition-root .pp--map .map__legend { font-size: 6.5pt; }
+.print-edition-root .pp--map .toc__page { align-self: center; font-size: 7pt; }
+.print-edition-root .pp--map .toc__page::after { content: target-counter(attr(href url), page); }

@@ -36,7 +36,7 @@ Rows are readers and columns are sources, everywhere in this book. Since tokens 
 @fig-attention-reads shows this for the trained specimen. Each character of the window is a reader. Its two heads, which we explain in @sec-heads, read with two different distributions: one is drawn above the line, the other below.
 
 ::: {.figure #fig-attention-reads window=11 reader=8}
-What each character reads. The arcs leave the selected reader and land on the earlier characters it reads; the width of an arc is the weight $A_{ij}$, and the arcs of one head sum to one. Head 1 is drawn above the line and head 2 below. A loop is a character reading itself. Drag the window along the line to change the text.
+What each character reads. The arcs leave the selected reader and land on the earlier characters it reads; the width of an arc is the weight $A_{ij}$, and the arcs of one head sum to one. Head 1 is drawn above the line and head 2 below. A loop is a character reading itself. [Drag the window along the line to change the text.]{.web}
 :::
 
 ## Scores, and why a softmax {#sec-scores}
@@ -52,7 +52,7 @@ A source is read in proportion to the exponential of how well its key matches th
 The score is a bilinear form on the stream. Write $W_q^{(h)},W_k^{(h)}\in\R^{d\times D}$ for the rows of $W_q,W_k$ that belong to one head (@sec-heads). Up to the bias terms, $q_i\cdot k_j=\hat x_i^\T\,W_q^{(h)\T}W_k^{(h)}\,\hat x_j$. The matrix $W_q^{(h)\T}W_k^{(h)}$ is a general $D\times D$ matrix of rank at most $d$, and nothing makes it symmetric: "what does $i$ look for in $j$" and "what does $j$ look for in $i$" are different questions.
 
 ::: {.figure #fig-attention-pipeline window=11 reader=8 head=1}
-One reader and one head, from top to bottom: the keys $k_j$ of the sources, the reader's query $q_i$, the scores $S_{ij}=q_i\cdot k_j/\sqrt d$, the weights $A_{ij}$, and the values, each scaled by its weight; their sum is $o_i$. Drag the temperature $\tau$ away from $\sqrt d$: cold rows read one source, hot rows read all of them equally.
+One reader and one head, from top to bottom: the keys $k_j$ of the sources, the reader's query $q_i$, the scores $S_{ij}=q_i\cdot k_j/\sqrt d$, the weights $A_{ij}$, and the values, each scaled by its weight; their sum is $o_i$. Cold rows read one source; hot rows read all of them equally. [Drag the temperature $\tau$ away from $\sqrt d$.]{.web}
 :::
 
 ## Why $\sqrt d$ {#sec-sqrt-d}
@@ -72,7 +72,7 @@ Since $e^{-\infty}=0$, the upper triangle of $A$ vanishes, and $A$ is lower-tria
 Lower-triangularity is causality written as a matrix. Column $i$ of the output depends on columns $1,\dots,i$ of the input and on nothing later, so the Jacobian of the map $X\mapsto O$ is block lower-triangular. One pass therefore yields $T$ conditional distributions, each conditioned on its own past. These are exactly the factors of the chain rule of probability, and the loss uses all of them.
 
 ::: {.figure #fig-attention-triangle window=11}
-The attention matrices of the specimen's two heads for one window. Row $i$ is reader $i$ and column $j$ is source $j$; the area of a dot is $A_{ij}$. Nothing is drawn above the diagonal. Run the forward computation: scores for every pair, then the mask, then the softmax of each row.
+The attention matrices of the specimen's two heads for one window. Row $i$ is reader $i$ and column $j$ is source $j$; the area of a dot is $A_{ij}$. Nothing is drawn above the diagonal. The forward computation: scores for every pair, then the mask, then the softmax of each row. [Run the computation.]{.web}
 :::
 
 ::: aside
@@ -87,7 +87,7 @@ The output map $W_o$ then mixes the blocks, and the result is added to the resid
 $$X\;\longleftarrow\;X+W_oO+b_o\,\mathbf 1^\T.$$
 Two heads let a position read two different things at once, and each pays for it with a smaller $d$. The four matrices $W_q,W_k,W_v,W_o$ and their biases hold $4(D^2+D)$ numbers, which is $288$ of the specimen's parameters.
 
-## In the code {#sec-code}
+## In the code {#sec-code-attention}
 
 In the code the chapter is two functions. The first computes the patterns $A$ of every head and every window from $Q$ and $K$:
 

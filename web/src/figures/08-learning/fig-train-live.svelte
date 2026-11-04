@@ -180,7 +180,7 @@
 	const rightW = $derived(narrow ? W : W - leftW - 24);
 	const sampW = $derived(narrow ? 0 : 160);
 	const xMax = $derived(k > 1000 ? 5000 : k > 200 ? 1000 : 200);
-	const chartH = $derived(narrow ? 240 : 368);
+	const chartH = $derived(!interactive ? 260 : narrow ? 240 : 368);
 	const etaY = $derived(chartH + 10);
 	const etaH = 118;
 	const leftH = $derived(etaY + etaH + 10);

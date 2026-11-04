@@ -43,7 +43,7 @@ const paths = [];
 for (const { t, edges } of snapshots) for (const [k, a, b] of edges) {
   const late = t === STEPS - 1, p = b.hi - b.lo;
   const opacity = late ? Math.min(1, 2 * p) : 1.2 * p ** 0.6;
-  if (opacity < 0.04) continue;                       // too faint to see: not drawn
+  if (opacity < 0.08) continue;                       // too faint to read (and prints as grey wash): not drawn
   const x0 = X(k), x1 = X(k + 1), y0 = Y(a), y1 = Y(b), xm = (x0 + x1) / 2;
   paths.push({ d: `M${f(x0)} ${f(y0)}C${f(xm)} ${f(y0)} ${f(xm)} ${f(y1)} ${f(x1)} ${f(y1)}`, opacity,
                ...(late ? { color: ink.value, width: stroke.emphasis } : {}) });

@@ -26,9 +26,9 @@
 	--overprint: multiply;
 
 	/* Type */
-	--serif: 'Literata', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-	--math: 'XCharter Math', 'STIX Two Math', 'Latin Modern Math', math;
-	--sans: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+	--serif: 'Literata', 'XCharter Math', 'JuliaMono', serif;
+	--math: 'XCharter Math', 'JuliaMono', math;
+	--sans: 'Archivo', 'Literata', 'XCharter Math', 'JuliaMono', sans-serif;
 	--mono: 'JuliaMono', 'DejaVu Sans Mono', ui-monospace, monospace;
 
 	--fs-body: clamp(1.0625rem, 0.96rem + 0.33vw, 1.1875rem); /* 17 → 19 px */

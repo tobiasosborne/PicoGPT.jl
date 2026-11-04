@@ -14,7 +14,7 @@ Training charges the model, for every prediction, its surprise $-\log q(y)$ at t
 | $\KL(p\,\|\,q)$ | relative entropy | KL divergence |
 | $\log V$ | entropy of the uniform distribution | random baseline |
 | $\prod_nq_\theta(y_n\mid c_n)$ | likelihood | likelihood |
-| $\bar Z=(P-Y)/N$ | predicted minus observed occupation | gradient of the loss with respect to the logits |
+| $\bar Z=(P-Y)/N$ | predicted minus observed occupation | logit gradient |
 :::
 
 ## The price of a prediction {#sec-price}
@@ -26,7 +26,7 @@ $$s(q,y)=-\log q_y$$
 the *surprise* of the prediction $q$ when $y$ occurs. It is zero for an event that was certain, infinite for one that was declared impossible, $\log 2$ for a fair coin, and $\log V$ for a guess spread evenly over $V$ characters. Its unit is the *nat*.
 
 ::: aside
-With $\log_2$ instead of $\log$ the unit is the *bit*; one nat is $1/\log 2\approx1.44$ bits. Shannon (1948) built information theory on this quantity; the name "surprisal" is Tribus's (1961).
+With $\log_2$ instead of $\log$ the unit is the *bit*; one nat is $1/\log 2\approx1.44$ bits. [Shannon (1948)](https://people.tamu.edu/~jml/entropy.pdf) built information theory on this quantity; [Tribus (1961)](https://archive.org/details/thermostaticsthe00trib) calls it “surprisal”.
 :::
 
 The model does not compute $q_y$ and then its logarithm. Since $q=\softmax(z)$, @ch-energies gives the surprise directly from the logits, with no exponential that could overflow and no probability that could underflow to zero:
@@ -43,13 +43,13 @@ The number $\log V$ is the yardstick. A model that knows nothing and says so, $q
 @fig-surprise shows all eighty charges at once. Each row is one training window, set under the corpus where it lies, and each bar stands under the character it predicts. The outline is what the untrained model pays; the solid bar is what the model pays after the chosen number of training steps. Run the training and watch the bars fall.
 
 ::: {.figure #fig-surprise}
-The surprise $-\log q(y)$ of each of the specimen's eighty predictions. Row $b$ is training window $b$, placed under the corpus; each bar stands under the character it predicts. Outlines: the untrained model. Solid bars: the model after the step chosen on the line below, replayed exactly as it was trained. The dashed hairline is $\log V$, uniform guessing; the loss is the mean of all the bars.
+The surprise $-\log q(y)$ of each of the specimen's eighty predictions. Row $b$ is training window $b$, placed under the corpus; each bar stands under the character it predicts. Outlines: the untrained model. Solid bars: the model during training, replayed exactly as it was trained. The dashed hairline is $\log V$, uniform guessing; the loss is the mean of all the bars.
 :::
 
-Almost every bar falls to nothing. Five do not. Each is the first bar of its row, and each settles at a level of its own: two at one height, three at another. These five are the subject of @sec-floor.
+Almost every bar falls to nothing. Five do not. Each is the first bar of its row, and each settles at a level of its own: two at one height, three at another. These five are the subject of @sec-floor-surprise.
 
 ::: aside
-**The frontispiece** draws the same eighty quantities as curves: each hairline is the surprise of one prediction through a training run, with time to the right on a logarithmic scale and surprise upward. The value-ink line is their mean, the loss. The two plateaux that refuse to fall are the five predictions of @sec-floor.
+**The frontispiece** draws the same eighty quantities as curves: each hairline is the surprise of one prediction through a training run, with time to the right on a logarithmic scale and surprise upward. The value-ink line is their mean, the loss. The two plateaux that refuse to fall are the five predictions of @sec-floor-surprise.
 :::
 
 ## Maximum likelihood {#sec-likelihood}
@@ -76,7 +76,7 @@ with equality exactly when $q_a=p_a$ wherever $p_a>0$ and $q$ puts no mass anywh
 In statistics a loss with this property, minimised in expectation by reporting the true distribution, is called a *proper scoring rule*. With three or more outcomes the logarithmic score is, up to affine changes, the only proper rule that depends on $q$ only through the probability $q_y$ of what actually happened.
 :::
 
-## The floor {#sec-floor}
+## The floor {#sec-floor-surprise}
 
 Now apply this to the training set itself. Two predictions with the same context receive the same input, so the model gives them the same distribution $q_c$. Group the $N$ predictions by context: let $n_c$ be the number of predictions with context $c$, and $\hat p_c$ the distribution of the characters that followed it. Regrouping the sum in $\mathcal L$ gives, exactly,
 $$\mathcal L(\theta)=\sum_c\frac{n_c}{N}\,H(\hat p_c,q_c)=\underbrace{\sum_c\frac{n_c}{N}\,H(\hat p_c)}_{\text{the text}}\;+\;\underbrace{\sum_c\frac{n_c}{N}\,\KL(\hat p_c\,\|\,q_c)}_{\text{the model}} .$$
@@ -101,14 +101,14 @@ $$\bar Z_{an}=\frac{\partial\mathcal L}{\partial Z_{an}}=\frac{p_{an}-\delta_{a,
 where $P=\softmax(Z)$ column by column. The bar is the notation of @ch-pulling-back for the adjoint, the sensitivity of the loss to a quantity; in this book adjoints are drawn in the second ink, hatched. In words: the gradient with respect to the logits is the *predicted* occupation minus the *observed* one. Gradient descent moves $z_n$ against it. It raises the logit of the character that came, by $(1-p_y)/N$ times the step size, and lowers every other logit in proportion to the probability the model gave it.
 
 ::: {.figure #fig-gradient-p-minus-e window=3 position=1}
-One prediction, forward and backward. Going down (value ink): the logits $z$, their softmax $p$, and the surprise $\ell$ of the character that came, whose one-hot vector $e_y$ is outlined. Going up (covector ink, hatched): the gradient $N\bar z=p-e_y$, which arrives above the logits it belongs to. When other windows share the context, the bottom row adds their gradients. Choose any of the eighty predictions on the corpus line.
+One prediction, forward and backward. Going down (value ink): the logits $z$, their softmax $p$, and the surprise $\ell$ of the character that came, whose one-hot vector $e_y$ is outlined. Going up (covector ink, hatched): the gradient $N\bar z=p-e_y$, which arrives above the logits it belongs to. When other windows share the context, the bottom row adds their gradients. [Choose any of the eighty predictions on the corpus line.]{.web}
 :::
 
 Each column of $\bar Z$ sums to zero, $\one^\T(p-e_y)=1-1=0$. That is shift invariance again: the loss cannot see a common shift of the logits, so its gradient has no component along $\one$. In particular the gradient of the output bias, $\bar b_{\rm out}=\bar Z\one_N$, is always orthogonal to $\one$, as promised in @ch-energies.
 
 The gradient also explains the floor from the other side. The three predictions whose context is a single space have the same logits $z$ and the same $p$, but different targets. Their gradients add up to
 $$(p-e_b)+(p-e_o)+(p-e_n)=3\,(p-\hat p),\qquad \hat p=\tfrac13(e_b+e_o+e_n).$$
-Each window on its own pulls its own character up. Together they pull towards $\hat p$, and they stop pulling exactly when $p=\hat p$. Click the first "␣" of a window in @fig-gradient-p-minus-e to see the three pulls and their sum.
+Each window on its own pulls its own character up. Together they pull towards $\hat p$, and they stop pulling exactly when $p=\hat p$. [Click the first "␣" of a window in @fig-gradient-p-minus-e to see the three pulls and their sum.]{.web}
 
 ## In the code {#sec-code-surprise}
 
@@ -138,7 +138,7 @@ Show that plain gradient descent never changes the sum $\sum_a(b_{\rm out})_a$ o
 :::
 
 ::: exercise
-In @fig-cross-entropy-kl, drag the training back to step 0. How much of the loss is floor and how much divergence? Find the step at which the divergence first falls below the floor.
+Consider @fig-cross-entropy-kl at step 0. [Drag the training back to that step.]{.web} How much of the loss is floor and how much divergence? Find the step at which the divergence first falls below the floor.
 :::
 
 ::: exercise

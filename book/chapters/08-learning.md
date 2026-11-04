@@ -8,7 +8,7 @@ Learning is a walk downhill in $\R^p$: gradient descent is Euler's method for th
 | maths | physics | ML |
 |---|---|---|
 | $\dot\theta=-\nabla\ell(\theta)$ | overdamped motion in a potential | gradient flow |
-| $\theta_{k+1}=\theta_k-\eta\nabla\ell(\theta_k)$ | an explicit Euler step | gradient descent, an update, a training step |
+| $\theta_{k+1}=\theta_k-\eta\nabla\ell(\theta_k)$ | an explicit Euler step | gradient descent, update, training step |
 | $\eta$ | the time step | learning rate, step size |
 | $\lambda_{\max}$ of the Hessian | the stiffest mode, the curvature scale | sharpness |
 | $\hat g$ with $\E\hat g=\nabla\ell$ | a noisy measurement of the force | minibatch gradient, stochastic gradient |
@@ -21,12 +21,12 @@ Learning is a walk downhill in $\R^p$: gradient descent is Euler's method for th
 
 Fix the training set: the ten windows of the corpus, eighty predictions in all. The loss of @ch-surprise is then one function on the space of parameters,
 $$\ell:\R^p\to\R,\qquad\theta\longmapsto\frac1N\sum_{n=1}^N-\log p_\theta(y_n\mid\text{context}_n),$$
-with $p=1007$ and $N=80$, and @ch-pulling-back computes its gradient $\nabla\ell(\theta)\in\R^p$ at the cost of about one forward pass. Training means finding a $\theta$ where $\ell$ is small. Two numbers frame the answer. A model that has learned nothing and spreads its probability evenly over the $V$ characters pays $\ln V$ nats per prediction: that is *uniform guessing*. And no model can pay less than the *entropy floor* of @sec-floor, because five of the eighty predictions are made from a context of a single character that the windows continue in different ways. Two windows begin with "o" and three with a space, so the floor is $(2\ln2+3\ln3)/80$ nats, and not zero.
+with $p=1007$ and $N=80$, and @ch-pulling-back computes its gradient $\nabla\ell(\theta)\in\R^p$ at the cost of about one forward pass. Training means finding a $\theta$ where $\ell$ is small. Two numbers frame the answer. A model that has learned nothing and spreads its probability evenly over the $V$ characters pays $\ln V$ nats per prediction: that is *uniform guessing*. And no model can pay less than the *entropy floor* of @sec-floor-surprise, because five of the eighty predictions are made from a context of a single character that the windows continue in different ways. Two windows begin with "o" and three with a space, so the floor is $(2\ln2+3\ln3)/80$ nats, and not zero.
 
 @fig-train-live runs the whole of this chapter in front of you. Every step is a forward pass on the ten windows, a backward pass, and one update of all the parameters. It starts at $\theta_0$, the specimen's initial parameters, and with the settings it opens with it repeats the training run whose result the rest of the book has been looking at, number for number.
 
 ::: {.figure #fig-train-live window=1 reader=8}
-The specimen learning, live. Press ▶: every step is a forward pass, a backward pass and an update of all the parameters. The curve is the loss, with the line of uniform guessing at $\ln V$ and the entropy floor of the corpus; above it, what the model writes after "to be or" at a few steps along the way. Under the curve is the learning rate of every step. On the right, every parameter as one square, and what the last character of the window reads. Drag the learning rate on its axis, change the optimiser or the schedule, or start again from another seed.
+The specimen learning. Every step is a forward pass, a backward pass and an update of all the parameters. The curve is the loss, with the line of uniform guessing at $\ln V$ and the entropy floor of the corpus; above it, what the model writes after "to be or" at a few steps along the way. Each parameter is one square; the arcs show what the last character reads. [Press ▶ to train live; under the live curve is the learning rate of every step.]{.web} [Drag the learning rate on its axis, change the optimiser or the schedule, or start again from another seed.]{.web}
 :::
 
 ::: aside
@@ -72,7 +72,7 @@ How large a step can gradient descent take? Plain gradient descent on the specim
 At the start the sharpness is well below $2/\eta$, and the loss falls as the lemma promises. But training does not leave the curvature alone: the descent drives $\theta$ into steeper and steeper regions, the sharpness grows until it reaches $2/\eta$, and there it stops. Gradient descent then walks along the edge of the region where its steps are stable, overshooting in the stiffest direction just enough to keep from going further. The loss keeps falling, though no longer at every step. The lemma explains where the edge is, and it does not explain why the run should stay on it: a sufficient condition for descent is not a law of motion.
 
 ::: aside
-This is the *edge of stability*, found by Cohen, Kaur, Li, Kolter and Talwalkar (2021) in networks far larger than the specimen. The sharpness is measured here as in @ch-pulling-back: a Hessian–vector product is a central difference of two pulled-back gradients, and power iteration on it finds the largest eigenvalue without ever forming the Hessian.
+This is the *edge of stability*, found by [Cohen, Kaur, Li, Kolter and Talwalkar (2021)](https://arxiv.org/abs/2103.00065) in networks far larger than the specimen. The sharpness is measured here as in @ch-pulling-back: a Hessian–vector product is a central difference of two pulled-back gradients, and power iteration on it finds the largest eigenvalue without ever forming the Hessian.
 :::
 
 ## Minibatches {#sec-minibatch}
@@ -106,7 +106,7 @@ $$\theta_{k+1}=\theta_k-\eta_k\,\frac{\hat m_k}{\sqrt{\hat v_k}+\epsilon},\qquad
 with square root and division taken coordinate by coordinate. So Adam is a diagonal preconditioner applied to a smoothed gradient, the *momentum* $\hat m$, and not to the gradient itself. Note that $v$ estimates the second moment of the gradient, not its variance: nothing is subtracted.
 
 ::: aside
-Kingma and Ba, *Adam: a method for stochastic optimization* (2015). The name is short for adaptive moment estimation. The specimen uses $\beta_1=0.9$, $\beta_2=0.95$ and $\epsilon=10^{-8}$; the $\epsilon$ is Adam's own and has nothing to do with the $\varepsilon$ of LayerNorm.
+Kingma and Ba, [*Adam: A Method for Stochastic Optimization* (ICLR 2015)](https://arxiv.org/abs/1412.6980). The name is short for adaptive moment estimation. The specimen uses $\beta_1=0.9$, $\beta_2=0.95$ and $\epsilon=10^{-8}$; the $\epsilon$ is Adam's own and has nothing to do with the $\varepsilon$ of LayerNorm.
 :::
 
 What does the division do? If the gradient of a coordinate were the same at every step, $g$, then $\hat m_k=g$ and $\hat v_k=g^2$ exactly, for every $k$, thanks to the bias correction, and the step would be
@@ -114,7 +114,7 @@ $$-\eta\,\frac{g}{\lvert g\rvert+\epsilon}\approx-\eta\operatorname{sign}(g).$$
 In this limit Adam is *sign descent*: every coordinate moves by the same amount $\eta$, in the direction that lowers the loss, whatever the size of its gradient. The magnitude of the gradient is thrown away and only its direction kept. The very first step is always of this kind, since $\hat m_1=g_1$ and $\hat v_1=g_1^2$. Later the averages remember older gradients, and a coordinate whose gradient keeps changing sign gets $\lvert\hat m\rvert\ll\sqrt{\hat v}$ and moves less. @fig-adam compares, for every parameter, the step that gradient descent would take with the one Adam takes.
 
 ::: {.figure #fig-adam}
-What Adam changes. For each parameter, grouped by array: the size of its gradient (bars), which is how far gradient descent would move it per unit of learning rate, and how far AdamW actually moves it, in the same unit (dots). At the first update every dot sits at one, except those of the key bias, whose gradient is zero up to rounding. Scrub through the training run.
+What Adam changes. For each parameter, grouped by array: the size of its gradient (bars), which is how far gradient descent would move it per unit of learning rate, and how far AdamW actually moves it, in the same unit (dots). At the first update every dot sits at one, except those of the key bias, whose gradient is zero up to rounding. [Scrub through the training run.]{.web}
 :::
 
 A consequence worth remembering: Adam's step does not change if the loss is multiplied by a constant, while the step of gradient descent scales with it. For gradient descent $\eta$ has the units of $\theta^2$ per unit of loss; for Adam it has the units of $\theta$, and it is roughly the distance each coordinate moves per step. That is why the two need such different learning rates, which you can confirm in @fig-train-live by switching between them.
@@ -134,7 +134,7 @@ The specimen decays only the entries of its matrices. The gains $\gamma$, the of
 :::
 
 ::: aside
-Loshchilov and Hutter, *Decoupled weight decay regularization* (2019). Physically, the decay is a friction towards the origin, $\dot\theta=-\lambda\theta$, integrated by one Euler step and added to the step of the loss; exact integration over a time $\eta$ would multiply by $e^{-\eta\lambda}$ instead.
+Loshchilov and Hutter, [*Decoupled Weight Decay Regularization* (ICLR 2019)](https://arxiv.org/abs/1711.05101). Physically, the decay is a friction towards the origin, $\dot\theta=-\lambda\theta$, integrated by one Euler step and added to the step of the loss; exact integration over a time $\eta$ would multiply by $e^{-\eta\lambda}$ instead.
 :::
 
 ## Schedules and clipping {#sec-schedule}
@@ -153,7 +153,7 @@ This is the Euclidean projection of $g$ onto the ball of radius $c$: of all vect
 ::: {.code file="src/train.jl" fn="clip!"}
 :::
 
-@fig-schedule shows both through the specimen's run: the learning rate as it was scheduled, and the length of each gradient against the radius of the ball.
+@fig-schedule tracks the specimen's learning rate and gradient norm against the clipping radius.
 
 ::: {.figure #fig-schedule}
 The learning rate and the length of the gradient through the specimen's training run. The rate rises linearly during the warmup and then falls along half a cosine. The gradient would be clipped whenever it is longer than the radius of the ball, which is hatched above the line; in this run it never is.
@@ -174,7 +174,7 @@ Adam at the floor. The excess of the loss over the entropy floor, on a logarithm
 At a constant rate the loss reaches the floor and then, again and again, leaves it: a spike of several orders of magnitude on this scale, followed by a slower return. The length of the update hardly reacts to the floor at all. Under the cosine the steps shrink with $\eta$, and the late spikes are gone; the one early spike comes while the rate is still near its peak. A falling schedule is not only a matter of settling more precisely: it is what stops the optimiser from throwing the parameters out of the minimum it has found.
 
 ::: aside
-The name and the first careful description are from Thilak, Littwin, Zhai, Saremi, Paiss and Susskind, *The slingshot mechanism* (2022), who found these cycles late in training of transformers on small algorithmic tasks, and connected them to the sudden generalisation known as grokking. The specimen is not large enough to say anything about grokking.
+[Thilak, Littwin, Zhai, Saremi, Paiss and Susskind (2022)](https://arxiv.org/abs/2206.04817), *The Slingshot Mechanism: An Empirical Study of Adaptive Optimizers and the Grokking Phenomenon*, found these cycles on small algorithmic tasks and linked them to sudden generalisation (“grokking”). The specimen establishes no such link.
 :::
 
 ::: aside
@@ -207,7 +207,7 @@ Why these initial variances. The size of every intermediate of the forward pass 
 With the book's variances every station of the forward pass is of order one. Nine times larger, the scores spread out, most attention rows freeze onto a single source (@ch-attention), the branches overwhelm the stream they are meant to correct, and the first predictions are confident and wrong, with a loss above $\ln V$. Nine times smaller, the attention reads everything equally and the branches add almost nothing: the model starts as the embedding alone, a bigram model with a clock. With one block either error is a factor of three in the size of a few intermediates; in a deep model the factors compound from layer to layer.
 
 ::: aside
-These are statements about the start of training, under the assumption that weights and inputs are independent. Nothing keeps them true afterwards, and the trained specimen has no reason to keep its activations of order one. The variance $1/n$ is usually credited to LeCun and to Glorot and Bengio (2010); the factor 2 that a ReLU calls for, because it zeroes half of a symmetric input, to He and colleagues (2015).
+These are statements about the start of training, under the assumption that weights and inputs are independent. Nothing keeps them true afterwards, and the trained specimen has no reason to keep its activations of order one. The variance $1/n$ is usually credited to [LeCun et al. (1998)](https://bottou.org/papers/lecun-98x) and to [Glorot and Bengio (2010)](https://proceedings.mlr.press/v9/glorot10a.html); the factor 2 that a ReLU calls for, because it zeroes half of a symmetric input, to [He and colleagues (2015)](https://arxiv.org/abs/1502.01852).
 :::
 
 ## In the code {#sec-learn-code}
@@ -242,7 +242,7 @@ Prove that $\operatorname{clip}_c(g)$ is the unique point of the closed ball $\{
 :::
 
 ::: exercise
-In @fig-train-live, switch to gradient descent and train. Then drag $\eta$ upwards until the run learns within two hundred steps, and further until it fails. Compare the two learning rates with the sharpness in @fig-step-size.
+[In @fig-train-live, switch to gradient descent and train. Then drag $\eta$ upwards until the run learns within two hundred steps, and further until it fails.]{.web} Compare the two learning rates with the sharpness in @fig-step-size.
 :::
 
 ::: exercise

@@ -19,8 +19,10 @@
 .flow > .noted + p,
 .flow > p + .noted,
 .flow > .noted + .noted { margin-top: 0; }
-.flow > .noted + p, .flow > .noted + .noted > p { text-indent: 1.4em; }
+.flow > .noted + p, .flow > p + .noted > p, .flow > .noted + .noted > p { text-indent: 1.4em; }
 .flow > .noted:has(+ p) > p:last-child { margin-bottom: 0; }
+
+.math-punct { white-space: nowrap; }
 
 /* ── headings ───────────────────────────────────────────────────────────── */
 .flow h2 {

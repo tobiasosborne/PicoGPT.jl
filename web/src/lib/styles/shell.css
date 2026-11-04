@@ -203,3 +203,5 @@ a.toc__title:hover { color: var(--value-deep); }
 	.toc__state { grid-column: 2; }
 	.toc__num { font-size: 1.6rem; }
 }
+
+.frontis__caption { display: block; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }

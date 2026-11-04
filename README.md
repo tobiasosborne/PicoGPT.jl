@@ -78,6 +78,13 @@ From left to right, top to bottom:
 
 The source is in `tools/traces/`.
 
+## Films
+
+Short films, rendered frame by frame from the book's own figure code: there is no second
+animation engine. Click a poster to play it (MP4); `node tools/films/render.mjs` re-renders them.
+
+<table><tr><td width="50%"><a href="https://github.com/tobiasosborne/PicoGPT.jl/raw/master/media/films/fig-forward-backward.mp4"><img src="media/films/fig-forward-backward.png" alt="Forward, then back: values flow down, the loss is pulled back up in covector ink"></a><br><sub>Forward, then back: values flow down, the loss is pulled back up in covector ink</sub></td><td width="50%"><a href="https://github.com/tobiasosborne/PicoGPT.jl/raw/master/media/films/fig-train-live.mp4"><img src="media/films/fig-train-live.png" alt="The specimen learning live: from gibberish to “to be or not to be”"></a><br><sub>The specimen learning live: from gibberish to “to be or not to be”</sub></td></tr><tr><td width="50%"><a href="https://github.com/tobiasosborne/PicoGPT.jl/raw/master/media/films/fig-attention-triangle.mp4"><img src="media/films/fig-attention-triangle.png" alt="Scores, the causal mask, and softmax: the attention triangle forming"></a><br><sub>Scores, the causal mask, and softmax: the attention triangle forming</sub></td><td width="50%"><a href="https://github.com/tobiasosborne/PicoGPT.jl/raw/master/media/films/fig-energy-ladder.mp4"><img src="media/films/fig-energy-ladder.png" alt="A temperature sweep on the energy ladder: from frozen to molten"></a><br><sub>A temperature sweep on the energy ladder: from frozen to molten</sub></td></tr></table>
+
 ## Contents
 
 <p align="center">

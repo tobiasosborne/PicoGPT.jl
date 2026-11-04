@@ -16,7 +16,7 @@
 	// Changing any setting starts again from θ₀; the run just left becomes a dashed ghost.
 	// Print: the loss curve of the book's run with its samples, and the parameters and
 	// attention at four steps as small multiples.
-	import { getContext, onDestroy } from 'svelte';
+	import { getContext, onDestroy, untrack } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import { computed } from '../primitives/computed.svelte.js';
 	import LossChart from '../primitives/LossChart.svelte';
@@ -133,10 +133,20 @@
 	});
 	const shownSamples = $derived.by(() => {
 		const live = samples;
-		const ghosts = isBookNow && bookSamples.value ? bookSamples.value.filter((g) => g.step <= xMax && !live.some((l) => l.step === g.step)).map((g) => ({ ...g, ghost: true })) : [];
+		const ghosts = attrs.t == null && isBookNow && bookSamples.value ? bookSamples.value.filter((g) => g.step <= xMax && !live.some((l) => l.step === g.step)).map((g) => ({ ...g, ghost: true })) : [];
 		return [...live, ...ghosts];
 	});
 	restart(false);
+	// Film time follows the log step axis, 0…200. Seeking backwards reconstructs
+	// the seeded run, so setT is independent of frame order and wall-clock speed.
+	$effect(() => {
+		if (attrs.t == null) return;
+		const target = Math.round(201 ** clamp(+attrs.t, 0, 1) - 1);
+		untrack(() => {
+			if (target < run.t) restart(false);
+			if (target !== run.t) { advance(target - run.t); snapshot(); }
+		});
+	});
 
 	// ── play loop ───────────────────────────────────────────────────────────────────
 	let raf = 0;
@@ -298,7 +308,7 @@
 	const bkMax = $derived(Math.max(...valuesOf(thetaNow, 'bk').map(Math.abs)));
 	const optLabel = $derived(optName === 'adamw' ? 'AdamW' : 'gradient descent');
 	const ghostSeries = $derived.by(() => {
-		const out = [{ values: specimen.loss, label: 'the book’s run', labelAt: 12, style: 'ghost' }];
+		const out = attrs.t == null ? [{ values: specimen.loss, label: 'the book’s run', labelAt: 12, style: 'ghost' }] : [];
 		if (ghost) out.push({ values: ghost.values, label: ghost.label, labelAt: Math.min(ghost.values.length - 1, 30), style: 'dash' });
 		out.push({ values: losses, style: 'main' });
 		return out;
@@ -332,7 +342,7 @@
 	{/each}
 {/snippet}
 
-<div class="fx fx-live" use:measure={(w) => (width = w)}>
+<div class="fx fx-live" data-step={k} use:measure={(w) => (width = w)}>
 	{#if interactive}
 		{@html bookSamples.tag}
 		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
@@ -372,6 +382,10 @@
 				{@render reads(attn, arcBase, arcXs, arcUp)}
 			</g>
 		</svg>
+
+		{#if attrs.t != null}
+			<p class="film-status label">AdamW · seed 0 · step {k} / 200 · loss {fmt(lossNow, 4)} nats</p>
+		{/if}
 
 		<div class="fx-live__controls label" role="group" aria-label="training controls">
 			<button class="scrub__play" onclick={play} aria-label={playing ? 'Pause' : 'Train'}>
@@ -432,6 +446,7 @@
 </div>
 
 <style>
+	.film-status { font-size: 12px; color: var(--ink-2); margin-top: 16px; font-variant-numeric: tabular-nums; }
 	.fx-live :global(.m) { font-family: var(--serif); font-style: italic; font-size: 14px; fill: var(--ink); }
 	.fx-live__pname { font-family: var(--serif); font-size: 12.5px; fill: var(--ink-2); }
 	.fx-live__pname--small { font-size: 9px; }

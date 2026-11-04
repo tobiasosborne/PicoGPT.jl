@@ -51,3 +51,11 @@
 - [ ] Verify the citations written from memory: chapters 6–8 and the epilogue.
 - [ ] Undocumented 0-based token ids in the gradient trace.
 - [ ] `crossentropy` may be quoted in both ch. 4 and ch. 7.
+
+## From the chapter 3/4/9 author
+- [ ] Ch. 9 prose quotes the step-5000 laptop export: the real-word shares, "5000 steps", no copying
+      head, and 0.89 vs 0.90 nats on the repeated line. Recheck every one of these when the
+      monolith run (D=256, L=6, 12k steps) replaces the data.
+- [ ] `speaking.svg` frontispiece is missing (orchestrator). Then let ch. 9 refer to it.
+- [ ] The first covector key is claimed by both the prologue (`fig-two-inks`) and ch. 4
+      (`fig-gradient-p-minus-e`). Keep the prologue's; make ch. 4's a reminder.

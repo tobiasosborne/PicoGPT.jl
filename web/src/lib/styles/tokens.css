@@ -1,0 +1,103 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   PicoGPT design tokens. Single source for web and print. DESIGN.md explains
+   every value; change them there first.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+	color-scheme: light;
+
+	/* Paper, ink, and the two spot inks — OKLCH. Each spot ink has ONE meaning. */
+	--paper: oklch(0.987 0.005 85);      /* #fcfbf7  uncoated natural white */
+	--paper-2: oklch(0.968 0.007 85);    /* #f6f3ee  a shade of the same stock */
+	--ink: oklch(0.22 0.012 268);        /* #181a20  blue-black text ink */
+	--ink-2: oklch(0.43 0.014 268);      /* #4c5058  captions, notes */
+	--ink-3: oklch(0.6 0.012 268);       /* #7d8088  axes, ticks, line numbers */
+	--rule: oklch(0.84 0.008 268);       /* #c8cad0  hairline rules */
+	--rule-2: oklch(0.925 0.006 268);    /* #e3e4e8  faintest structure */
+
+	--value: oklch(0.43 0.125 268);      /* #334994  VALUE INK — activations, parameters (forward) */
+	--value-deep: oklch(0.37 0.11 268);  /* #273a79  value ink for small type */
+	--value-tint: oklch(0.915 0.03 268); /* #dae3f8  value at ~15 % */
+	--covector: oklch(0.61 0.17 33);     /* #d55339  COVECTOR INK — gradients, adjoints x̄ (backward) */
+	--covector-deep: oklch(0.52 0.16 33);/* #b23a23  covector ink for small type */
+	--covector-tint: oklch(0.935 0.03 42); /* #fce4da */
+
+	/* Ink as it behaves on paper: marks multiply where they overlap. */
+	--overprint: multiply;
+
+	/* Type */
+	--serif: 'Literata', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+	--math: 'XCharter Math', 'STIX Two Math', 'Latin Modern Math', math;
+	--sans: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+	--mono: 'JuliaMono', 'DejaVu Sans Mono', ui-monospace, monospace;
+
+	--fs-body: clamp(1.0625rem, 0.96rem + 0.33vw, 1.1875rem); /* 17 → 19 px */
+	--lh-body: 1.56;
+	--fs-small: calc(var(--fs-body) * 0.8);  /* notes, captions */
+	--fs-label: 0.78rem;                     /* figure labels (Archivo) */
+	--fs-micro: 0.6875rem;                   /* tick labels */
+	--fs-h2: calc(var(--fs-body) * 1.5);
+	--fs-h3: calc(var(--fs-body) * 1.12);
+	--fs-claim: clamp(1.3rem, 1rem + 0.9vw, 1.7rem);
+	--fs-title: clamp(3.4rem, 1.6rem + 6vw, 7.5rem);
+
+	/* Grid. The book page is a main column plus a margin column. */
+	--main: 36rem;
+	--gap: 2.75rem;
+	--margin: 15.5rem;
+	--wide: calc(var(--main) + var(--gap) + var(--margin));
+	--pad: 1.25rem;
+	--rhythm: calc(var(--fs-body) * var(--lh-body)); /* one line of text */
+
+	/* Strokes (CSS px at 1×; print maps 0.5 px → 0.25 pt). */
+	--hair: 0.6px;   /* leader lines, ticks, rules inside figures */
+	--line: 1.1px;   /* data lines: spokes, arcs at unit weight, curves */
+	--heavy: 2px;    /* emphasis: the selected thing */
+
+	/* Motion */
+	--ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+	--t-quick: 160ms;
+	--t-move: 420ms;
+}
+
+/* Night: the same inks under a dark sky. Hue angles are kept; lightness is turned over. */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-ink='paper']) {
+		color-scheme: dark;
+		--paper: oklch(0.195 0.012 268);
+		--paper-2: oklch(0.235 0.013 268);
+		--ink: oklch(0.93 0.008 85);
+		--ink-2: oklch(0.77 0.01 85);
+		--ink-3: oklch(0.6 0.01 85);
+		--rule: oklch(0.4 0.012 268);
+		--rule-2: oklch(0.29 0.012 268);
+		--value: oklch(0.76 0.1 268);
+		--value-deep: oklch(0.82 0.08 268);
+		--value-tint: oklch(0.32 0.05 268);
+		--covector: oklch(0.73 0.14 38);
+		--covector-deep: oklch(0.79 0.12 38);
+		--covector-tint: oklch(0.33 0.06 38);
+		--overprint: screen;
+	}
+}
+:root[data-ink='night'] {
+	color-scheme: dark;
+	--paper: oklch(0.195 0.012 268);
+	--paper-2: oklch(0.235 0.013 268);
+	--ink: oklch(0.93 0.008 85);
+	--ink-2: oklch(0.77 0.01 85);
+	--ink-3: oklch(0.6 0.01 85);
+	--rule: oklch(0.4 0.012 268);
+	--rule-2: oklch(0.29 0.012 268);
+	--value: oklch(0.76 0.1 268);
+	--value-deep: oklch(0.82 0.08 268);
+	--value-tint: oklch(0.32 0.05 268);
+	--covector: oklch(0.73 0.14 38);
+	--covector-deep: oklch(0.79 0.12 38);
+	--covector-tint: oklch(0.33 0.06 38);
+	--overprint: screen;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root { --t-quick: 0ms; --t-move: 0ms; }
+}

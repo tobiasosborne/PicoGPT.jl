@@ -1,0 +1,30 @@
+{
+	"name": "picogpt-book",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"description": "PicoGPT — the interactive book (web) and the HTML source of the print edition.",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"fonts": "node scripts/build-fonts.mjs",
+		"shots": "node scripts/shots.mjs"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-static": "^4.0.1",
+		"@sveltejs/kit": "^3.1.1",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"svelte": "^5.57.3",
+		"temml": "0.14.0",
+		"vite": "^8.3.0"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*",
+		"#figures/*": "./src/figures/*",
+		"#specimen": "./src/specimen/index.mjs",
+		"#specimen/*": "./src/specimen/*"
+	}
+}

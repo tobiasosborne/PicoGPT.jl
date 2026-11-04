@@ -1,0 +1,177 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   print.css — the print edition (DESIGN.md §8).
+
+   The PDF is the web book's HTML under this stylesheet, paginated by Paged.js in
+   headless Chromium. Three layers:
+     A. .print-edition-root  — print geometry and type. Active on the /print/ route
+        on screen too (a faithful proof), and therefore also under Paged.js, which
+        renders in screen media.
+     B. @page rules          — trim, margins, running heads, folios, named pages.
+     C. @media print         — any ordinary web page printed from a browser.
+   Render /print/ at a viewport ≥ 1280 px wide (the web breakpoints are viewport-based).
+   Wait for <html data-print-ready="1"> before paginating.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── A. the print edition ──────────────────────────────────────────────── */
+.print-edition-root {
+	/* trim 189 × 246 mm (crown quarto); text block 153 mm = main 104 + gap 5 + notes 44 */
+	--pg-main: 104mm;
+	--pg-gap: 5mm;
+	--pg-notes: 44mm;
+	--main: var(--pg-main);
+	--gap: var(--pg-gap);
+	--margin: var(--pg-notes);
+	--wide: calc(var(--pg-main) + var(--pg-gap) + var(--pg-notes));
+	--pad: 0mm;
+
+	--fs-body: 9.6pt;
+	--lh-body: 1.4167;           /* 13.6 pt leading */
+	--rhythm: 13.6pt;
+	--fs-small: 7.8pt;
+	--fs-label: 7pt;
+	--fs-micro: 6.2pt;
+	--fs-h2: 15pt;
+	--fs-h3: 10.6pt;
+	--fs-claim: 13.5pt;
+	--fs-title: 38pt;
+	--hair: 0.35pt;
+	--line: 0.75pt;
+
+	width: var(--wide);
+	margin: 0 auto;
+	font-size: var(--fs-body);
+	line-height: var(--lh-body);
+	hyphens: auto;
+	orphans: 2;
+	widows: 2;
+	print-color-adjust: exact;
+	-webkit-print-color-adjust: exact;
+}
+.print-edition-root .book { width: var(--wide); }
+.print-edition-root .flow h2 { break-after: avoid; string-set: rh-section content(text); margin-top: calc(var(--rhythm) * 2); }
+.print-edition-root .flow h3 { break-after: avoid; }
+.print-edition-root .fig { break-inside: avoid; margin-block: calc(var(--rhythm) * 1.2); }
+.print-edition-root .fig__caption { font-size: var(--fs-small); }
+.print-edition-root .code { break-inside: auto; --code-fs: 7.1pt; --code-lh: 1.5; }
+.print-edition-root .code__head { break-after: avoid; }
+.print-edition-root .code__chunk { break-inside: avoid; }
+.print-edition-root .exercise { break-inside: avoid; }
+.print-edition-root .names { break-inside: avoid; }
+.print-edition-root .eq { overflow: visible; }
+.print-edition-root a { text-decoration: none; }
+.print-edition-root .xref { border-bottom: 0; }
+.print-edition-root .readout,
+.print-edition-root .scrub,
+.print-edition-root .hit,
+.print-edition-root .handle-hit,
+.print-edition-root .rhead,
+.print-edition-root .chapnav,
+.print-edition-root .inktoggle { display: none !important; }
+.print-edition-root .frontis--empty, .print-edition-root .frontis--none { display: none; }
+
+/* pages of the front matter and the frontispieces */
+.pp { break-after: page; }
+.pp--halftitle { page: front; break-before: right; padding-top: 52mm; text-align: center; }
+.pp-halftitle { font-variant-caps: all-small-caps; letter-spacing: 0.14em; font-size: 12pt; color: var(--ink-2); }
+.pp--frontis { page: frontis; break-before: left; display: grid; place-items: center; height: 205mm; }
+.pp--frontis img { max-width: 100%; max-height: 205mm; width: auto; height: auto; }
+.pp--blank { display: none; }
+.pp--title { page: front; break-before: right; padding-top: 18mm; }
+.pp-title { font-size: 52pt; font-weight: 250; line-height: 0.9; letter-spacing: -0.03em; font-variation-settings: 'opsz' 72; }
+.pp-subtitle { font-size: 16pt; font-style: italic; font-weight: 330; line-height: 1.2; margin-top: 4mm; max-width: 16em; }
+.pp--title .theta { margin-top: 14mm; }
+.pp--title .theta__field { font-size: 5.3pt; line-height: 1.38; }
+.pp--title .theta__readout { font-size: 6.4pt; }
+.pp-author { margin-top: 16mm; font-variant-caps: all-small-caps; letter-spacing: 0.1em; font-size: 11pt; }
+.pp--colophon { page: front; break-before: left; display: flex; flex-direction: column; justify-content: flex-end; height: 200mm; font-size: 7.6pt; line-height: 1.45; color: var(--ink-2); max-width: 92mm; }
+.pp--colophon p + p { text-indent: 0; margin-top: 2.4mm; }
+.ink-value { color: var(--value-deep); }
+.ink-covector { color: var(--covector-deep); }
+.pp-built { color: var(--ink-3); }
+.pp--contents { page: front; break-before: right; padding-top: 22mm; }
+.pp-h { font-variant-caps: all-small-caps; letter-spacing: 0.12em; font-size: 11pt; color: var(--ink-2); font-weight: 450; margin-bottom: 7mm; }
+.pp--contents .toc__title { font-size: 12.5pt; }
+.pp--contents .toc__num { font-size: 17pt; }
+.pp--contents .toc__item { padding: 2.6mm 0 3mm; }
+.pp--contents .toc__state { display: none; }
+.print-edition-root .toc__item { break-inside: avoid; }
+
+/* chapters: the trace on the verso, the opening on the recto */
+/* The break sits on the article, so a page inserted before it is a true :blank page; the
+   frontispiece then falls on a verso and the opening's break-before: right on the facing recto.
+   (Two forced breaks in a row, or an empty element between them, make Paged.js add a page.) */
+.print-chapter { break-before: right; }
+.print-chapter--frontis { break-before: left; }
+.print-chapter .pp--chapter-frontis { break-before: auto; break-after: auto; }
+.print-chapter .opening { break-before: right; padding-bottom: 6mm; }
+.print-chapter .opening__text { padding-top: 34mm; }
+.print-chapter .opening__num { right: calc(100% + 0.28em); }
+.print-chapter .opening__kicker { font-size: 9.6pt; }
+.rh-chapter, .rh-clear { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.rh-chapter { string-set: rh-chapter content(text); }
+/* the opening page carries no section head: an empty marker resets it (no named page here:
+   switching named pages mid-chapter makes Paged.js insert a page) */
+.rh-clear { string-set: rh-section content(text); }
+
+/* ── B. pages ──────────────────────────────────────────────────────────── */
+@page {
+	size: 189mm 246mm;
+	margin: 18mm 15mm 21mm 21mm;
+}
+@page :right {
+	margin-left: 21mm;
+	margin-right: 15mm;
+	@top-left { content: string(rh-section); font-family: 'Literata', serif; font-size: 7.4pt; font-style: italic; color: #4c5058; vertical-align: bottom; padding-bottom: 4mm; }
+	@top-right { content: counter(page); font-family: 'Literata', serif; font-size: 8pt; font-variant-numeric: oldstyle-nums; color: #181a20; vertical-align: bottom; padding-bottom: 4mm; }
+}
+@page :left {
+	margin-left: 15mm;
+	margin-right: 21mm;
+	@top-left { content: counter(page); font-family: 'Literata', serif; font-size: 8pt; font-variant-numeric: oldstyle-nums; color: #181a20; vertical-align: bottom; padding-bottom: 4mm; }
+	@top-right { content: string(rh-chapter); font-family: 'Literata', serif; font-size: 7.4pt; font-variant-caps: all-small-caps; letter-spacing: 0.08em; color: #4c5058; vertical-align: bottom; padding-bottom: 4mm; }
+}
+@page front {
+	@top-left { content: none; }
+	@top-right { content: none; }
+}
+@page frontis {
+	margin: 16mm 14mm;
+	@top-left { content: none; }
+	@top-right { content: none; }
+}
+@page :blank {
+	@top-left { content: none; }
+	@top-right { content: none; }
+}
+
+/* Paged.js: an inserted blank page carries no running head or folio */
+.pagedjs_blank_page .pagedjs_margin-content { visibility: hidden; }
+
+/* Margin notes in the OUTER margin: on versos (Paged.js marks page sides) the
+   text column moves right and notes float into the left margin. */
+.pagedjs_left_page .print-edition-root .flow > *:not(.fig--wide):not(.code):not(.fig--full) { margin-left: calc(var(--pg-gap) + var(--pg-notes)); }
+.pagedjs_left_page .print-edition-root .note,
+.pagedjs_left_page .print-edition-root .sidenote {
+	float: left;
+	clear: left;
+	margin-right: 0;
+	margin-left: calc(-1 * (var(--pg-gap) + var(--pg-notes)));
+	text-align: right;
+}
+.pagedjs_left_page .print-edition-root .fig__foot { grid-template-columns: var(--pg-notes) var(--pg-main); }
+.pagedjs_left_page .print-edition-root .fig__foot .fig__caption { grid-column: 2; grid-row: 1; }
+.pagedjs_left_page .print-edition-root .fig__notes { grid-column: 1; grid-row: 1; }
+
+/* ── C. any web page, printed from the browser ─────────────────────────── */
+@media print {
+	:root { --paper: #ffffff; }
+	html, body { background: #ffffff; }
+	.rhead, .chapnav, .inktoggle, .readout, .scrub, .cover__tools, .frontis--empty { display: none !important; }
+	.fig, .code__chunk, .names, .exercise { break-inside: avoid; }
+	.flow h2, .flow h3 { break-after: avoid; }
+	a { text-decoration: none; }
+}
+
+/* contents with page numbers (Paged.js target-counter) */
+.print-edition-root .toc__item { grid-template-columns: 12mm minmax(0, 1fr) auto auto; }
+.print-edition-root .toc__page::after { content: target-counter(attr(href url), page); font-variant-numeric: oldstyle-nums; color: var(--ink-2); }

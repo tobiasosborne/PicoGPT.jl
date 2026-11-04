@@ -5,9 +5,10 @@
 	// Props
 	//   x, y, width, height   the chart's box in the parent SVG (axes, labels and the
 	//                         sample margin all live inside it)
-	//   series     [{ values, start = 0, label = '', style = 'main' | 'ghost' | 'dash',
+	//   series     [{ values, steps = null, start = 0, label = '', style = 'main' | 'ghost' | 'dash',
 	//                 band = null, labelAt = null }]
-	//              values[i] is the loss after start + i updates. 'main' is value ink at
+	//              values[i] is the loss after steps[i] (irregular recorded checkpoints),
+	//              or start + i updates when steps is absent. 'main' is value ink at
 	//              --line·1.3; 'dash' is value ink dashed (a second series); 'ghost' is a
 	//              hairline in --ink-3 (a reference run). A label is set at the series' last
 	//              point, or at step `labelAt` if given. band = { steps, lo, hi }: a min–max envelope, one vertical hairline
@@ -125,7 +126,7 @@
 	function path(s) {
 		let d = '', pen = false;
 		for (let i = 0; i < s.values.length; i++) {
-			const v = s.values[i], k = (s.start ?? 0) + i;
+			const v = s.values[i], k = s.steps?.[i] ?? (s.start ?? 0) + i;
 			if (!Number.isFinite(v) || (excess && !(v > 0))) { pen = false; continue; }
 			d += `${pen ? 'L' : 'M'}${X(k).toFixed(1)} ${Y(v).toFixed(1)}`;
 			pen = true;
@@ -142,11 +143,11 @@
 		return d;
 	}
 	const lastOf = (s) => {
-		for (let i = s.values.length - 1; i >= 0; i--) if (Number.isFinite(s.values[i])) return { k: (s.start ?? 0) + i, v: s.values[i] };
+		for (let i = s.values.length - 1; i >= 0; i--) if (Number.isFinite(s.values[i])) return { k: s.steps?.[i] ?? (s.start ?? 0) + i, v: s.values[i] };
 		return null;
 	};
 	const valueAt = (s, k) => {
-		const i = k - (s.start ?? 0);
+		const i = s.steps ? s.steps.indexOf(k) : k - (s.start ?? 0);
 		return i >= 0 && i < s.values.length ? s.values[i] : null;
 	};
 

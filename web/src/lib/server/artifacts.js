@@ -10,6 +10,7 @@ import path from 'node:path';
 import { ROOT } from './book.js';
 
 const SOURCES = [
+	{ key: 'overfitting', match: /^fig-(overfitting|memorised)$/, load: overfitting },
 	{ key: 'shakespeare', match: /^fig-shakespeare-/, load: shakespeare },
 	// (extension, epilogue) only the Shakespeare model's shape and parameter count, for fig-scale
 	{ key: 'shakespeareModel', match: /^fig-scale$/, load: () => readJSON(path.join(ROOT, 'artifacts', 'shakespeare', 'loss.json'))?.model ?? null }
@@ -32,6 +33,12 @@ function cached(key, files, make) {
 	return value;
 }
 const readJSON = (f) => (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null);
+
+// Chapter 9's comparison and precomputed exact matches. No corpus needed in CI.
+function overfitting() {
+	const files = ['shakespeare/loss.json', 'shakespeare-large/loss.json', 'shakespeare-large/memorised.json'].map((f) => path.join(ROOT, 'artifacts', f));
+	return cached('overfitting', files, () => ({ small: readJSON(files[0]), large: readJSON(files[1]), memorised: readJSON(files[2]) }));
+}
 
 // ── Tiny Shakespeare (scripts/export_book_data.jl) ─────────────────────────────
 

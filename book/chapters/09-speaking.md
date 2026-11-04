@@ -72,7 +72,7 @@ The Tiny Shakespeare model in training. Left: its loss, the mean surprise per ch
 
 The loss starts near $\log 65$: the untrained model's logits are nearly equal, and its first sample is every character of the vocabulary in random order, capitals, punctuation and the one digit alike. Within a hundred steps it has learned which characters are common: spaces, newlines, lower-case vowels. By a few hundred steps the strings have the shape of words and lines. By a thousand the text has the layout of a play, with speaker names in capitals, a colon and a line break, and lines of roughly the length of verse. By the end, most words are real words.
 
-A loss in nats is easier to feel through its exponential. If a model's loss is $\mathcal L$, then $e^{\mathcal L}$, the *perplexity*, is the number of equally likely characters that would cost the same surprise: $65$ at the start, and, at the end, a handful (read it off the figure). Two curves diverge as training goes on. The loss on the training text keeps falling; the loss on held-out text falls more slowly and then flattens. The gap between them is what the model has memorised about its particular million characters rather than learned about Shakespeare's.
+A loss in nats is easier to feel through its exponential. If a model's loss is $\mathcal L$, then $e^{\mathcal L}$, the *perplexity*, is the number of equally likely characters that would cost the same surprise: $65$ at the start, and, at the end, a handful (read it off the figure). Two curves diverge as training goes on. The loss on the training text keeps falling; the loss on held-out text falls more slowly and then flattens. The gap warns that fitting the training text and predicting text outside it are different tasks. We shall make the difference explicit below.
 
 ::: {.figure #fig-shakespeare-temperature}
 The trained model writing from the same prompt at four temperatures. Here a word is a maximal run of at least two letters, lower-cased; “real” means present in the training portion of the corpus. Single-letter words are excluded. Words absent from that portion are underlined with dots; the bar above each column is the share of words that do.
@@ -81,6 +81,56 @@ The trained model writing from the same prompt at four temperatures. Here a word
 @fig-shakespeare-temperature shows the dial at work. At $\tau=\frac12$ every word is real, and the text is safe and repetitive, leaning on the commonest words. At $\tau=1$ a few invented words appear. At $\tau=1.5$ a third of the words are invented, and spelling decays.
 
 Here, honestly, is what the model has learned. It spells common words. It knows the format of a play: who speaks is set in capitals and followed by a colon and a line break, and speeches are broken into lines of verse length. It knows where capitals and punctuation go. It strings two or three words together with a plausible rhythm. These samples provide no evidence of word meanings or syntax extending beyond a few words. The speakers do not speak to each other, nothing happens, and names are invented as freely as words. These observations concern the samples and their next-character statistics; they do not establish everything the model can or cannot represent.
+
+## Learning the text too well {#sec-overfitting}
+
+The last {{value:validationPercent}} per cent of the file has a job. It is the *held-out set*, also called the *validation set*: text excluded from the parameter updates, on which we measure the same next-character loss. The first {{value:trainingPercent}} per cent supplies the training windows. If we measured success only on those windows, a model that recited them would pass the examination. The split reserves some questions whose answers have not been used to adjust the parameters. There is nothing sacred about the ratio; it leaves most of a small text for learning and some for checking.
+
+What are the two losses measuring? Call a window $w$, and let $\ell_\theta(w)$ be its mean next-character surprise at parameters $\theta$. For the finite training sample $S$, the quantity being minimised is
+$$\widehat R_S(\theta)=\frac{1}{|S|}\sum_{w\in S}\ell_\theta(w).$$
+This is the *empirical risk*: risk means mean loss, and empirical means on the observations in hand. What we want when writing new text is a different quantity,
+$$R(\theta)=\E_{w\sim P}[\ell_\theta(w)],$$
+where $P$ is the distribution of windows in the text we want to predict, including text outside $S$. The training loss estimates the first quantity; the validation loss uses excluded windows to estimate the second. The curves in this chapter average fixed samples of windows from each portion, rather than evaluate every possible window.
+
+::: aside
+The validation text is new to the parameter updates, not an independent collection of plays. It is the tail of the same file, and neighbouring windows overlap. Its loss is a useful check on prediction within this source, with finite-sample error and possible differences between the two portions; it does not certify performance on arbitrary English.
+:::
+
+Doing well beyond the observations used for fitting is called *generalisation*. Improving the fit to those observations while making prediction beyond them worse is called *overfitting*.
+
+::: names
+| maths | physics | ML |
+|---|---|---|
+| fitting sample fluctuations at the expense of expected loss | fitting the noise in a finite sample | overfitting |
+| observations excluded from fitting | a separate measurement for checking the fit | held-out data, validation set |
+| small expected loss beyond the fitting sample | predicting a new measurement | generalisation |
+:::
+
+A model's *capacity* is the range of functions it can represent. With enough capacity and enough passes through a small sample, it can learn the particular continuations in that sample, including accidents that do not recur in new text. Predicting those continuations with increasing confidence lowers $\widehat R_S$. The same confidence costs more surprise when a new passage continues differently, so $R$ can rise. The model learns the sample rather than the distribution. The optimiser has done what it was asked.
+
+::: {.figure #fig-overfitting}
+The same text, two models, shared linear axes. Solid: training loss; dashed: validation loss. The open point marks each run's best measured validation loss; the bracket joins its final losses. Uniform guessing is shown for reference. The smaller run ends where its record ends. [Point along either plot, or focus it and use the arrow keys, to read the recorded losses.]{.web}
+:::
+
+For a less restrained example, train {{value:largeParamsMillions}} million parameters in place of the book's {{value:smallParamsMillions}} million, on the same text. Run for {{value:largeSteps}} steps: about {{value:largePasses}} whole-corpus equivalents of characters, or {{value:largeTrainingPasses}} passes over the training portion. In @fig-overfitting the larger model's training loss falls to {{value:largeFinalTrain}} nats per character, while its validation loss climbs to {{value:largeFinalVal}}. On excluded text it ends worse than uniform guessing. This is possible because uniform guessing is a reference, not an upper bound on surprise (@ch-surprise): a confidently wrong prediction can cost arbitrarily much.
+
+The generated text supplies a second exhibit. In @fig-memorised the larger model writes “What is't o'clock?” and “Upon the stroke of ten.”, complete with the speakers from *Richard III*. The underlines are found by searching the training portion, not by recognising Shakespeare. Some of the text is copied; the rest is still quite capable of being nonsense.
+
+::: {.figure #fig-memorised}
+A final-model sample with every span that occurs verbatim in the training prefix underlined. A span is inclusion-maximal and at least {{value:memorisedMinimum}} characters long; overlapping spans are retained and their union is underlined. Matching preserves case, punctuation, spaces and newlines. The sample is selected for its longest match. It comes from the extra samples recorded in the run report, not the regular exporter.
+:::
+
+::: aside
+Provenance. The large run's `samples-extra.json` records extra draws from the final model's run report; `samples.json` is the regular export. `scripts/export_memorised.mjs` searches both against the training prefix and writes `memorised.json`, including source hashes and offsets. The book reads this file without needing the corpus.
+:::
+
+One remedy needs no new mathematics: keep the parameters from the point with the lowest validation loss, instead of the last point. This is *early stopping*. Here the best measured point is step {{value:largeBestStep}}, at {{value:largeBestLoss}} nats. Continuing to minimise the training loss after that point buys a worse predictor. Stopping there would avoid the deterioration, but would still do no better than the smaller model, whose best validation loss is {{value:smallBestLoss}}. More parameters and more computation have not improved this result. These runs also differ in their training schedules, so they do not isolate parameter count as the cause.
+
+::: aside
+Using validation loss to choose a stopping point makes the choice depend on that set. A final assessment would use a further held-out set, untouched by that choice. Validation is a guide for choosing a model, not an inexhaustible supply of fresh evidence.
+:::
+
+Why did we praise the specimen for memorising “to be or not to be”? Because its training text is its whole world (@ch-task). We asked for the conditional frequencies of that finite text, not for a predictor of other soliloquies. There is no new-text distribution against which to demand generalisation. Memorising those frequencies is the right answer. Even perfect fitting does not make its loss zero: contexts that occur with different continuations retain their empirical conditional entropy, exactly the floor derived in @ch-surprise. The specimen has learned its task; the larger Shakespeare model has learned its training sample too well for ours.
 
 ## Inside the real model {#sec-inside}
 
@@ -111,7 +161,7 @@ Construct a model on two characters $\{x,y\}$ and texts of length two in which g
 :::
 
 ::: exercise
-In @fig-sampling-tree at $\tau=1$, how many different texts can the specimen write from the prompt "␣" before it leaves its corpus? [Use "draw again" to check. Then raise $\tau$ to $2$ and count the columns that are no longer a single segment.]{.web}
+In @fig-sampling-tree at $\tau=1$, how many different texts can the specimen write from the prompt "␣" before it leaves its corpus? [Use "draw again" to check.]{.web} Why is memorising this corpus the right answer for the specimen? State what task would have to change before you could accuse it of overfitting. Why does its loss still have a nonzero floor?
 :::
 
 ::: exercise
@@ -119,7 +169,7 @@ Show that $e^{H(p)}=V$ for the uniform distribution on $V$ outcomes and $e^{H(p)
 :::
 
 ::: exercise
-Why is the loss on held-out text higher than on the training text, and why does the gap grow? What would you expect if training went on for ten times as long with the same data?
+Use @fig-overfitting to choose a stopping point for the larger model. What does early stopping cost in training loss, and what does it gain in validation loss? Does it beat the smaller model? If you used the validation text for parameter updates as well, what would you need to reserve before making the same comparison?
 :::
 
 ::: exercise

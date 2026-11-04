@@ -29,6 +29,8 @@
 	// svelte-ignore state_referenced_locally
 	let pos = $state(clamp((+attrs.position || 1) - 1, 0, specimen.config.T - 1));
 	let tau = $state(1);
+	// The film cools the same Gibbs distribution; readers still own the handle.
+	$effect(() => { if (attrs.t != null) tau = 8 * (0.25 / 8) ** clamp(+attrs.t, 0, 1); });
 	let shift = $state(0); // added to every logit
 	let dz = $state(null); // per-logit changes made by dragging (null: none)
 	let active = $state(-1);

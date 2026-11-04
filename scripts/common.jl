@@ -35,8 +35,12 @@ end
 """Mean loss over the windows starting at `starts`, in parallel over pairs of sequences."""
 function meanloss(θ, data, starts, c)
     x, y = windows(data, c.T, starts)
+    isempty(x) && throw(ArgumentError("evaluation needs a nonempty batch"))
     groups = Iterators.partition(1:size(x, 2), 2)
-    sum(fetch.([Threads.@spawn length(J) * first(loss(θ, x[:, J], y[:, J], c)) for J in groups])) / size(x, 2)
+    PicoGPT.without_blas_threads() do
+        tasks = @sync [Threads.@spawn length(J) * first(loss(θ, x[:, J], y[:, J], c)) for J in groups]
+        sum(fetch.(tasks)) / size(x, 2)
+    end
 end
 
 # ── checkpoints ──────────────────────────────────────────────────────────────────────
@@ -44,19 +48,24 @@ end
 #   "PICOGPT1" | Int64 × 6: V D H L T F | Int64 step | Int64 t (Adam steps)
 #   | Int64 n, n bytes: the alphabet as UTF-8 | Int64 k, then k × (Int64 m, m × Float32)
 # The k arrays are θ, and optionally Adam's m and v.
+# This training format stores Float32 exactly; reject other types rather than silently
+# losing precision. The optimiser hyperparameters are supplied by the training recipe.
 
 function save_checkpoint(path; c, abc, step, θ, opt = nothing)
+    arrays = opt === nothing ? (θ,) : (θ, opt.m, opt.v)
+    all(a -> eltype(a) == Float32 && length(a) == nparams(c), arrays) ||
+        throw(ArgumentError("checkpoints require Float32 parameter/state vectors of length nparams(c)"))
+    length(abc) == c.V || throw(DimensionMismatch("the alphabet must have V characters"))
     mkpath(dirname(path))
     tmp = path * ".tmp"
     open(tmp, "w") do io
         write(io, "PICOGPT1")
-        write(io, Int64[c.V, c.D, c.H, c.L, c.T, c.F, step, opt === nothing ? 0 : opt.t])
+        write(io, htol.(Int64[c.V, c.D, c.H, c.L, c.T, c.F, step, opt === nothing ? 0 : opt.t]))
         s = String(abc)
-        write(io, Int64(sizeof(s)), s)
-        arrays = opt === nothing ? (θ,) : (θ, opt.m, opt.v)
-        write(io, Int64(length(arrays)))
+        write(io, htol(Int64(sizeof(s))), s)
+        write(io, htol(Int64(length(arrays))))
         for a in arrays
-            write(io, Int64(length(a)), Vector{Float32}(a))
+            write(io, htol(Int64(length(a))), htol.(reinterpret(UInt32, a)))
         end
     end
     mv(tmp, path; force = true)
@@ -65,10 +74,20 @@ end
 function load_checkpoint(path)
     open(path) do io
         String(read(io, 8)) == "PICOGPT1" || error("$path is not a PicoGPT checkpoint")
-        V, D, H, L, T, F, step, t = read!(io, Vector{Int64}(undef, 8))
-        abc = collect(String(read(io, read(io, Int64))))
-        arrays = [read!(io, Vector{Float32}(undef, read(io, Int64))) for _ in 1:read(io, Int64)]
-        (c = Config(V, D, H, L, T, F), abc, step, t, θ = arrays[1], adam = arrays[2:end])
+        V, D, H, L, T, F, step, t = ltoh.(read!(io, Vector{Int64}(undef, 8)))
+        c = Config(V, D, H, L, T, F)
+        n = ltoh(read(io, Int64))
+        0 < n ≤ 4V || error("invalid alphabet byte count in $path")
+        abc = collect(String(read(io, n)))
+        length(abc) == V || error("alphabet size differs from V in $path")
+        k = ltoh(read(io, Int64))
+        k in (1, 3) || error("invalid state array count in $path")
+        arrays = map(1:k) do _
+            ltoh(read(io, Int64)) == nparams(c) || error("invalid parameter count in $path")
+            copy(reinterpret(Float32, ltoh.(read!(io, Vector{UInt32}(undef, nparams(c))))))
+        end
+        eof(io) || error("unexpected trailing data in $path")
+        (c, abc, step, t, θ = arrays[1], adam = arrays[2:end])
     end
 end
 

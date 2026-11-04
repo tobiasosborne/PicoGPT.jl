@@ -8,7 +8,8 @@
     logsumexp(z) = log Σₐ exp(zₐ)
 
 The logarithm of the partition function. With m = max z, every exponent in
-log Σₐ exp zₐ = m + log Σₐ exp(zₐ − m) is ≤ 0, so nothing overflows.
+log Σₐ exp zₐ = m + log Σₐ exp(zₐ − m) is ≤ 0, so exponentiation cannot overflow
+for finite logits.
 """
 logsumexp(z) = (m = maximum(z); m + log(sum(zₐ -> exp(zₐ - m), z)))
 
@@ -35,17 +36,25 @@ Pullback (ℓ̄ ↦ Z̄). ∂ logsumexp(z)/∂zₐ = softmax(z)ₐ and ∂z_y/�
     Z̄ = ℓ̄ (softmax(Z) − onehot(y)) / N,
 
 column by column: the prediction minus the truth.
+The batch must contain at least one token. Subtract the column maximum from both
+terms of the loss before subtracting them, so a large common logit shift cannot
+erase the surprise or spoil the probabilities used by the pullback.
 """
 function crossentropy(Z, y)
     N = size(Z, 2)
-    lse = map(logsumexp, eachcol(Z))
-    ℓ = sum(lse[n] - Z[y[n], n] for n in 1:N) / N
+    N > 0 || throw(ArgumentError("cross-entropy needs at least one token"))
+    length(y) == N || throw(DimensionMismatch("one target is required per logit column"))
+    m = maximum(Z; dims = 1)
+    s = map(eachcol(Z), vec(m)) do z, mₙ
+        sum(zₐ -> exp(zₐ - mₙ), z)
+    end
+    ℓ = sum(log(s[n]) - (Z[y[n], n] - m[n]) for n in 1:N) / N
     function back(ℓ̄ = 1)
-        Z̄ = exp.(Z .- lse')                        # softmax(zₙ), for every n
+        Z̄ = exp.(Z .- m) ./ s'                    # softmax(zₙ), for every n
         for n in 1:N
             Z̄[y[n], n] -= 1                         # − onehot(yₙ)
         end
-        Z̄ .*= ℓ̄ / N
+        Z̄ .*= eltype(Z)(ℓ̄) / N
     end
     ℓ, back
 end

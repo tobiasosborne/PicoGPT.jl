@@ -9,7 +9,7 @@ Compare a claimed gradient x̄ of the scalar function f at x with central differ
 
     ∂f/∂xᵢ ≈ (f(x + h eᵢ) − f(x − h eᵢ)) / 2h        (error O(h²)),
 
-and return |g − x̄| / max(|g|, |x̄|) for the estimate g. Use Float64.
+and return |g − x̄| / max(|g|, |x̄|) for the estimate g, or 0 if both vanish. Use Float64.
 """
 function gradcheck(f, x, x̄; h = 1e-6)
     x = copy(x)
@@ -21,7 +21,8 @@ function gradcheck(f, x, x̄; h = 1e-6)
         x[i] = xᵢ
         g[i] = (f₊ - f₋) / 2h
     end
-    norm(g - x̄) / max(norm(g), norm(x̄))
+    scale = max(norm(g), norm(x̄))
+    iszero(scale) ? 0.0 : norm(g - x̄) / scale
 end
 
 """

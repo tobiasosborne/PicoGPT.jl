@@ -22,8 +22,9 @@ end
 """
     R, back = relu(U)
 
-The rectifier max(u, 0), entry by entry. Its derivative is 1 where u > 0 and 0 elsewhere,
-so the pullback is a mask: R̄ ↦ R̄ ⊙ [U > 0], and [U > 0] = [R > 0].
+The rectifier max(u, 0), entry by entry. Its derivative is 1 where u > 0 and 0 where
+u < 0; at zero we select the backward value 0 (there is no derivative there).
+The pullback is a mask: R̄ ↦ R̄ ⊙ [U > 0], and [U > 0] = [R > 0].
 """
 function relu(U)
     R = max.(U, 0)
@@ -37,7 +38,7 @@ end
 LayerNorm, column by column. Geometrically, each column x ∈ ℝᴰ is
 
     centred     x̃ = x − (1ᵀx/D) 1,             the orthogonal projection onto 1⟂;
-    scaled      x̂ = x̃/σ,  σ² = |x̃|²/D + ε,     onto the sphere |x̂| = √D (exactly as ε → 0);
+    scaled      x̂ = x̃/σ,  σ² = |x̃|²/D + ε,     inside the sphere |x̂| < √D, with ε = 1e-5;
     mapped      y = γ ⊙ x̂ + β,                  a diagonal affine map.
 
 Pullback (Ȳ ↦ X̄, γ̄, β̄). γ̄ = Σₙ ȳₙ ⊙ x̂ₙ and β̄ = Σₙ ȳₙ. Let g = γ ⊙ ȳ, the adjoint of x̂.
@@ -45,14 +46,15 @@ From σ dσ = x̃⋅dx̃/D, dx̂ = (dx̃ − x̂ (x̂⋅dx̃)/D)/σ; and dx̃ = 
 
     x̄ = Π (g − x̂ (x̂⋅g)/D)/σ = (g − mean(g) 1 − x̂ (x̂⋅g)/D)/σ      (as x̂ ⟂ 1):
 
-project g onto the tangent space of the sphere at x̂, and onto 1⟂, and divide by σ.
+For ε = 0 and x̃ ≠ 0 these are tangent and centring projections. With ε > 0 the
+formula is still exact, but the radial response is ε x̃/σ³ rather than zero.
 """
 function layernorm(X, γ, β)
     D = size(X, 1)
     ε = eltype(X)(1e-5)
     X̃ = X .- sum(X, dims = 1) ./ D                         # centre
     σ = sqrt.(sum(abs2, X̃, dims = 1) ./ D .+ ε)
-    X̂ = X̃ ./ σ                                             # onto the sphere
+    X̂ = X̃ ./ σ                                             # inside the sphere
     function back(Ȳ)
         G = γ .* Ȳ
         X̄ = (G .- sum(G, dims = 1) ./ D .- X̂ .* sum(X̂ .* G, dims = 1) ./ D) ./ σ

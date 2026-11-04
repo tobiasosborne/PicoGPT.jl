@@ -9,7 +9,8 @@
     Config(; V, D = 128, H = 4, L = 4, T = 256, F = 4D)
 
 The shape of a model: V symbols, a residual stream of width D, H heads of width d = D/H,
-L blocks, context length T, and MLP hidden width F.
+L ≥ 0 blocks, context length T, and MLP hidden width F. V, D, H, T and F are positive;
+D is even (paired sinusoidal positions) and divisible by H.
 """
 struct Config
     V::Int
@@ -18,10 +19,15 @@ struct Config
     L::Int
     T::Int
     F::Int
+    function Config(V::Integer, D::Integer, H::Integer, L::Integer, T::Integer, F::Integer)
+        V > 0 && D > 0 && H > 0 && T > 0 && F > 0 && L ≥ 0 ||
+            throw(ArgumentError("V, D, H, T, F must be positive and L nonnegative"))
+        iseven(D) && D % H == 0 || throw(ArgumentError("D = $D must be even and a multiple of H = $H"))
+        new(V, D, H, L, T, F)
+    end
 end
 
 function Config(; V, D = 128, H = 4, L = 4, T = 256, F = 4D)
-    iseven(D) && D % H == 0 || throw(ArgumentError("D = $D must be even and a multiple of H = $H"))
     Config(V, D, H, L, T, F)
 end
 
@@ -29,7 +35,7 @@ end
     nparams(c) = 2VD + V + 2D + L(4D² + 2DF + 9D + F)
 
 The number of parameters p. Embedding and readout give 2VD + V, the final LayerNorm 2D;
-each block has four D×D attention matrices, two D×F MLP matrices, and 9D + F gains and biases.
+each block has four D×D attention matrices, F×D and D×F MLP matrices, and 9D + F gains and biases.
 """
 function nparams(c::Config)
     (; V, D, F, L) = c
@@ -49,10 +55,10 @@ D×V matrix, and so on. `flatten` is the inverse.
 function carve(θ, c::Config)
     (; V, D, F, L) = c
     length(θ) == nparams(c) || throw(DimensionMismatch("θ has length $(length(θ)); $c needs $(nparams(c))"))
-    used = 0
+    used = Ref(0)
     function next(dims...)                                # the next prod(dims) entries of θ
-        piece = reshape(view(θ, used+1:used+prod(dims)), dims)
-        used += prod(dims)
+        piece = reshape(view(θ, used[]+1:used[]+prod(dims)), dims)
+        used[] += prod(dims)
         piece
     end
     E = next(D, V)
@@ -73,7 +79,7 @@ end
 The arrays inside a nest of named tuples, tuples and vectors, in order.
 """
 leaves(x::AbstractArray{<:Number}) = [x]
-leaves(xs) = mapreduce(leaves, vcat, values(xs))
+leaves(xs) = isempty(xs) ? [] : mapreduce(leaves, vcat, values(xs))
 
 """
     flatten(pieces...) -> Vector
@@ -92,9 +98,12 @@ and every logit has a sensible size:
 
     E               N(0, 1)               as loud as the positional code
     Wq, Wk, Wv, W1  N(0, 1/D)             each output entry has variance ≈ 1 (fan-in D)
-    Wo, W2          N(0, 1/(2L⋅fan-in))   the 2L updates of the stream add up to ≈ 1
+    Wo, W2          N(0, 1/(2L⋅fan-in))   O(1) accumulated residual variance under weak correlation
     Wout            N(0, 1/D²)            logits ≈ 0: the first guess is nearly uniform
     γ  1            β, b  0
+
+The residual estimate assumes bounded branch second moments and uncorrelated increments;
+it sets an initial scale, not a constraint on the trained stream.
 """
 function initial(name::Symbol, c::Config)
     (; D, F, L) = c
@@ -116,7 +125,7 @@ A random starting point θ ∈ Rᵖ, with entries of type R, each parameter draw
 function init(c::Config, R::Type{<:AbstractFloat} = Float64; rng = Random.default_rng())
     θ = zeros(R, nparams(c))
     p = carve(θ, c)
-    draw!(name, x) = ((μ, σ) = initial(name, c); x .= μ .+ σ .* randn(rng, R, size(x)))
+    draw!(name, x) = ((μ, σ) = R.(initial(name, c)); x .= μ .+ σ .* randn(rng, R, size(x)))
     draw!(:E, p.E)
     for b in p.blocks, (name, x) in pairs(b)
         draw!(name, x)

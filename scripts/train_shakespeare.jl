@@ -33,10 +33,12 @@ function main()
     start = 0
     if get(ENV, "RESUME", "0") == "1" && isfile(joinpath(CHECKPOINTS, "latest.bin"))
         ck = load_checkpoint(joinpath(CHECKPOINTS, "latest.bin"))
+        ck.c == c && ck.abc == abc || error("checkpoint model/alphabet differs from the requested run")
+        length(ck.adam) == 2 && ck.t == ck.step || error("resume needs matching Adam state and step count")
+        ck.step ≤ S.steps || error("checkpoint is beyond the requested training steps")
         θ .= ck.θ; opt.m .= ck.adam[1]; opt.v .= ck.adam[2]; opt.t = ck.t
         start = ck.step
     end
-    rng = Xoshiro(S.seed + start)
 
     # the same evaluation windows every time, so the curves are comparable
     evalset(data, k) = rand(Xoshiro(S.seed + k), 1:length(data) - c.T, S.B * S.eval_batches)
@@ -58,21 +60,33 @@ function main()
         write(joinpath(CHECKPOINTS, "settings.txt"), string(S, "\n", c, "\n"))
     end
 
-    best = Inf
-    seconds, recent = 0.0, Float64[]
+    best, seconds = Inf, 0.0
+    if start > 0
+        rows = [split(line, '\t') for line in readlines(history)[2:end]]
+        filter!(r -> parse(Int, r[1]) ≤ start, rows)
+        best = minimum(parse(Float64, r[7]) for r in rows)
+        seconds = parse(Float64, last(rows)[3])
+        # Discard rows written after the last complete checkpoint before resuming.
+        open(history, "w") do io
+            println(io, "step\ttokens\tseconds\tlr\tbatch_loss\ttrain_loss\tval_loss")
+            foreach(r -> println(io, join(r, '\t')), rows)
+        end
+    end
+    previous_seconds, recent = seconds, Float64[]
     for t in start:S.steps
         if t > start
+            rng = Xoshiro(S.seed + t)    # step-indexed draws: resume sees the same batches
             x, y = windows(train, c.T, rand(rng, 1:length(train) - c.T, S.B))
             seconds += @elapsed ℓ = step!(θ, opt, x, y, c; η = η(t), S.clip)
             push!(recent, ℓ)
             if t % 50 == 0
                 @printf("step %6d  loss %.4f  η %.2e  %6.0f tok/s  %6.1f min\n",
                         t, sum(recent[max(end - 49, 1):end]) / min(length(recent), 50), η(t),
-                        S.B * c.T * (t - start) / seconds, seconds / 60)
+                        S.B * c.T * (t - start) / (seconds - previous_seconds), seconds / 60)
                 flush(stdout)
             end
         end
-        evaluate_now(t) || continue
+        (start > 0 && t == start || !evaluate_now(t)) && continue
 
         ℓtrain = meanloss(θ, train, train_eval, c)
         ℓval = meanloss(θ, val, val_eval, c)

@@ -30,15 +30,24 @@ function foreach_head(f, A, Xs...)
     end
 end
 
-# When work is split over Julia's threads, BLAS must not start threads of its own:
-# they would only compete for the same cores (and spin while they wait).
+# BLAS's thread count is global. Overlapping and nested scopes share one setting;
+# only the last scope to leave restores it. The lock protects entry/exit, not the work.
+const BLAS_SCOPE = (lock = ReentrantLock(), users = Ref(0), threads = Ref(0))
 function without_blas_threads(f)
-    n = BLAS.get_num_threads()
-    BLAS.set_num_threads(1)
+    lock(BLAS_SCOPE.lock) do
+        if BLAS_SCOPE.users[] == 0
+            BLAS_SCOPE.threads[] = BLAS.get_num_threads()
+            BLAS.set_num_threads(1)
+        end
+        BLAS_SCOPE.users[] += 1
+    end
     try
         f()
     finally
-        BLAS.set_num_threads(n)
+        lock(BLAS_SCOPE.lock) do
+            BLAS_SCOPE.users[] -= 1
+            BLAS_SCOPE.users[] == 0 && BLAS.set_num_threads(BLAS_SCOPE.threads[])
+        end
     end
 end
 

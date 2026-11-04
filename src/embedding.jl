@@ -13,10 +13,12 @@ hold sin and cos of ωᵢ(t − 1), at the geometrically spaced frequencies
 
     ωᵢ = 10000^(−(i−1)/(D/2)),   i = 1 … D/2,
 
-from one radian per step (fast) down to nearly 1/10000 (slow), like the hands of a clock.
+from one radian per step down towards 1/10000, like the hands of a clock. D must be
+positive and even, and T nonnegative. The optional third argument sets the float type.
 """
-function positions(D, T)
-    ω(k) = 10000.0^(-((k - 1) ÷ 2) / (D ÷ 2))       # rows 2i−1 and 2i share ωᵢ
+function positions(D, T, R::Type{<:AbstractFloat} = Float64)
+    D > 0 && iseven(D) && T ≥ 0 || throw(ArgumentError("positions needs positive even D and nonnegative T"))
+    ω(k) = R(10000)^(-R((k - 1) ÷ 2) / (D ÷ 2))    # rows 2i−1 and 2i share ωᵢ
     [isodd(k) ? sin(ω(k) * (t - 1)) : cos(ω(k) * (t - 1)) for k in 1:D, t in 1:T]
 end
 
@@ -35,7 +37,8 @@ column a of Ē collects the adjoints of all the tokens that are symbol a:
 function embed(x, E)
     D, T = size(E, 1), size(x, 1)
     X = E[:, vec(x)]                               # look up one column per token
-    reshape(X, D, T, :) .+= positions(D, T)        # the same P for every sequence
+    T > 0 || throw(ArgumentError("sequences must contain at least one token"))
+    reshape(X, D, T, size(x, 2)) .+= positions(D, T, eltype(E))  # the same P for every sequence
     function back(X̄)
         Ē = zero(E)
         for (n, a) in enumerate(x)

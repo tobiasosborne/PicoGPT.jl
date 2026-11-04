@@ -37,7 +37,7 @@ function export_loss(final, h)
     settings = isfile(joinpath(CHECKPOINTS, "settings.txt")) ? readline(joinpath(CHECKPOINTS, "settings.txt")) : ""
     writejson(joinpath(OUT, "loss.json"), (
         description = "Loss (mean surprise, nats per character) of the Tiny Shakespeare model during training. " *
-                      "train_loss and val_loss are measured on fixed sets of 256 windows of the training and " *
+                      "train_loss and val_loss are measured on fixed sets of windows of the training and " *
                       "validation text (the last 10%, never trained on); batch_loss is the mean loss of the " *
                       "training batches since the previous row.",
         model = (V = c.V, D = c.D, H = c.H, L = c.L, T = c.T, F = c.F, param_count = nparams(c), precision = "Float32"),

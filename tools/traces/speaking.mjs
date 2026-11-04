@@ -37,4 +37,4 @@ save(process.argv[2] ?? '/tmp/speaking.svg', svg({ width, height, paths,
   desc: `Three staves, top to bottom, at temperatures ${temperatures.join(', ')}. The seven lines of each stave ` +
         `(value ink) are the characters ${vocab.map(show).join(' ')}, top to bottom; each strand is one sampled ` +
         `continuation of ${length} characters, passing through the line of each character it writes. ` +
-        `The model is the book's specimen (${TRAIN}; seed 1); the samples use seeds 1000–1002.` }));
+        `The model is the book's specimen (${TRAIN}, from its stored θ₀); the samples use seeds 1000–1002.` }));

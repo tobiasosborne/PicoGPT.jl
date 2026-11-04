@@ -21,6 +21,6 @@ paths.push({ d: polyline(simplify(mean.map((s, t) => [X(t), Y(s)]))), color: ink
 save(process.argv[2] ?? '/tmp/surprise.svg', svg({ width, height, paths,
   title: 'The surprise of each of the specimen\'s 80 predictions, as it learns.',
   desc: `Each hairline is −log p(y) for one (context, next character) pair, over ${STEPS} steps of training ` +
-        `(${TRAIN}); time runs left to right on a logarithmic scale, surprise upward on a square-root scale ` +
+        `(${TRAIN}); time runs left to right on a log(1 + step) scale, surprise upward on a square-root scale ` +
         `from 0 to ${top.toFixed(2)} nats. The value-ink line is their mean, the loss, which ends at ` +
         `${mean.at(-1).toFixed(4)} nats: the plateaux are contexts the text itself leaves ambiguous.` }));

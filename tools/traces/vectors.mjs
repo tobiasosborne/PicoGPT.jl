@@ -3,7 +3,7 @@
 // run is viewed in its own best plane: the span of the two leading singular vectors of its
 // final displacement. Every run is a seven-armed burst from one point, each run's burst
 // differently turned: what is learned is a geometry, not an orientation.
-import { run, TRAIN, STEPS, vocab } from './specimen.mjs';
+import { run, TRAIN, STEPS, vocab, BOOK } from './specimen.mjs';
 import { svg, polyline, simplify, save, ink, stroke } from './svg.mjs';
 
 const seeds = 64, D = 8, V = vocab.length;
@@ -24,7 +24,7 @@ function plane(M) {
 }
 
 const runs = [];
-for (let seed = 1; seed <= seeds; seed++) {
+for (const seed of [BOOK, ...Array.from({ length: seeds - 1 }, (_, k) => k + 2)]) {
   const history = [];                               // history[t][a] = column a of E
   run({ seed, observe: m => {
     const E = m.params.E.data;   // copied below, then turned into displacements
@@ -47,5 +47,5 @@ const paths = runs.flatMap((paths7, r) => paths7.map(p =>
 save(process.argv[2] ?? '/tmp/vectors.svg', svg({ width: size, height: size, paths,
   title: 'The seven embedding vectors, followed through training, in 64 independent runs.',
   desc: `Each path is the displacement E e_a(t) − E e_a(0) ∈ ℝ⁸ of one character's embedding over ${STEPS} steps ` +
-        `(${TRAIN}; seeds 1–64), projected onto the plane of the two leading singular vectors of that run's final ` +
-        `displacement and scaled so its longest final displacement reaches the rim. In value ink: one run (seed 1).` }));
+        `(${TRAIN}; the book's specimen and 63 fresh draws of θ₀, JS seeds 2–64), projected onto the plane of the two leading singular vectors of that run's final ` +
+        `displacement and scaled so its longest final displacement reaches the rim. In value ink: the book's specimen.` }));

@@ -1,5 +1,5 @@
 // Cover: every parameter of the specimen, followed through one training run.
-// Time flows down the plate (logarithmically); a path's horizontal position is how far that
+// Time flows down the plate on a log(1 + step) scale; a path's horizontal position is how far that
 // parameter has moved from where it started, θᵢ(t) − θᵢ(0). All paths leave one point:
 // the picture is exactly what learning changed.
 // Value ink: the 56 coordinates of the embedding E, where the letters acquire meaning.
@@ -32,7 +32,7 @@ for (let i = 0; i < p; i++) if (inE(i)) paths.push({ d: path(i), color: ink.valu
 
 save(process.argv[2] ?? '/tmp/cover.svg', svg({ width, height, paths,
   title: `Every one of the specimen's ${p} parameters, followed through training.`,
-  desc: `Time runs down the plate on a logarithmic scale (${steps} steps; ${TRAIN}; seed 1). Each path is one ` +
+  desc: `Time runs down the plate on a log(1 + step) scale: the book's specimen, from its stored θ₀, over ${steps} steps (${TRAIN}). Each path is one ` +
         `parameter's displacement Δ = θᵢ(t) − θᵢ(0) from its random starting value, placed horizontally at ` +
         `asinh(Δ/δ) with δ = ${δ.toFixed(4)} the median final displacement (linear near 0, logarithmic far out); ` +
         `every path starts on the centre line. The straight roof at the top is Adam's first update, which is sign descent: ` +

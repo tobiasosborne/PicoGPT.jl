@@ -179,7 +179,7 @@
 	{@const bw = detail ? 6 : Sp.nar ? 2.4 : 3.2}
 	{@const bg = detail ? 2.2 : Sp.nar ? 0.9 : 1.3}
 	<ResidualStem {x} {bx} Y={Gp.Y} w={v.w} wb={v.wb} g={detail ? { x0: c.x0, a: c.a, mid: c.mid, y: c.y, out: c.out } : null} rG={detail ? Gp.rG : 0} scale={scV.scale} glyphs={detail} t={tF} muted={isBack}
-		bars={{ values: c.probs, scale: barH, offset: barH + 4, mark: c.target, width: bw, gap: bg }} />
+		bars={isBack && !detail ? null : { values: c.probs, scale: barH, offset: barH + 4, mark: c.target, width: bw, gap: bg }} />
 	{#if isBack}
 		<ResidualStem {x} {bx} Y={Gp.Y} w={cv.w} wb={cv.wb} g={detail ? { x0: c.bx0, a: c.batt, mid: c.bmid, y: c.bmlp, out: c.bout } : null} rG={detail ? Gp.rG : 0} scale={scC.scale} glyphs={detail} t={tB} ink="covector" track={false} tipScale={0.8}
 			bars={{ values: c.zbar, scale: barH / 2 / maxZ, offset: barH / 2 + 4, signed: true, mark: c.target, width: bw, gap: bg }} />

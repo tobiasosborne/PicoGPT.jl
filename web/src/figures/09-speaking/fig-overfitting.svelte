@@ -53,11 +53,12 @@
 						{ steps: r.step, values: r.train_loss },
 						{ steps: r.step, values: r.val_loss, style: 'dash' }
 					]} {xMax} {yMax} {margin} lnV={r.uniform} xScale="linear" xLabel="training step" refLabels={false} />
-					<text class="lbl lbl--micro overfit__ref" x={X(xMax) - 3} y={Y(r.uniform) - 7} text-anchor="end">uniform guessing · ln {r.model.V}</text>
+					<!-- on the left, where every curve has already fallen below ln V: nothing crosses it -->
+					<text class="lbl lbl--micro overfit__ref" x={X(xMax * 0.1)} y={Y(r.uniform) - 7}>uniform guessing · ln {r.model.V}</text>
 					<!-- The final gap is a measured interval, not a coloured category. -->
 					<path class="overfit__gap" d="M{X(r.final.step) + 5} {Y(r.final.val_loss)}h5V{Y(r.final.train_loss)}h-5" />
 					<text class="lbl lbl--micro" x={X(r.final.step) + 16} y={Y(r.final.val_loss) - 3}>held-out<tspan x={X(r.final.step) + 16} dy="13">{fmt(r.final.val_loss, 3)}</tspan></text>
-					<text class="lbl lbl--micro lbl--value" x={X(r.final.step) + 16} y={Y(r.final.train_loss) + 8}>training<tspan x={X(r.final.step) + 16} dy="13">{fmt(r.final.train_loss, 3)}</tspan></text>
+					<text class="lbl lbl--micro lbl--value" x={X(r.final.step) + 16} y={Math.min(Y(r.final.train_loss) + 8, Y(0) - 16)}>training<tspan x={X(r.final.step) + 16} dy="13">{fmt(r.final.train_loss, 3)}</tspan></text>
 					<circle class="overfit__best" cx={X(r.best.step)} cy={Y(r.best.val_loss)} r="4" />
 					<path class="leader" d="M{X(r.best.step)} {Y(r.best.val_loss) - 6}v-74h18" />
 					<text class="lbl lbl--micro" x={X(r.best.step) + 22} y={Y(r.best.val_loss) - 84}>best held-out {fmt(r.best.val_loss, 3)}<tspan x={X(r.best.step) + 22} dy="13">step {integer(r.best.step)}</tspan></text>

@@ -23,16 +23,18 @@
 	const TX = 150, LH = 13;
 	const notes = $derived.by(() => {
 		const out = [];
-		const sorted = [pos && { q: pos, lines: ['filled: positive', `W_q[${pos.i + 1}, ${pos.j + 1}] = ${fmt(pos.v)}`] }, neg && { q: neg, lines: ['open: negative', `W_q[${neg.i + 1}, ${neg.j + 1}] = ${fmt(neg.v)}`] }].filter(Boolean).sort((a, b) => a.q.i - b.q.i);
+		const sorted = [pos && { q: pos, head: 'filled: positive', idx: `[${pos.i + 1}, ${pos.j + 1}] = ${fmt(pos.v)}` }, neg && { q: neg, head: 'open: negative', idx: `[${neg.i + 1}, ${neg.j + 1}] = ${fmt(neg.v)}` }].filter(Boolean).sort((a, b) => a.q.i - b.q.i);
 		sorted.forEach((s, k) => out.push({ ...s, from: ctr(s.q), ty: y0 + 6 + k * 40 }));
 		return out;
 	});
 </script>
 
+{#snippet sym(x, sub)}<tspan class="key__m">{x}</tspan><tspan font-size="8" dy="2">{sub}</tspan>{/snippet}
+
 <HowToRead width={250} height={232} notes={[]}>
 	{#snippet glyph()}
 		<g class="fx">
-			<text class="lbl lbl--micro" x={x0} y={y0 - 24}>a corner of <tspan font-style="italic" font-family="var(--serif)" font-size="12">W</tspan><tspan font-size="8" dy="2">q</tspan><tspan dy="-2"> and </tspan><tspan font-style="italic" font-family="var(--serif)" font-size="12">b</tspan><tspan font-size="8" dy="2">q</tspan></text>
+			<text class="lbl lbl--micro" x={x0} y={y0 - 24} style="white-space: pre">a corner of {@render sym('W', 'q')}{'\u00a0'}and{'\u00a0'}{@render sym('b', 'q')}</text>
 			<rect class="matrix__frame" x={x0} y={y0} width={n * cell} height={n * cell} />
 			<rect class="matrix__frame" x={bx} y={y0} width={cell} height={n * cell} />
 			<g class="matrix matrix--value">
@@ -52,11 +54,15 @@
 		{#each notes as n, k (k)}
 			<line class="key__leader" x1={n.from.x + 4} y1={n.from.y} x2={TX - 4} y2={n.ty - 4} />
 			<circle class="key__anchor" cx={n.from.x + 4} cy={n.from.y} r="1.5" />
-			<text class="key__text" x={TX} y={n.ty}>{#each n.lines as l, i (i)}<tspan x={TX} dy={i ? LH : 0}>{l}</tspan>{/each}</text>
+			<text class="key__text" x={TX} y={n.ty}><tspan x={TX}>{n.head}</tspan><tspan x={TX} dy={LH}>{@render sym('W', 'q')}<tspan dy="-2">{n.idx}</tspan></tspan></text>
 		{/each}
 		<line class="key__leader" x1={bx + cell / 2} y1={y0 + n * cell + 2} x2={bx + cell / 2} y2={y0 + n * cell + 14} />
 		<circle class="key__anchor" cx={bx + cell / 2} cy={y0 + n * cell + 2} r="1.5" />
-		<text class="key__text" x={x0 - 2} y={y0 + n * cell + 26}><tspan x={x0 - 2}>a vector, here the bias b_q, is one column,</tspan><tspan x={x0 - 2} dy={LH}>set beside the matrix it is added to</tspan></text>
-		<text class="key__text" x={x0 - 2} y={y0 + n * cell + 64}><tspan x={x0 - 2}>Rows run top to bottom and columns left</tspan><tspan x={x0 - 2} dy={LH}>to right, as written. Area ∝ |θᵢ|, on one</tspan><tspan x={x0 - 2} dy={LH}>scale for the whole plate.</tspan></text>
+		<text class="key__text" x={x0 - 2} y={y0 + n * cell + 26}><tspan x={x0 - 2}>a vector, here the bias {@render sym('b', 'q')}<tspan dy="-2">, is one column,</tspan></tspan><tspan x={x0 - 2} dy={LH}>set beside the matrix it is added to</tspan></text>
+		<text class="key__text" x={x0 - 2} y={y0 + n * cell + 64}><tspan x={x0 - 2}>Rows run top to bottom and columns left</tspan><tspan x={x0 - 2} dy={LH}>to right, as written. Area ∝ |<tspan class="key__m">θ</tspan><tspan font-size="8" dy="2">i</tspan><tspan dy="-2">|, on one</tspan></tspan><tspan x={x0 - 2} dy={LH}>scale for the whole plate.</tspan></text>
 	{/snippet}
 </HowToRead>
+
+<style>
+	:global(.key__m) { font-family: var(--serif); font-style: italic; font-size: 12px; }
+</style>

@@ -30,7 +30,7 @@
 <HowToRead width={244} height={202} {notes}>
 	{#snippet glyph()}
 		<g class="fx">
-			<ResidualStem {x} {bx} {Y} {w} {wb} g={{ x0: bx0, a: batt, mid: bmid, y: bmid.map(() => 0), out: bmid }} {rG} scale={sc.scale} t={1} track={false} ink="covector" part="attention" />
+			<ResidualStem {x} {bx} {Y} {w} {wb} g={{ x0: bx0, a: batt, mid: bmid, y: bmid.map(() => 0), out: bmid }} {rG} scale={sc.scale} t={1} track={false} ink="covector" part="attention" tipScale={0.75} fitTips />
 		</g>
 	{/snippet}
 </HowToRead>

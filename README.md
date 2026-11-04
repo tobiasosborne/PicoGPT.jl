@@ -153,7 +153,7 @@ whole training run. A full training step of the specimen takes about a third of 
 
 ## The print edition
 
-**[Download PicoGPT.pdf](https://github.com/tobiasosborne/PicoGPT.jl/raw/master/print/PicoGPT.pdf)** (134 pages, every mark vector).
+**[Download PicoGPT.pdf](https://github.com/tobiasosborne/PicoGPT.jl/raw/master/print/PicoGPT.pdf)** (144 pages, every mark vector).
 
 The same HTML, set as a printed book: 189 × 246 mm, an outer column for notes, figures in their
 static states, and the traces as plates facing each chapter opening. It is paginated by

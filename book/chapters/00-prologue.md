@@ -86,8 +86,8 @@ The code shown in this book is cut from the source files when the book is built,
 To run it, install Julia (1.10 or later) and, from the root of the repository,
 
 ```sh
-julia --project -e 'using Pkg; Pkg.test()'     # every pullback against finite differences
-julia --project scripts/export_specimen.jl     # train the specimen; write artifacts/specimen.json
+julia --project -e 'using Pkg; Pkg.test()'    # check every pullback
+julia --project scripts/export_specimen.jl    # train; write the JSON
 ```
 
 The second command trains the specimen exactly as this book shows it, and writes every number the figures use. The browser has its own implementation of the same model, in JavaScript, which is checked against the Julia computation. Arrays agree to $10^{-12}$ absolute; the recorded loss curve to $10^{-9}$ absolute. A replay that fails the latter check is discarded. It is what makes the web figures live.

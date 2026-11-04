@@ -18,7 +18,8 @@
 		muted = false,
 		emphasis = -1,
 		weight = 1,
-		title = ''
+		title = '',
+		fit = false // covector: shorten each bar to fit between its neighbours' tips (small keys)
 	} = $props();
 
 	const n = $derived(values.length);
@@ -27,7 +28,10 @@
 			const a = -Math.PI / 2 + (2 * Math.PI * k) / n;
 			const r = Math.min(rmax * 1.08, Math.abs(v) * scale);
 			const c = Math.cos(a), s = Math.sin(a);
-			return { k, v, a, c, s, x2: r * c, y2: r * s, px: -s, py: c };
+			// half-length of a covector bar: tip·1.9, or (fit) at most 0.8 of the half-gap between
+			// neighbouring tips at this radius, and never less than 0.8·tip so the bar still shows
+			const half = fit ? Math.max(tip * 0.8, Math.min(tip * 1.9, 0.8 * r * Math.sin(Math.PI / Math.max(2, values.length)))) : tip * 1.9;
+			return { k, v, a, c, s, x2: r * c, y2: r * s, px: -s, py: c, half };
 		})
 	);
 </script>
@@ -44,7 +48,7 @@
 		<g class="spoke__k" class:spoke__k--em={s.k === emphasis} class:spoke__k--neg={s.v < 0}>
 			<line class="spoke__line" x1="0" y1="0" x2={s.x2} y2={s.y2} />
 			{#if ink === 'covector'}
-				<rect class="spoke__bar" x={-tip * 1.9} y={-tip * 0.55} width={tip * 3.8} height={tip * 1.1} transform="translate({s.x2} {s.y2}) rotate({(s.a * 180) / Math.PI + 90})" />
+				<rect class="spoke__bar" x={-s.half} y={-tip * 0.55} width={s.half * 2} height={tip * 1.1} transform="translate({s.x2} {s.y2}) rotate({(s.a * 180) / Math.PI + 90})" />
 			{:else}
 				<circle class="spoke__tip" cx={s.x2} cy={s.y2} r={tip} />
 			{/if}

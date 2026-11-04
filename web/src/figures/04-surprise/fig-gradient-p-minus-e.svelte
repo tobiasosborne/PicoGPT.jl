@@ -61,13 +61,20 @@
 	const shared = $derived(peers.length > 1);
 	const H = $derived(shared ? Y.sum + gAmp + (narrow ? 40 : 34) : Y.loss + 26);
 	const xArrow = $derived(W - R + (narrow ? 14 : 40));
+	// the summed row nearly cancels once trained: drawn at the top row's scale it would be
+	// a bare axis, so it is magnified by a stated round factor (its numbers stay true)
+	const sumMag = $derived.by(() => {
+		const m = Math.max(...(gsum ?? [0]).map(Math.abs));
+		if (!(m > 0) || m >= 0.1) return 1;
+		return [2, 5, 10, 20, 50, 100, 200, 500].filter((k) => k * m <= 0.6).at(-1) ?? 1;
+	});
 	const fmtS = (v) => (Math.abs(v) < 0.005 ? fmt(0, 2) : fmt(v, 2));
 </script>
 
-{#snippet covector(vals, y0, label)}
+{#snippet covector(vals, y0, label, mag = 1)}
 	<line class="axis" x1={xs[0] - step / 2} x2={xs[V - 1] + step / 2} y1={y0} y2={y0} />
 	{#each vals as v, a (a)}
-		{@const h = Math.max(-1, Math.min(1, v)) * gAmp}
+		{@const h = Math.max(-1, Math.min(1, v * mag)) * gAmp}
 		<rect class="bar--covector" x={xs[a] - bw / 2} y={h > 0 ? y0 - h : y0} width={bw} height={Math.abs(h)} />
 		{#if Math.abs(v) >= 0.005}
 			<text class="lbl lbl--micro lbl--covector" class:lbl--strong={Math.abs(v) >= 0.1} x={xs[a]} y={v > 0 ? y0 - h - 6 : y0 - h + 14} text-anchor="middle">{fmt(v, 2)}</text>
@@ -153,7 +160,10 @@
 				<text class="lbl lbl--covector" x={L - 18} y={Y.sum + 6} text-anchor="end">context: {peers.length}(<tspan class="m m--cov">p</tspan> − <tspan class="m m--cov">p̂</tspan>)</text>
 			{/snippet}
 			<line class="rule" x1={xs[0] - step / 2} x2={W} y1={Y.loss + 40} y2={Y.loss + 40} />
-			{@render covector(gsum, Y.sum, sumLabel)}
+			{@render covector(gsum, Y.sum, sumLabel, sumMag)}
+			{#if sumMag > 1}
+				<text class="lbl lbl--micro lbl--covector" x={narrow ? xs[V - 1] + step / 2 : L - 18} y={narrow ? Y.sum - gAmp - 18 : Y.sum + 22} text-anchor="end">bars drawn ×{sumMag}</text>
+			{/if}
 			{#if narrow}<text class="lbl lbl--micro lbl--covector" x={xs[0] - step / 2} y={Y.sum - gAmp - 4}>summed over the {peers.length} windows with this context</text>{/if}
 			<text class="lbl lbl--micro" x={narrow ? xs[0] - step / 2 : xs[V - 1] + step / 2 + 10} y={narrow ? Y.sum + gAmp + 14 : Y.sum - 18}>the windows: {peers.map((o) => `${o.b + 1}`).join(', ')};</text>
 			<text class="lbl lbl--micro" x={narrow ? xs[0] - step / 2 : xs[V - 1] + step / 2 + 10} y={narrow ? Y.sum + gAmp + 28 : Y.sum - 4}>after ‘{Array.from(ctx).map(showChar).join('')}’ came {peers.map((o) => `‘${showChar(vocab[o.y])}’`).join(', ')}</text>

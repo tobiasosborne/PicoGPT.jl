@@ -141,14 +141,19 @@
 					<rect class="fx-ce__data" x={x - 9} y={yb - g.p[a] * distH} width="18" height={g.p[a] * distH} />
 					<rect class="bar--value" x={x - 4} y={yb - r.q[a] * distH} width="8" height={r.q[a] * distH} />
 					<text class="tok fx-ce__vch" x={x} y={yb + 16} text-anchor="middle">{showChar(ch)}</text>
-					{#if g.p[a] > 0}<text class="lbl lbl--micro" x={x} y={yb - distH - 5} text-anchor="middle">{fmtProb(r.q[a], 2)}</text>{/if}
+					{#if g.p[a] > 0}<text class="lbl lbl--micro" x={x} y={yb - Math.max(g.p[a], r.q[a]) * distH - 5} text-anchor="middle">{fmtProb(r.q[a], 2)}</text>{/if}
 				{/each}
 				<line class="axis" x1={colB} x2={colB + slot * V} y1={yb} y2={yb} />
 				<!-- H + KL -->
 				{@render split(narrow ? 0 : colC, ys, r.H, r.KL)}
-				<text class="lbl lbl--micro" x={narrow ? 0 : colC} y={ys + 24}>entropy of what followed: {floorTerms.exact ? `ln ${g.counts.filter((c) => c > 0).length}` : fmt(r.H, 3)}</text>
+				<text class="lbl lbl--micro" x={narrow ? 0 : colC + 6} y={ys + 24}>entropy of what followed: {floorTerms.exact ? `ln ${g.counts.filter((c) => c > 0).length}` : fmt(r.H, 3)}</text>
 			</g>
 		{/each}
+
+		<!-- the zero of the nats scale: every H + KL bar starts on it, however short -->
+		{#if !narrow}
+			<line class="axis" x1={colC} x2={colC} y1={yOpen(0) + 30 - 11} y2={yTot + 10 + 11} />
+		{/if}
 
 		<!-- the decided contexts, together -->
 		<g>

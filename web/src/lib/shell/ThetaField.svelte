@@ -53,14 +53,14 @@
 </script>
 
 <div class="theta">
-	<div class="theta__field" role="slider" tabindex="0" aria-label="trained parameters in storage order" aria-valuemin="1" aria-valuemax={specimen.paramCount} aria-valuenow={hover?.at ?? 1} aria-valuetext={hover ? `${hover.name} = ${hover.value}` : undefined} onkeydown={key} onfocus={() => { if (!hover) hover = describe(blocks[0], 0); }} onpointerover={over} onpointerleave={() => (hover = null)}>
+	<p class="theta__field" role="slider" tabindex="0" aria-label="trained parameters in storage order" aria-valuemin="1" aria-valuemax={specimen.paramCount} aria-valuenow={hover?.at ?? 1} aria-valuetext={hover ? `${hover.name} = ${hover.value}` : undefined} onkeydown={key} onfocus={() => { if (!hover) hover = describe(blocks[0], 0); }} onpointerover={over} onpointerleave={() => (hover = null)}>
 		{#each blocks as b, bi (b.name)}
 			<span class="theta__name" title={b.name}><i>{b.label.sym}</i>{#if b.label.sub}<sub>{b.label.sub}</sub>{/if}</span>
 			{#each b.values as v, k (k)}
 				<span class="theta__n" data-b={bi} data-k={k} style:font-weight={weightOf(v)}>{fmtDense(v, digits)}</span>{' '}
 			{/each}
 		{/each}
-	</div>
+	</p>
 	<p class="theta__readout label" aria-live="polite">
 		{#if hover}
 			<span class="theta__hname">{hover.name}</span> = {hover.value} <span class="theta__at">· θ<sub>{hover.at}</sub> of {specimen.paramCount}</span>

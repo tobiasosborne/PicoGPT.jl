@@ -1,0 +1,6 @@
+# Generated, not book data: the downloaded corpus, training checkpoints, logs.
+# (artifacts/specimen.json and artifacts/shakespeare/*.json ARE book data: commit them.)
+artifacts/data/
+artifacts/shakespeare/checkpoints/
+artifacts/*.log
+Manifest.toml

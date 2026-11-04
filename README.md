@@ -1,234 +1,174 @@
-# PicoGPT.jl
+<p align="center">
+  <a href="https://tobiasosborne.github.io/PicoGPT.jl/">
+    <img src="media/readme/cover.webp" alt="PicoGPT — a transformer small enough to see every number. On the left, every one of the model's 1007 parameters followed through training; on the right, all 1007 of them typeset as numbers." width="100%">
+  </a>
+</p>
 
-**A from-scratch GPT implementation in pure Julia.  Every gradient by hand.  No automatic differentiation, no GPU, no magic.**
+<h3 align="center">
+  <a href="https://tobiasosborne.github.io/PicoGPT.jl/">Read the book</a>
+  &nbsp;·&nbsp;
+  <a href="https://tobiasosborne.github.io/PicoGPT.jl/contents/">Contents</a>
+  &nbsp;·&nbsp;
+  <a href="#the-code">The code</a>
+  &nbsp;·&nbsp;
+  <a href="#the-print-edition">The print edition</a>
+</h3>
 
-PicoGPT.jl builds a complete GPT-2-style language model — forward pass, backward pass, weight update — using nothing but `LinearAlgebra`.  It trains on Shakespeare and generates pseudo-Shakespearean text, all on a single laptop CPU in under 30 minutes.
+<br>
 
-The target reader is a **theoretical physicist** (or anyone comfortable with linear algebra and index notation) who has never built a neural network.  After reading this codebase, you should be able to derive every gradient on paper and explain what every line does.
+A GPT, written from scratch in Julia, and a book about it. The book is meant for students of
+physics and mathematics.
 
-```
-julia run.jl
-```
+The mathematics of a transformer is easy: linear algebra, the chain rule, and a little
+probability. The difficulty is the vocabulary and the habits of the field. This book removes
+that difficulty. Every object is a map between named spaces, every term of jargon is defined in
+language the reader already owns, and every number on every page comes from a real model.
 
-```
-FIRST CITIZEN:
-The king is not the brother of the world,
-And the state of the strong, and the death
-Of the people of the state of the world...
-```
+The model is the **specimen**. It was trained on one line of text, `to be or not to be`, and
+it has exactly **1007 parameters**, few enough to see every one of them. It runs live in your
+browser. Press ▶ in Chapter 8 and you can watch it learn: the loss falls to the floor that the
+text's own ambiguity allows, which is exactly (2 ln 2 + 3 ln 3)/80 nats, and the output turns
+from `to␣be␣orbtbtnebtnn` into `to␣be␣or␣not␣to␣be`.
 
-## Why this exists
+## Three names, two inks
 
-Most transformer tutorials either (a) hide the gradients behind autodiff or (b) show forward-pass pseudocode without a working backward pass.  PicoGPT does neither.  Every `backward` function has an inline derivation in index notation, every gradient is verified against finite differences, and the whole thing trains end-to-end.
+> *Any respectable object has at least three names.*
 
-If you want to understand *Attention Is All You Need* at the matrix-calculus level, this is the codebase to read.
+Each concept is introduced by its name in mathematics, in physics, and in machine learning:
 
+| maths | physics | ML |
+|---|---|---|
+| a probability vector p = softmax(z) | the Gibbs distribution | "softmax output" |
+| a row-stochastic, lower-triangular matrix | a causal transition kernel | "attention weights" |
+| the adjoint x̄ = Df(x)ᵀ ȳ | a pullback | "backprop" |
 
-## Inspirations and references
+The whole book rests on one idea, drawn in two inks:
 
-This project stands on the shoulders of:
+> A transformer is a composition of maps. Running it pushes values forward; training pulls
+> one number, the loss, back through the transposed derivatives.
 
-- **[Andrej Karpathy's minGPT / nanoGPT](https://github.com/karpathy/nanoGPT)** — the gold standard for minimal GPT implementations.  PicoGPT follows Karpathy's philosophy of radical simplicity but goes further by removing autodiff entirely.  We also use his [char-rnn Shakespeare dataset](https://github.com/karpathy/char-rnn/tree/master/data/tinyshakespeare).
+<p align="center">
+  <img src="media/readme/figure-attention.png" alt="A figure from Chapter 5: one reader, one head. Keys, a query, scores, weights and values, each drawn as glyphs whose every mark is a number, with a 'how to read' key." width="85%">
+</p>
 
-- **[Jay Alammar's "The Illustrated Transformer"](https://jalammar.github.io/illustrated-transformer/)** — the single best visual introduction to the transformer architecture.  If you're reading PicoGPT's code and want a picture of what's happening, Alammar's post is your companion.  Our tutorial in `docs/` follows his progressive-disclosure style: high level first, then zoom into each component, then the math.
+Value ink, in indigo, marks the things the model computes. Covector ink, in vermilion, marks
+the things training pulls back. Each glyph is introduced once with a *how to read* key, and is
+then used small and often.
 
-- **[Vaswani et al., "Attention Is All You Need" (2017)](https://arxiv.org/abs/1706.03762)** — the original transformer paper.  Our sinusoidal positional encoding, scaled dot-product attention, and multi-head architecture come directly from this paper.
+## Traces
 
-- **[Radford et al., "Language Models are Unsupervised Multitask Learners" (2019)](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)** — the GPT-2 paper.  Our pre-norm residual ordering, weight initialization scheme, and overall architecture follow GPT-2.
+Every chapter opens with a **trace**: a plotter-style drawing in which every stroke is a path
+that a real computation took. Nothing in them is drawn by hand. Each file is stroke-only SVG at
+print size, so it could be sent to a pen plotter.
 
+<p align="center">
+  <img src="media/readme/traces.webp" alt="Eight traces. The chain rule as a probability tree collapsing onto the true text; embedding vectors bursting from their starting points in 64 runs; Gibbs distributions sweeping across the probability simplex as temperature falls; the surprise of each of 80 predictions settling onto plateaux at ln 2 and ln 3; every attention reading made during training; columns drawn onto the LayerNorm sphere; the gradient dying away to nothing; and Adam's slingshot across 120 seeds." width="100%">
+</p>
 
-## Architecture at a glance
+From left to right, top to bottom:
+- **The chain rule:** a tree of probabilities that collapses onto the one true text.
+- **Embeddings:** the vectors burst from their starting points, in 64 independent runs.
+- **Softmax:** the Gibbs distribution sweeps from the centre of the simplex to its corners as
+  the temperature falls.
+- **Surprise:** the 80 predictions settle onto plateaux at exactly ln 2 and ln 3.
+- **Attention:** every reading the two heads made while learning.
+- **LayerNorm:** columns drawn onto a sphere that is never itself drawn.
+- **Pulling back:** the gradient, dying away to nothing.
+- **Learning:** Adam's slingshot, seen across 120 random seeds.
 
-```
-tokens ∈ Z^(B×T)
-  │
-  ▼
-Token Embedding  E_tok[x]           (D, V) lookup table
-  + Sinusoidal PE                   sin/cos Fourier basis, no learnable params
-  │
-  ▼
-  h₀  ∈ R^(D×T×B)
-  │
-  │  ×n_layers:
-  │  ┌─────────────────────────────────────────────┐
-  │  │  h = h + MultiHeadAttention(LayerNorm(h))   │  pre-norm residual
-  │  │  h = h + FFN(ReLU(LayerNorm(h)))            │
-  │  └─────────────────────────────────────────────┘
-  │
-  ▼
-LayerNorm → Linear(D → V) → logits ∈ R^(V×T×B)
-  │
-  ▼
-softmax → cross-entropy loss
-```
+The source is in `tools/traces/`.
 
-### Default hyperparameters (~1M parameters)
+## Contents
 
-| Parameter     | Value | Notes                          |
-|---------------|-------|--------------------------------|
-| `vocab_size`  | 65    | Character-level (data-driven)  |
-| `d_model`     | 128   | Embedding dimension            |
-| `n_heads`     | 4     | Attention heads                |
-| `n_layers`    | 4     | Transformer blocks             |
-| `seq_len`     | 256   | Context window                 |
-| `d_ff`        | 512   | FFN hidden dim (4 × d_model)   |
+<p align="center">
+  <img src="media/readme/contents.webp" alt="The table of contents drawn as a map of the model: chapters placed where they act in the computation, with the forward pass flowing down in value ink and the pullback rising in covector ink." width="85%">
+</p>
 
+| | | |
+|---|---|---|
+| 0 | [Prologue](https://tobiasosborne.github.io/PicoGPT.jl/prologue/) | The specimen; how to read this book |
+| 1 | [The task](https://tobiasosborne.github.io/PicoGPT.jl/task/) | Text as a sequence; the chain rule of probability |
+| 2 | [Symbols become vectors](https://tobiasosborne.github.io/PicoGPT.jl/vectors/) | One-hot vectors, embeddings, positions as rotations |
+| 3 | [Energies and probabilities](https://tobiasosborne.github.io/PicoGPT.jl/energies/) | Logits are negative energies; softmax is the Gibbs distribution |
+| 4 | [Measuring surprise](https://tobiasosborne.github.io/PicoGPT.jl/surprise/) | Cross-entropy, KL divergence, and the floor no model can beat |
+| 5 | [Attention](https://tobiasosborne.github.io/PicoGPT.jl/attention/) | The one map through which positions talk |
+| 6 | [The block](https://tobiasosborne.github.io/PicoGPT.jl/block/) | Euler steps on a residual stream; LayerNorm as a sphere |
+| 7 | [Pulling back](https://tobiasosborne.github.io/PicoGPT.jl/pulling-back/) | The chain rule as a composition of transposes |
+| 8 | [Learning](https://tobiasosborne.github.io/PicoGPT.jl/learning/) | Gradient flow, Adam, schedules, and a model that trains in your browser |
+| 9 | [Speaking](https://tobiasosborne.github.io/PicoGPT.jl/speaking/) | Sampling, temperature, and what the Shakespeare model really learned |
+| | [Epilogue](https://tobiasosborne.github.io/PicoGPT.jl/epilogue/) | What we left out, and a dictionary of jargon |
 
-## Quick start
+<p align="center">
+  <img src="media/readme/figure-learning.webp" alt="Chapter 8, Figure 8.1: the specimen learning live. The loss curve with uniform guessing and the entropy floor marked, the samples improving along it, every parameter as a square, and what the last character attends to." width="85%">
+</p>
 
-**Requirements:** Julia >= 1.10.  No packages to install.
+## The code
 
-```bash
-# Clone
-git clone https://github.com/tobiasosborne/PicoGPT.jl.git
-cd PicoGPT.jl
-
-# Run tests (42 tests across 6 tiers)
-julia tests.jl
-
-# Train on Shakespeare and generate text
-julia run.jl
-```
-
-That's it.  No `Pkg.add`, no `conda`, no `pip`.
-
-
-## File structure
-
-```
-PicoGPT.jl/
-  config.jl         GPTConfig + TrainConfig structs
-  tensor_ops.jl     softmax, layer_norm, relu, cross_entropy, embedding, PE, weight init
-  attention.jl      multi-head causal self-attention (fwd + bwd)
-  model.jl          GPT struct, full forward/backward, SGD update
-  data.jl           download Shakespeare, tokenize, batch
-  train.jl          training loop, LR schedule, gradient clipping
-  generate.jl       autoregressive sampling (greedy / temperature / top-k)
-  gradcheck.jl      finite-difference gradient verification
-  tests.jl          TDD test suite (Tiers 1–6, 42 tests)
-  run.jl            entry point
-  docs/             tutorial and detailed walkthrough
-```
-
-### Dependency graph
-
-```
-run.jl ──→ config.jl, data.jl, model.jl, train.jl, generate.jl
-model.jl ──→ attention.jl, tensor_ops.jl
-train.jl ──→ tensor_ops.jl
-generate.jl ──→ tensor_ops.jl
-tests.jl ──→ everything + gradcheck.jl
-```
-
-
-## The forward/backward contract
-
-Every module follows the same pattern:
+The code is written to be read beside the book: it is pure Julia with no dependencies beyond the
+standard library and **no automatic differentiation**. Every operation returns its value and its
+*pullback*, the adjoint of its derivative. The backward pass is the forward pass read in reverse.
+All parameters live in one vector θ ∈ ℝᵖ, and the named parameters are views into it. The files
+follow the chapters.
 
 ```julia
-forward(args...)  → (result, cache)      # cache stores intermediates
-backward(cache, grad_output) → (grad_input, grad_params...)
-```
-
-The `cache` is the key idea: the forward pass saves everything the backward pass needs (inputs, masks, intermediate values).  No recomputation, no global state.
-
-
-## Manual gradients — a taste
-
-Here's the softmax backward pass from [`tensor_ops.jl:143`](tensor_ops.jl#L143):
-
-```julia
-function softmax_backward(cache, grad_s)
-    s, = cache
-    dot = sum(s .* grad_s, dims=1)     # Σ_j s_j · ∂L/∂s_j
-    s .* (grad_s .- dot)               # s_k (∂L/∂s_k − Σ_j s_j ∂L/∂s_j)
+function attention(Q, K, H, T)
+    D, N = size(Q)
+    A = similar(Q, T, T, H, N ÷ T)
+    α = 1 / √eltype(Q)(D ÷ H)                             # 1/√d, in the number type of Q
+    M = eltype(Q)[j > i ? -Inf : 0 for i in 1:T, j in 1:T]     # the causal mask
+    foreach_head(A, Q, K) do a, q, k
+        mul!(a, q', k, α, false)                          # S = qᵀk/√d
+        softmax!(a .+= M; dims = 2)                       # A = softmax_rows(S + M)
+    end
+    function back(Ā)
+        S̄, Q̄, K̄ = similar(A), similar(Q), similar(K)
+        foreach_head(A, Ā, S̄, Q, K, Q̄, K̄) do a, ā, s̄, q, k, q̄, k̄
+            s̄ .= a .* ā                                    # S̄ = A ⊙ Ā …
+            s̄ .-= a .* sum(s̄, dims = 2)                   # … − A ⊙ (row sums of A ⊙ Ā)
+            mul!(q̄, k, s̄', α, false)                     # Q̄ = k S̄ᵀ/√d
+            mul!(k̄, q, s̄, α, false)                      # K̄ = q S̄ /√d
+        end
+        Q̄, K̄
+    end
+    A, back
 end
 ```
 
-The derivation (in the source file above the function):
-
-```
-∂s_i/∂x_k = s_i (δ_ik − s_k)
-∂L/∂x_k   = Σ_i ∂L/∂s_i · s_i (δ_ik − s_k)
-           = s_k (∂L/∂s_k − Σ_i s_i ∂L/∂s_i)
+```sh
+julia --project -t auto -e 'using Pkg; Pkg.test()'      # 710 tests, including a gradient check of every pullback
+julia --project -t auto scripts/train_shakespeare.jl     # train on Tiny Shakespeare (Float32, threaded)
+julia --project scripts/export_specimen.jl               # the specimen, every intermediate value, as JSON
 ```
 
-Every backward function in the codebase has a derivation like this.  See the [full tutorial](docs/tutorial.md) for all eight.
+The browser runs a zero-dependency JavaScript twin of the model, in `web/src/specimen`. It
+agrees with the Julia to about 10⁻¹⁵ on every forward array and gradient, and to 10⁻¹³ along a
+whole training run. A full training step of the specimen takes about a third of a millisecond.
 
+## The print edition
 
-## Testing philosophy
+The same HTML, set as a printed book: 189 × 246 mm, an outer column for notes, figures in their
+static states, and the traces as plates facing each chapter opening. It is paginated by
+Paged.js and printed to PDF by headless Chromium, so there is no second typesetting system.
 
-**TDD is the law.**  Every function is tested before it's used.  The test suite has 6 tiers that mirror the build order:
-
-| Tier | What | Key tests |
-|------|------|-----------|
-| 1 | Tensor ops | Softmax sums to 1, LayerNorm normalizes, all gradchecks pass |
-| 2 | Attention | Causal mask blocks future, multi-head shapes, gradcheck on Wq/Wv |
-| 3 | Model | Block/model shapes, **overfit-one-batch** (loss < 0.1 in 200 steps) |
-| 4 | Data | Tokenization round-trip, batch shapes, no off-by-one |
-| 5 | Training | SGD decreases loss, LR warmup/decay schedule, gradient clipping |
-| 6 | Generation | Greedy is deterministic, top-k=1 matches greedy, correct length |
-
-The **overfit-one-batch** test at Tier 3 is the most important.  If a small model can't memorize 4 sequences, you have a backward pass bug.
-
-```bash
-julia tests.jl
-# Results: 42/42 passed
+```sh
+cd print && npm install && npm run pdf                   # → print/PicoGPT.pdf
 ```
 
+## Build the web book
 
-## Array layout
+```sh
+cd web && npm install && npm run dev                     # needs pandoc ≥ 3 on the PATH
+```
 
-Julia is column-major.  All tensors are laid out for contiguous access along the embedding dimension:
+The prose is in `book/chapters/*.md`, one source for both web and print. The visual system is
+described in [`DESIGN.md`](DESIGN.md) and the binding specification in [`BRIEF.md`](BRIEF.md).
+The verified mathematics is in [`book/notes/derivations.md`](book/notes/derivations.md).
 
-| Tensor | Shape | Convention |
-|--------|-------|------------|
-| Hidden states | `(D, T, B)` | Embedding × Time × Batch |
-| Embeddings | `(D, V)` | Each column = one embedding vector |
-| Attention weights | `(T, T, B)` | per head; `attn[i,j]` = position i attends to j |
-| Logits | `(V, T, B)` | Vocab × Time × Batch |
+## Acknowledgements
 
+The tone owes a debt to Olaf Hohm's *Lecture Notes on Statistical Physics and Neural Networks*
+(arXiv:2605.06394). The information design owes one to Federica Fragapane, whose glyphs are
+proof that every mark can be a number and still be beautiful. The architecture is GPT-2's,
+simplified: sinusoidal positions and ReLU.
 
-## Notation guide
-
-Used consistently across the codebase:
-
-| Symbol | Meaning |
-|--------|---------|
-| `B` | Batch size |
-| `T` | Sequence length |
-| `D` | `d_model`, embedding dimension |
-| `H` | Number of attention heads |
-| `Dh` | `D / H`, per-head dimension |
-| `V` | Vocabulary size |
-| `d_ff` | FFN hidden dimension |
-
-
-## Documentation
-
-- **[Tutorial: Building a Transformer from Scratch](docs/tutorial.md)** — a progressive walkthrough of the entire architecture, from token embedding to text generation, with every gradient derived.  Modeled after [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/).
-
-- **[Detailed Code Reference](docs/reference.md)** — function-by-function documentation with Julia code excerpts, shapes, and gradient derivations for every module.
-
-
-## Hard constraints
-
-| Constraint | Decision |
-|------------|----------|
-| Language | Julia >= 1.10 |
-| Dependencies | `LinearAlgebra` (stdlib) only |
-| Autodiff | None — all gradients are manual |
-| Hardware | Single laptop CPU |
-| Parameters | ~1M |
-| Dataset | Shakespeare (~1.1M chars) |
-| Tokenization | Character-level |
-
-
-## License
-
-Apache 2.0.  See [LICENSE](LICENSE).
-
-
-## Acknowledgments
-
-Built with care by a physicist who wanted to understand transformers the hard way.  Thanks to Karpathy for showing that GPT can fit in one file, and to Alammar for showing that attention can fit in one picture.
+Apache License 2.0.

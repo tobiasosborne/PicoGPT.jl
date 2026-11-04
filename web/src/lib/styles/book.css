@@ -1,0 +1,326 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   The book page (web). A main column of text and a margin column for notes,
+   keys and figure annotations. Flow content sits in the main column; margin
+   material floats right into the margin (Tufte), so notes never push text.
+   Breakpoints: ≥ 74rem full page; 48–74rem notes fold into the text; < 48rem one column.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.book {
+	width: min(var(--wide), 100% - 2 * var(--pad));
+	margin-inline: auto;
+	/* the composition is centred on main+margin, so the text column sits left of centre */
+}
+.book > *,
+.book .flow > * { width: min(var(--main), 100%); }
+
+/* vertical rhythm: blocks are separated by one line, paragraphs by none */
+.flow > * + * { margin-top: var(--rhythm); }
+.flow > p + p,
+.flow > .noted + p,
+.flow > p + .noted,
+.flow > .noted + .noted { margin-top: 0; }
+.flow > .noted + p, .flow > .noted + .noted > p { text-indent: 1.4em; }
+.flow > .noted:has(+ p) > p:last-child { margin-bottom: 0; }
+
+/* ── headings ───────────────────────────────────────────────────────────── */
+.flow h2 {
+	position: relative;
+	font-size: var(--fs-h2);
+	line-height: 1.18;
+	font-weight: 420;
+	letter-spacing: -0.006em;
+	margin-top: calc(var(--rhythm) * 2.6);
+	margin-bottom: calc(var(--rhythm) * 0.6);
+	text-wrap: balance;
+	clear: right;
+}
+.flow h2 .secnum {
+	position: absolute;
+	right: calc(100% + 1.1rem);
+	top: 0.42em;
+	font-family: var(--sans);
+	font-size: 0.5em;
+	font-weight: 500;
+	font-variant-numeric: lining-nums tabular-nums;
+	color: var(--ink-3);
+	letter-spacing: 0.02em;
+}
+.flow h3 {
+	font-size: var(--fs-h3);
+	font-style: italic;
+	font-weight: 430;
+	margin-top: calc(var(--rhythm) * 1.6);
+	margin-bottom: calc(var(--rhythm) * 0.3);
+}
+.flow h2 + p, .flow h3 + p, .flow h2 + .noted > p { text-indent: 0; } /* (no :first-of-type after "+": Paged.js 0.4 cannot rewrite it) */
+.flow h2 + *, .flow h3 + * { margin-top: 0; }
+
+/* the chapter's first paragraph opens with a line of small capitals */
+.chapter-body > p:first-child::first-line,
+.chapter-body > .noted:first-child > p::first-line { font-variant-caps: all-small-caps; letter-spacing: 0.035em; }
+
+/* ── margin notes (::: aside) and sidenotes (^[…]) ──────────────────────── */
+.note,
+.sidenote {
+	float: right;
+	clear: right;
+	width: var(--margin);
+	margin-right: calc(-1 * (var(--gap) + var(--margin)));
+	font-size: var(--fs-small);
+	line-height: 1.45;
+	color: var(--ink-2);
+	text-indent: 0;
+	font-variant-numeric: oldstyle-nums;
+	hyphens: auto;
+}
+.note { margin-top: 0.28em; margin-bottom: 0.9em; }
+.note > * + * { margin-top: 0.45em; }
+.note p + p { text-indent: 0; }
+.sidenote { display: block; margin-top: 0.3em; margin-bottom: 0.6em; position: relative; }
+.sn-ref,
+.sn-num {
+	font-family: var(--sans);
+	font-size: 0.62em;
+	font-weight: 600;
+	font-variant-numeric: lining-nums;
+	color: var(--value-deep);
+	vertical-align: super;
+	line-height: 0;
+	margin-left: 0.08em;
+}
+.sidenote .sn-num { font-size: 0.75em; margin: 0 0.25em 0 0; }
+.note code, .sidenote code { font-size: 0.86em; }
+
+/* ── equations ─────────────────────────────────────────────────────────── */
+.eq-scroll { display: block; overflow-x: auto; overflow-y: hidden; max-width: 100%; margin-block: 0.62em 0.58em; padding-block: 0.1em; text-indent: 0; scrollbar-width: thin; }
+.eq .eq-scroll { margin-block: 0; }
+.eq {
+	margin-block: calc(var(--rhythm) * 0.75);
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding-block: 0.2em;
+	text-indent: 0;
+}
+.flow > .eq + p { text-indent: 0; }
+.eq math { font-size: 1.04em; }
+
+/* ── the claim and the three names ───────────────────────────────────────── */
+.claim {
+	font-size: var(--fs-claim);
+	line-height: 1.34;
+	font-style: italic;
+	font-weight: 360;
+	letter-spacing: -0.003em;
+	text-wrap: pretty;
+	max-width: 30em;
+	color: var(--ink);
+}
+
+.names { margin-block: calc(var(--rhythm) * 1.2); }
+.names table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); line-height: 1.35; font-variant-numeric: lining-nums; }
+.names th {
+	font-weight: 500;
+	text-align: left;
+	vertical-align: bottom;
+	font-variant-caps: all-small-caps;
+	letter-spacing: 0.07em;
+	color: var(--ink-3);
+	padding: 0 0.9em 0.35em 0;
+	border-bottom: var(--hair) solid var(--ink-3);
+}
+.names td { vertical-align: top; padding: 0.42em 0.9em 0.42em 0; border-bottom: var(--hair) solid var(--rule-2); }
+.names td:nth-child(1) { color: var(--ink); }
+.names td:nth-child(2) { font-style: italic; color: var(--ink); }
+.names td:nth-child(3) { font-family: var(--sans); font-size: 0.93em; color: var(--ink-2); letter-spacing: 0.005em; }
+.names td:nth-child(3)::before { content: '“'; color: var(--ink-3); }
+.names td:nth-child(3)::after { content: '”'; color: var(--ink-3); }
+.names tr:last-child td { border-bottom: 0; }
+
+/* ── code excerpts ───────────────────────────────────────────────────────── */
+.code { margin: 0; margin-block: calc(var(--rhythm) * 1.1); width: min(var(--wide), 100%); clear: right; }
+.code__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.2em 0.9em;
+	font-family: var(--sans);
+	font-size: var(--fs-label);
+	color: var(--ink-3);
+	padding-bottom: 0.4em;
+	border-bottom: var(--hair) solid var(--rule);
+	margin-bottom: 0.55em;
+	font-variant-numeric: tabular-nums lining-nums;
+}
+.code__file { color: var(--ink-2); font-weight: 560; text-decoration: none; letter-spacing: 0.01em; }
+.code__file:hover { color: var(--value-deep); }
+.code__chunk { position: relative; display: grid; grid-template-columns: auto 1fr; column-gap: 1.1em; }
+.code__nums {
+	display: flex;
+	flex-direction: column;
+	text-align: right;
+	font-family: var(--sans);
+	font-size: 0.66rem;
+	color: var(--ink-3);
+	text-decoration: none;
+	font-variant-numeric: tabular-nums lining-nums;
+	user-select: none;
+	padding-top: 0.12em;
+}
+.code__nums span { line-height: var(--code-lh); height: calc(var(--code-fs) * var(--code-lh)); }
+.code { --code-fs: 0.79rem; --code-lh: 1.62; }
+.code pre { margin: 0; overflow-x: auto; font-size: var(--code-fs); line-height: var(--code-lh); tab-size: 4; }
+.code pre code { font-size: inherit; white-space: pre; }
+.code__gap { color: var(--ink-3); font-family: var(--mono); font-size: var(--code-fs); padding-left: 2.6em; line-height: 1.6; }
+.code .k { font-weight: 600; color: var(--ink); }
+.code .c { font-style: italic; color: var(--ink-3); }
+.code .s { color: var(--ink-2); }
+.code .n { color: var(--ink); }
+.code .m { color: var(--ink-2); }
+.code .y { color: var(--ink-2); }
+.code .d { color: var(--value-deep); font-weight: 600; }
+.code .a { color: var(--covector-deep); }
+.code__caption { font-size: var(--fs-small); color: var(--ink-2); margin-top: 0.5em; }
+.code--missing .code__missing { font-size: var(--fs-small); color: var(--ink-3); font-style: italic; padding: 0.4em 0 0.2em; }
+
+/* ── exercises ──────────────────────────────────────────────────────────── */
+.exercise { position: relative; padding-left: 0; }
+.exercise__label { font-size: var(--fs-body); line-height: var(--lh-body); margin: 0 0 0.1em; display: flex; gap: 0.5em; align-items: baseline; }
+.exercise__word { font-variant-caps: all-small-caps; letter-spacing: 0.07em; color: var(--ink-2); font-weight: 520; }
+.exercise__num { font-family: var(--sans); font-size: 0.76em; font-weight: 600; color: var(--ink-2); font-variant-numeric: lining-nums; }
+.exercise__title { font-style: italic; }
+.exercise p { text-indent: 0; }
+.exercise p + p { margin-top: 0.4em; }
+.exercises-head { margin-top: calc(var(--rhythm) * 2.5); }
+
+/* ── cross references ───────────────────────────────────────────────────── */
+.xref { text-decoration: none; border-bottom: var(--hair) solid var(--rule); white-space: nowrap; }
+.xref:hover { border-bottom-color: var(--value); }
+.xref--missing { color: var(--covector-deep); }
+.xref--planned { border-bottom: 0; }
+
+/* ── figures (frame; the glyphs are in figures.css) ─────────────────────── */
+.fig {
+	margin: 0;
+	margin-block: calc(var(--rhythm) * 1.6);
+	position: relative;
+	clear: right;
+}
+.fig--main { width: min(var(--main), 100%); }
+.fig--wide { width: min(var(--wide), 100%); }
+.fig--full {
+	width: calc(100vw - 2 * var(--pad));
+	margin-left: calc((min(var(--wide), 100vw - 2 * var(--pad)) - 100vw) / 2 + var(--pad));
+}
+.fig__body { position: relative; }
+.fig__caption {
+	display: block;
+	margin-top: 0.85rem;
+	font-size: var(--fs-small);
+	line-height: 1.45;
+	color: var(--ink-2);
+	max-width: var(--main);
+	text-indent: 0;
+}
+.fig__caption p { text-indent: 0; display: inline; }
+.fig__num {
+	font-family: var(--sans);
+	font-size: var(--fs-label);
+	font-weight: 600;
+	color: var(--ink);
+	margin-right: 0.55em;
+	font-variant-numeric: lining-nums;
+	letter-spacing: 0.01em;
+}
+.fig__foot { display: grid; grid-template-columns: minmax(0, var(--main)) var(--margin); column-gap: var(--gap); align-items: start; }
+.fig--main .fig__foot { width: var(--wide); }
+.fig__foot .fig__caption { grid-column: 1; }
+.fig__notes { grid-column: 2; margin-top: 0.85rem; }
+.fig__notes .note { float: none; width: auto; margin: 0; }
+.fig__notes .note + .note { margin-top: 0.8em; }
+.fig__notes .key + .note, .fig__notes .note + .key { margin-top: 0.9em; }
+
+/* ── responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 74rem) {
+	:root { --wide: var(--main); --margin: 0rem; --gap: 0rem; }
+	.note, .sidenote {
+		float: none;
+		width: auto;
+		margin: 0.7em 0 0.9em;
+		padding-left: 0.9em;
+		border-left: var(--hair) solid var(--rule);
+		display: block;
+	}
+	.sidenote { margin: 0.5em 0 0.6em 0.5em; }
+	.fig__foot, .fig--main .fig__foot { display: block; width: auto; }
+	.fig__notes { margin-top: 0.9rem; max-width: var(--main); }
+	.fig__notes .note { border-left: var(--hair) solid var(--rule); padding-left: 0.9em; }
+	.noted { display: flex; flex-direction: column; }
+	.noted > .note { order: 2; }
+	.fig--wide { width: min(46rem, 100vw - 2 * var(--pad)); margin-left: calc((min(var(--main), 100vw - 2 * var(--pad)) - min(46rem, 100vw - 2 * var(--pad))) / 2); }
+	.flow h2 .secnum { position: static; margin-right: 0.6em; font-size: 0.56em; vertical-align: 0.2em; }
+}
+@media (max-width: 48rem) {
+	:root { --pad: 1.05rem; }
+	.fig--wide, .fig--full { width: calc(100vw - 2 * var(--pad)); margin-left: 0; }
+	.code { width: 100%; }
+}
+
+/* ── (extension, epilogue) the dictionary of jargon, generated from every names table ── */
+.flow > .dict { width: min(var(--wide), 100%); }
+.dict { margin-top: calc(var(--rhythm) * 1.2); clear: right; }
+.dict__letter { break-inside: avoid-column; }
+.dict__head {
+	font-size: 1.9rem;
+	line-height: 1;
+	font-weight: 250;
+	font-variation-settings: 'opsz' 60;
+	color: var(--ink-3);
+	margin: 0.9em 0 0.25em;
+	text-indent: 0;
+	break-after: avoid;
+}
+.dict__letter:first-child .dict__head { margin-top: 0; }
+.dict__entry {
+	font-size: var(--fs-small);
+	line-height: 1.42;
+	text-indent: -1.2em;
+	padding-left: 1.2em;
+	margin: 0 0 0.42em;
+	break-inside: avoid;
+	hyphens: auto;
+	color: var(--ink);
+}
+.dict__term {
+	font-family: var(--sans);
+	font-weight: 600;
+	font-size: 0.95em;
+	letter-spacing: 0.004em;
+	color: var(--ink);
+	margin-right: 0.25em;
+}
+.dict__term::before { content: '“'; font-weight: 400; color: var(--ink-3); }
+.dict__term::after { content: '”'; font-weight: 400; color: var(--ink-3); }
+.dict__n { font-family: var(--sans); font-size: 0.82em; font-weight: 600; color: var(--ink-2); margin-right: 0.1em; }
+.dict__sense + .dict__sense::before { content: ' '; }
+.dict__maths { color: var(--ink); }
+.dict__physics { font-style: italic; color: var(--ink-2); }
+.dict__sep { color: var(--ink-3); }
+.dict__where {
+	font-family: var(--sans);
+	font-size: 0.8em;
+	color: var(--ink-3);
+	text-decoration: none;
+	white-space: nowrap;
+	margin-left: 0.2em;
+	font-variant-numeric: lining-nums tabular-nums;
+}
+.dict__where::before { content: '→ '; }
+.dict__where:hover { color: var(--value-deep); }
+.dict__num { font-weight: 600; color: var(--ink-2); }
+@media (min-width: 74rem) {
+	.dict { column-count: 2; column-gap: var(--gap); }
+}
+.print-edition-root .dict { column-count: 2; column-gap: 5mm; }
+.print-edition-root .dict__entry { font-size: 7.6pt; line-height: 10.4pt; }
+.print-edition-root .dict__head { font-size: 15pt; }
+.print-edition-root .dict__where::after { content: ', p.\2009' target-counter(attr(href url), page); }

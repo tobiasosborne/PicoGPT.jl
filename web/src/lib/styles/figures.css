@@ -1,0 +1,160 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Figures: the glyph vocabulary in two inks. Classes here are shared by every
+   figure; a figure's own <style> only does layout.
+   Rules: value ink = solid (dots, fills, solid strokes); covector ink = bars and
+   hatching. Sign is never hue: it is direction (in/out, up/down) or fill (solid/open).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.fx { position: relative; width: 100%; }
+.fx svg { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+.fx svg:focus { outline: none; }
+.fx svg:focus-visible { outline: 1px dashed var(--ink-3); outline-offset: 6px; }
+
+/* text in figures */
+.fx .tok { font-family: var(--serif); fill: var(--ink); font-variant-ligatures: none; }
+.fx .tok--small { font-size: 15px; }
+.fx .tok--out { fill: var(--ink-3); }
+.fx .tok--big { font-weight: 380; font-optical-sizing: auto; transition: fill var(--t-quick) var(--ease), font-weight var(--t-quick); }
+.fx .tok--reader { font-weight: 640; }
+.fx .tok--future { fill: var(--ink-3); opacity: 0.55; }
+.fx .lbl { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); font-variant-numeric: tabular-nums lining-nums; letter-spacing: 0.005em; }
+.fx .lbl--micro { font-size: 10.5px; fill: var(--ink-3); }
+.fx .lbl--head { font-size: 12px; font-weight: 600; fill: var(--ink); letter-spacing: 0.02em; }
+.fx .lbl--future { font-style: normal; }
+.fx .lbl--value { fill: var(--value-deep); }
+.fx .lbl--covector { fill: var(--covector-deep); }
+.fx .lbl--strong { fill: var(--ink); font-weight: 600; }
+.fx .math { font-family: var(--serif); font-style: italic; font-size: 15px; fill: var(--ink); }
+.fx .math--small { font-size: 13px; }
+.fx .axis { stroke: var(--ink-3); stroke-width: var(--hair); fill: none; }
+.fx .rule { stroke: var(--rule); stroke-width: var(--hair); fill: none; }
+.fx .leader { stroke: var(--ink-3); stroke-width: var(--hair); fill: none; }
+
+/* marks multiply where they overlap, like ink */
+.fx .marks, .fx .arcs, .fx .tri, .fx .spoke, .fx .matrix { mix-blend-mode: var(--overprint); }
+
+/* hit areas: invisible, generous */
+.fx .hit { fill: transparent; stroke: none; cursor: pointer; }
+.fx .hit--drag { cursor: grab; }
+.fx .hit--drag:active { cursor: grabbing; }
+.fx-reads__bracket { fill: none; stroke: var(--ink); stroke-width: 1px; }
+.fx .is-live:hover .fx-reads__bracket { stroke: var(--value); }
+
+/* ── spoke glyph ────────────────────────────────────────────────────────── */
+.spoke__tick { fill: var(--ink-3); opacity: 0.55; }
+.spoke__hub { fill: var(--ink-3); }
+.spoke__line { stroke-width: calc(var(--line) * var(--w, 1)); stroke-linecap: butt; }
+.spoke--value .spoke__line { stroke: var(--value); }
+.spoke--value .spoke__tip { fill: var(--value); stroke: var(--value); stroke-width: 1px; }
+.spoke--value .spoke__k--neg .spoke__tip { fill: var(--paper); }
+.spoke--covector .spoke__line { stroke: var(--covector); }
+.spoke--covector .spoke__bar { fill: var(--covector); stroke: var(--covector); stroke-width: 0.8px; }
+.spoke--covector .spoke__k--neg .spoke__bar { fill: var(--paper); }
+.spoke--muted .spoke__line { stroke: var(--ink-3); opacity: 0.45; }
+.spoke--muted .spoke__tip, .spoke--muted .spoke__bar { stroke: var(--ink-3); fill: var(--paper); opacity: 0.6; }
+.spoke--muted .spoke__k--neg .spoke__tip { fill: var(--paper); }
+.spoke--muted .spoke__tick { opacity: 0; }
+.spoke__k--em .spoke__line { stroke-width: var(--heavy); }
+
+/* ── matrix glyph ───────────────────────────────────────────────────────── */
+.matrix__frame { fill: none; stroke: var(--rule); stroke-width: var(--hair); }
+.matrix--value .matrix__cell { fill: var(--value); stroke: var(--value); stroke-width: 0; }
+.matrix--value .matrix__cell--neg { fill: none; stroke-width: var(--hair); }
+.matrix--covector .matrix__cell { fill: url(#hatch-covector); stroke: var(--covector); stroke-width: var(--hair); }
+.matrix--covector .matrix__cell--neg { fill: none; }
+
+/* ── attention arcs ─────────────────────────────────────────────────────── */
+.arcs__arc { fill: none; stroke: var(--value); stroke-linecap: butt; transition: stroke-width var(--t-move) var(--ease); }
+.arcs--covector .arcs__arc { stroke: var(--covector); }
+.arcs--muted .arcs__arc { stroke: var(--ink-3); opacity: 0.35; }
+.arcs__label { font-family: var(--sans); font-size: 11px; fill: var(--value-deep); font-variant-numeric: tabular-nums lining-nums; paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+
+/* ── lower-triangle dots ────────────────────────────────────────────────── */
+.tri__dot { fill: var(--value); transition: r var(--t-move) var(--ease), opacity var(--t-quick); }
+.tri__dot--neg { fill: none; stroke: var(--value); stroke-width: var(--hair); }
+.tri--covector .tri__dot { fill: var(--covector); }
+.tri--focus .tri__dot:not(.tri__dot--on) { opacity: 0.3; }
+.tri__dot--cell { stroke: var(--ink); stroke-width: 1px; }
+.tri__hit { fill: transparent; cursor: pointer; }
+
+/* ── bars (weights, probabilities) ──────────────────────────────────────── */
+.bar--value { fill: var(--value); }
+.bar--covector { fill: url(#hatch-covector); stroke: var(--covector); stroke-width: var(--hair); }
+.stem { stroke: var(--value); stroke-width: var(--line); }
+.stem--neg { stroke: var(--value); }
+.dot--value { fill: var(--value); }
+.dot--open { fill: var(--paper); stroke: var(--value); stroke-width: var(--line); }
+
+/* ── readouts: the figure's state, in words ─────────────────────────────── */
+.readout {
+	font-family: var(--sans);
+	font-size: var(--fs-label);
+	line-height: 1.45;
+	color: var(--ink-2);
+	margin: 0.6rem 0 0;
+	max-width: var(--main);
+	font-variant-numeric: tabular-nums lining-nums;
+	text-indent: 0;
+	min-height: 2.9em;
+}
+.readout__who { color: var(--ink); font-weight: 560; margin-right: 0.35em; }
+.readout__part { margin-right: 0.35em; }
+.readout__hint { display: block; color: var(--ink-3); margin-top: 0.15em; }
+
+/* ── scrubber ───────────────────────────────────────────────────────────── */
+.scrub { display: flex; align-items: center; gap: 0.9rem; margin-top: 0.4rem; max-width: var(--main); user-select: none; }
+.scrub__play {
+	flex: none;
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 50%;
+	border: var(--hair) solid var(--ink-3);
+	background: var(--paper);
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	padding: 0;
+}
+.scrub__play svg { fill: var(--ink); }
+.scrub__play:hover { border-color: var(--value); }
+.scrub__play:hover svg { fill: var(--value); }
+.scrub__track { position: relative; flex: 1; height: 2.6rem; cursor: pointer; touch-action: none; }
+.scrub__rail { position: absolute; left: 0; right: 0; top: 0.95rem; border-top: var(--hair) solid var(--ink-3); }
+.scrub__done { position: absolute; left: 0; top: calc(0.95rem - 0.75px); border-top: 1.5px solid var(--value); }
+.scrub--covector .scrub__done { border-top-color: var(--covector); }
+.scrub__phase { position: absolute; top: 0.62rem; width: 0; height: 0.66rem; border-left: var(--hair) solid var(--ink-3); }
+.scrub__label { position: absolute; top: 0.85rem; left: 0; transform: translateX(-50%); white-space: nowrap; color: var(--ink-3); font-size: var(--fs-micro); }
+.scrub__phase--past .scrub__label { color: var(--ink); }
+.scrub__phase:first-of-type .scrub__label { transform: none; }
+.scrub__phase:last-of-type .scrub__label { transform: translateX(-100%); }
+.scrub__head { position: absolute; top: 0.95rem; width: 0.8rem; height: 0.8rem; margin: -0.4rem 0 0 -0.4rem; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--value); }
+.scrub--covector .scrub__head { border-color: var(--covector); }
+.scrub__track:focus-visible { outline: 1px dashed var(--ink-3); outline-offset: 3px; }
+
+/* ── how to read ────────────────────────────────────────────────────────── */
+.key { margin: 0; }
+.key__title { font-variant-caps: all-small-caps; letter-spacing: 0.08em; color: var(--ink-2); font-size: var(--fs-small); margin: 0 0 0.35em; text-indent: 0; }
+.key__svg { display: block; overflow: visible; max-width: 100%; height: auto; font-family: var(--sans); }
+.key__leader { stroke: var(--ink-3); stroke-width: var(--hair); fill: none; }
+.key__anchor { fill: var(--ink); }
+.key__text { font-size: 11px; fill: var(--ink-2); font-variant-numeric: tabular-nums lining-nums; }
+
+/* ── direct-manipulation handles ────────────────────────────────────────── */
+.handle { fill: var(--paper); stroke: var(--ink); stroke-width: 1.2px; cursor: grab; }
+.handle:hover, .handle--active { stroke: var(--value); fill: var(--value-tint); }
+.handle-hit { fill: transparent; cursor: grab; touch-action: none; }
+
+/* figure frames for absent components */
+.fig__pending { display: flex; gap: 1rem; align-items: baseline; padding: 2.2rem 0; border-top: var(--hair) solid var(--rule); border-bottom: var(--hair) solid var(--rule); color: var(--ink-3); font-style: italic; }
+
+/* static (print) mode: no affordances */
+[data-mode='print'] .hit, [data-mode='print'] .readout, [data-mode='print'] .scrub { display: none; }
+.fx .lbl--phase { font-size: 12px; fill: var(--ink-2); font-style: normal; }
+
+/* films: the figure alone, no reading aids (the film's own titles carry the words) */
+html.film .scrub, html.film .readout, html.film .rhead { display: none !important; }
+html.film .fig__foot { display: none; }
+
+/* focus inside figures: visible for the keyboard, quiet for the pointer */
+.fx svg *:focus { outline: none; }
+.fx svg *:focus-visible { outline: 1px dashed var(--ink-3); outline-offset: 2px; }

@@ -47,10 +47,10 @@ Cutting the context at $T$ symbols is a modelling decision, not a consequence of
 @fig-contexts-to-distributions shows the trained specimen's map on the eight prefixes of one window. Each column is a context, growing by one character, and below it the distribution the model assigns to the character that comes next.
 
 ::: {.figure #fig-contexts-to-distributions window=2}
-The specimen as a map from contexts to distributions. Column $t$ is the context $x_{\le t}$, the first $t$ characters of the window; below it are the seven probabilities $q_\theta(a\mid x_{\le t})$, one bar per character $a$, in the order of the alphabet. The character that actually comes next is marked. Drag the window along the line.
+The specimen as a map from contexts to distributions. Column $t$ is the context $x_{\le t}$, the first $t$ characters of the window; below it are the seven probabilities $q_\theta(a\mid x_{\le t})$, one bar per character $a$, in the order of the alphabet. The character that actually comes next is marked. [Drag the window along the line.]{.web}
 :::
 
-Most columns are a single bar of height one: after `o be o`, the specimen is sure that `r` comes next, and it is right. The first column is different. Given only `o`, the specimen splits its mass almost evenly between ␣ and `r`. That is not a mistake, and we come back to it in @sec-floor.
+Most columns are a single bar of height one: after `o be o`, the specimen is sure that `r` comes next, and it is right. The first column is different. Given only `o`, the specimen splits its mass almost evenly between ␣ and `r`. That is not a mistake, and we come back to it in @sec-floor-task.
 
 ## The probability of a text {#sec-probability}
 
@@ -61,7 +61,7 @@ $$s_t=-\log q_\theta(x_{t+1}\mid x_{\le t})\ \in[0,\infty],$$
 measured in *nats* because the logarithm is natural. A certain and correct prediction costs nothing; a prediction that gave the truth probability $1/V$, as uniform guessing does, costs $\log V$; a prediction that ruled the truth out costs infinitely much. The surprises of a text add up, and the probability of the text is the exponential of minus their sum.
 
 ::: {.figure #fig-chain-rule window=2}
-The chain rule as a staircase. Above each character $x_{t+1}$ of the window is the probability the model gave it in its context, $q_\theta(x_{t+1}\mid x_{\le t})$; the staircase below accumulates the surprises $-\log q_\theta$, and its height at the end is minus the log-probability of the whole text. A hairline marks what uniform guessing would cost. Click a character to see the whole distribution it was drawn from; drag the window.
+The chain rule as a staircase. Above each character $x_{t+1}$ of the window is the probability the model gave it in its context, $q_\theta(x_{t+1}\mid x_{\le t})$; the staircase below accumulates the surprises $-\log q_\theta$, and its height at the end is minus the log-probability of the whole text. A hairline marks what uniform guessing would cost. [Click a character to see the whole distribution it was drawn from; drag the window.]{.web}
 :::
 
 The mean surprise per prediction, averaged over all the predictions we have, is the number that training will make small. @ch-surprise derives it properly, as a cross-entropy, and shows that making it small is maximum likelihood.
@@ -82,7 +82,7 @@ One window yields $T$ predictions, not one. A single pass of the model computes 
 
 The windows overlap, so the same stretch of text is predicted several times, from contexts of different lengths. That is deliberate. It also means that the objective is an average over these 80 conditional predictions, not the probability of the line counted once.
 
-## What no model can learn {#sec-floor}
+## What no model can learn {#sec-floor-task}
 
 Could a model make every surprise zero? Only if every context determines its next character. Look at the first position of each window, where the context is a single character. Two windows begin with `o`: in one the next character is ␣ (from `to be`), in the other it is `r` (from `or`). Three begin with ␣, followed by `b`, `o` and `n`. A model sees the same context in each case, so it must give the same distribution, and no distribution puts probability one on two different characters.
 
@@ -97,11 +97,11 @@ The floor depends on the cut as well as on the text: windows of another length s
 :::
 
 ::: {.figure #fig-entropy-floor}
-The floor under the loss. The 80 predictions of the training set, laid out as in @fig-training-windows; each is drawn at the smallest surprise any model can achieve on it. Only five are not free, all at the first position of a window. Point at one to see which characters share its context.
+The floor under the loss. The 80 predictions of the training set, laid out as in @fig-training-windows; each is drawn at the smallest surprise any model can achieve on it. Only five are not free, all at the first position of a window. [Point at one to see which characters share its context.]{.web}
 :::
 
 
-## In the code {#sec-code}
+## In the code {#sec-code-task}
 
 The alphabet and the change of names between characters and integers are three short functions:
 

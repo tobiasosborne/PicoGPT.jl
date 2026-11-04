@@ -10,6 +10,7 @@
 	import ChapterOpening from '#lib/shell/ChapterOpening.svelte';
 	import ChapterBody from '#lib/shell/ChapterBody.svelte';
 	import ThetaField from '#lib/shell/ThetaField.svelte';
+	import Contents from '#lib/shell/Contents.svelte';
 
 	let { data } = $props();
 	const specimen = $derived(makeSpecimen(data.specimen));
@@ -100,6 +101,11 @@
 				</li>
 			{/each}
 		</ol>
+	</section>
+
+	<section class="pp pp--map">
+		<h2 class="pp-h">A map of the model</h2>
+		<Contents chapters={data.contents} hash />
 	</section>
 
 	{#each data.chapters as ch (ch.meta.slug)}

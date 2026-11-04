@@ -316,5 +316,6 @@
 	.fx-fb__arc--cov { stroke: var(--covector); opacity: 0.25; }
 	.fx-fb__arc--cov.is-on { opacity: 0.95; }
 	.fx-fb__sel { stroke: var(--ink); stroke-width: 1.2px; }
+	:global([data-mode='print']) .fx-fb__arc { mix-blend-mode: normal; }
 	:global([data-mode='print']) .fx-fb__theta { text-decoration: none; }
 </style>

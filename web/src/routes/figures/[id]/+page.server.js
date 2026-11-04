@@ -10,5 +10,7 @@ export function entries() {
 export function load({ params }) {
 	const fig = allFigures().find((f) => f.id === params.id);
 	if (!fig) error(404, `No figure ${params.id} in the book`);
-	return { fig, specimen: specimenData(), artifacts: artifactsFor([fig.id]) };
+	const caption = fig.caption.replace(/href="(?:\.\.\/([\w-]+)\/)?(#[^"]*)?"/g, (_, slug, hash) =>
+		`href="../../${slug ?? fig.chapter.slug}/${hash ?? ''}"`);
+	return { fig: { ...fig, caption }, specimen: specimenData(), artifacts: artifactsFor([fig.id]) };
 }

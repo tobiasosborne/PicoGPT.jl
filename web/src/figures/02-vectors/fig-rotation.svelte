@@ -163,6 +163,7 @@
 		{/each}
 
 		<!-- the shift k -->
+		{#if interactive}
 		<g class="fx-rot__shift">
 			<line class="axis" x1={shiftX0} x2={shiftX1} y1={yShift} y2={yShift} />
 			{#each Array.from({ length: T }) as _, v (v)}
@@ -177,6 +178,10 @@
 				<rect class="handle-hit" x={shiftX0 - 10} y={yShift - 14} width={shiftX1 - shiftX0 + 20} height="28" role="slider" tabindex="-1" aria-label="shift k" aria-valuemin="0" aria-valuemax={T - 1 - t} aria-valuenow={kk} onpointerdown={shiftDown} onpointermove={shiftMove} onpointerup={up} />
 			{/if}
 		</g>
+
+		{:else}
+			<text class="lbl" x={shiftX0} y={yShift}>shift k = {kk}: position {t + 1} → {t + 1 + kk}</text>
+		{/if}
 
 		<!-- the Gram matrix PᵀP: area ∝ P_s·P_t (all positive here), constant along diagonals -->
 		<g class="fx-rot__gram">

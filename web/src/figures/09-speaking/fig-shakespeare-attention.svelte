@@ -74,20 +74,20 @@
 	const pad = 8;
 	const cw = $derived((W - 2 * pad) / Math.max(1, T));
 	const xc = (i) => pad + cw * (i + 0.5);
-	const yText = 108;
+	const yText = $derived(interactive ? 108 : 74);
 	const yBars = $derived(yText + 44);
 	const barMax = 30;
 	const lnV = $derived(Math.log(data?.V ?? 1));
 	const sMax = $derived(Math.max(lnV, ...surprise.filter((v) => v != null)));
 	const nCols = $derived(narrow ? 2 : 4);
 	const gapX = $derived(narrow ? 16 : 22);
-	const tri = $derived((W - 30 - (nCols - 1) * gapX) / nCols);
+	const tri = $derived(Math.min(interactive ? Infinity : 108, (W - 30 - (nCols - 1) * gapX) / nCols));
 	const cell = $derived(tri / Math.max(1, T));
 	const gridTop = $derived(yBars + 46);
-	const rowGap = 48;
+	const rowGap = $derived(interactive ? 48 : 52);
 	const nRows = $derived(data ? Math.ceil(data.heads.length / nCols) : 0);
 	const H = $derived(gridTop + nRows * (tri + rowGap) + 4);
-	const pos = (k) => ({ x: 30 + (k % nCols) * (tri + gapX), y: gridTop + 22 + Math.floor(k / nCols) * (tri + rowGap) });
+	const pos = (k) => ({ x: 30 + (k % nCols) * ((W - 30) / nCols), y: gridTop + 22 + Math.floor(k / nCols) * (tri + rowGap) });
 	const minDot = $derived((0.36 / (cell * 0.56)) ** 2); // weights whose dot would be under 0.36 px
 	// one path per dot radius (to 0.05 px): each dot is a zero-length, round-capped stroke
 	function dotPaths(h) {
@@ -127,7 +127,7 @@
 		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Attention of all {data.heads.length} heads on a passage of {T} characters; copy weight at most {fmt(Math.max(...stats.map((s) => s.copy)), 2)}">
 			<!-- arcs: what the reader reads in the chosen head -->
 			<g class="fx-sattn__arcs">
-				<Arcs xs={xsAll} y={yText - 16} A={rowFor} {reader} dir={-1} wmax={9} aspect={0.5} hmax={84} labels={!narrow} labelAt={0.15} loop={5} />
+				<Arcs xs={xsAll} y={yText - 16} A={rowFor} {reader} dir={-1} wmax={9} aspect={0.5} hmax={interactive ? 84 : 50} labels={!narrow} labelAt={0.15} loop={5} />
 			</g>
 			<!-- the passage -->
 			{#each chars as c, i (i)}
@@ -164,7 +164,7 @@
 						{#each dotPaths(h) as dp (dp.w)}<path d={dp.d} stroke-width={dp.w} />{/each}
 					</g>
 					<line class="fx-sattn__row" x1={p.x} x2={p.x + (reader + 1) * cell} y1={p.y + (reader + 0.5) * cell} y2={p.y + (reader + 0.5) * cell} />
-					<text class="lbl lbl--micro fx-sattn__st" x={p.x} y={p.y + tri + 16}>self {fmtDense(st.self)} · prev {fmtDense(st.prev)} · copy {fmtDense(st.copy)}</text>
+					<text class="lbl lbl--micro fx-sattn__st" x={p.x} y={p.y + tri + 16}>self {fmtDense(st.self)} · prev {fmtDense(st.prev)}{#if interactive} · copy {fmtDense(st.copy)}{:else}<tspan x={p.x} dy="13">copy {fmtDense(st.copy)}</tspan>{/if}</text>
 					{#if interactive}
 						<rect class="hit" x={p.x - 4} y={p.y - 22} width={tri + 8} height={tri + 44} role="button" tabindex="0" aria-label="layer {h.layer}, head {h.head}" aria-pressed={k === head} onclick={() => (headSel = k)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (headSel = k)} />
 					{/if}

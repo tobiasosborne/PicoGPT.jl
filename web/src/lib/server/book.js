@@ -118,6 +118,7 @@ function renderMath(html, where) {
 	// display maths sits in a scrolling span: MathML itself does not scroll on narrow screens
 	html = html.replace(/<tex-([md])>([\s\S]*?)<\/tex-\1>/g, (_, kind, body) =>
 		kind === 'd' ? `<span class="eq-scroll">${tex(unescape(body), true, where)}</span>` : tex(unescape(body), false, where));
+	html = html.replace(/(<math\b(?![^>]*display="block")[^>]*>(?:(?!<\/math>)[\s\S])*<\/math>)([.,;:!?]+)/g, '<span class="math-punct">$1$2</span>');
 	// a paragraph holding only display maths becomes an equation block
 	return html.replace(/<p>\s*(<span class="eq-scroll">[\s\S]*?<\/span>)\s*<\/p>/g, '<div class="eq">$1</div>');
 }

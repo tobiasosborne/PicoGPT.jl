@@ -215,6 +215,7 @@
 			<text class="lbl lbl--micro" x={lx0} y={top - 22}>one parameter of each of {#each CURVES as n, k (n)}{@const q = pretty(n)}<tspan class="m m--s">{q.s}</tspan>{#if q.sub}<tspan class="m m--s sub" dy="3">{q.sub}</tspan><tspan dy="-3"></tspan>{/if}{k < CURVES.length - 2 ? ', ' : k === CURVES.length - 2 ? ' and ' : ''}{/each}:</text>
 			<text class="lbl lbl--micro" x={lx0} y={top - 8}>the entry with the largest gradient</text>
 			<!-- clickable decades with a full check -->
+			{#if interactive}
 			{#each STRIPS as e (e)}
 				<g class="fx-gc__pick" class:is-on={e === sel}>
 					<circle cx={X(e)} cy={top + plotH + 46} r="4.5" />
@@ -223,11 +224,12 @@
 					{/if}
 				</g>
 			{/each}
+			{/if}
 			{#if interactive}
 				<rect class="hit" x={X(STRIPS[0]) - 10} y={top + plotH + 36} width={X(STRIPS.at(-1)) - X(STRIPS[0]) + 20} height="20" style="pointer-events: none" role="slider" tabindex="0"
 					aria-label="step h for the check of every parameter" aria-valuemin="-10" aria-valuemax="-2" aria-valuenow={sel} aria-valuetext="h = {powTxt(sel)}" onkeydown={key} />
 			{/if}
-			<text class="lbl lbl--micro" x={lx0} y={top + plotH + 66}>circles: the steps at which every parameter is checked</text>
+			{#if interactive}<text class="lbl lbl--micro" x={lx0} y={top + plotH + 66}>circles: the steps at which every parameter is checked</text>{/if}
 		{/if}
 
 		<!-- RIGHT: every parameter at the selected h -->

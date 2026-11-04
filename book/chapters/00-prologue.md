@@ -9,7 +9,7 @@ A transformer is a composition of maps between named spaces. Running it pushes v
 |---|---|---|
 | a point $\theta\in\R^p$ | the coordinates of a configuration | parameters, weights |
 | $p=\dim\theta$ | the number of degrees of freedom | parameter count, model size |
-| a map $f_\theta$ from inputs to outputs | a response function | model, network, architecture |
+| a map $f_\theta$ from inputs to outputs | a response function | model, network |
 | evaluating $f_\theta$, value by value | integrating forward | forward pass, inference |
 | $\ell:\R^p\to\R$, to be minimised | an energy, a cost | loss, objective |
 | the covector $\bar x=\partial\ell/\partial x$ | the linear response, the conjugate variable | gradient |
@@ -33,7 +33,7 @@ $$p=2DV+V+2D+L\,(4D^2+2DF+9D+F),$$
 and for the specimen's $V=7$, $D=8$, $F=32$ and $L=1$, that is $p=1007$. Here they all are.
 
 ::: {.figure #fig-specimen-anatomy}
-The whole specimen: all of its parameters, after training, in the order of the computation from top to bottom. Each matrix is drawn as written, rows top to bottom and columns left to right, with one square per entry whose area is the entry's magnitude, filled when it is positive and open when it is negative; vectors are single columns. One scale serves the whole plate. Point at a block to learn its name and job, or at a square to read its value.
+The whole specimen: all of its parameters, after training, in the order of the computation from top to bottom. Each matrix is drawn as written, rows top to bottom and columns left to right, with one square per entry whose area is the entry's magnitude, filled when it is positive and open when it is negative; vectors are single columns. One scale serves the whole plate. [Point at a block to learn its name and job, or at a square to read its value.]{.web}
 :::
 
 Every figure in this book shows this model, or the larger one of @ch-speaking, and every number in every figure is computed from it as the page is drawn: in your browser if you are reading on screen, and when the book was set if you are reading on paper. Nothing is illustrative: when a figure prints a weight to two decimals, the model computed it.
@@ -53,7 +53,7 @@ Three habits are used throughout.
 **Two inks.** Besides black, this book is printed in two colours, and each has exactly one meaning. *Value ink*, an indigo, marks the quantities computed going forward: parameters and activations. *Covector ink*, a cinnabar red, marks the adjoints pulled back from the loss, the gradients, written with a bar, $\bar x$. The red pen marks the corrections, and gradients are corrections. Forward computation runs down the page, the backward computation runs up, and position in a text runs from left to right. Nothing else is ever coloured. Printed in one colour, the two inks stay apart by shape: value marks are solid, covector marks are barred or hatched.
 
 ::: {.figure #fig-two-inks window=2 pos=1}
-The two inks on the last map of the model, $z=W_{\text{out}}x+b_{\text{out}}$, applied to one column. Forward, in value ink: the column $x$ enters at the top, and the matrix turns it into seven scores, one per character, from which the loss of this one prediction is computed. Backward, in covector ink: the loss returns its adjoint $\bar z$, and the transpose sends it back to $\bar x=W_{\text{out}}^\T\bar z$; the matrix receives $\bar W_{\text{out}}=\bar z\,x^\T$. Scrub the computation, or click another character of the window.
+The two inks on the last map of the model, $z=W_{\text{out}}x+b_{\text{out}}$, applied to one column. Forward, in value ink: the column $x$ enters at the top, and the matrix turns it into seven scores, one per character, from which the loss of this one prediction is computed. Backward, in covector ink: the loss returns its adjoint $\bar z$, and the transpose sends it back to $\bar x=W_{\text{out}}^\T\bar z$; the matrix receives $\bar W_{\text{out}}=\bar z\,x^\T$. [Scrub the computation, or click another character of the window.]{.web}
 :::
 
 **Keys.** A glyph is a picture of numbers in which every mark stands for one number. The first time a glyph appears, its figure carries a key in the margin, headed "How to read": one instance of the glyph, enlarged and drawn from the figure's own data, with hairline leaders to plain notes. A key explains how to read the picture, never what it shows. After its first appearance a glyph is used without one.
@@ -95,5 +95,5 @@ Try it in @fig-specimen-anatomy. One block of the plate is blank, although the m
 :::
 
 ::: exercise
-Try it in @fig-two-inks. Click through the characters of the window. For most of them the covector marks almost vanish. What does a vanishing $\bar z$ say about the prediction, and at which positions is it large?
+Try it in @fig-two-inks. [Click through the characters of the window.]{.web} For most of them the covector marks almost vanish. What does a vanishing $\bar z$ say about the prediction, and at which positions is it large?
 :::

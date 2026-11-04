@@ -277,6 +277,7 @@
 	.rstem__ret { fill: none; stroke-linecap: butt; }
 	.rstem--value .rstem__ret { stroke: var(--value); }
 	.rstem--covector .rstem__ret { stroke: url(#hatch-covector); }
+	:global([data-mode='print']) .rstem--covector .rstem__ret { stroke: var(--covector); stroke-dasharray: 1 2.2; }
 	.rstem--covector .rstem__ret--edge { stroke: var(--covector); }
 	.rstem--covector .rstem__ret--paper { stroke: var(--paper); }
 	.rstem--covector .rstem__ret--thin { stroke: var(--covector); }

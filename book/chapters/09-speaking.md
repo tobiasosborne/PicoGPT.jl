@@ -49,14 +49,14 @@ As $\tau$ grows, the distribution melts towards uniform and the text becomes mor
 @fig-sampling-tree lets the specimen write from a one-character prompt, a space. Each column is one draw: the interval $[0,1]$ cut into the seven probabilities, the random number $u$ as a tick, and the character whose segment it hits. The thin line through the chosen segments is the path the text took; the outlined segments are the paths not taken.
 
 ::: {.figure #fig-sampling-tree prompt="␣" count=22}
-The trained specimen writes twenty-two characters after the prompt "␣". Each column is the distribution of the next character, stacked along $[0,1]$ in vocabulary order; the tick is the uniform random number $u$, and the segment it falls in (solid) is the character written. Drag the temperature, draw new random numbers, or play the writing from the start. Under the text: where the specimen's contexts leave the set it was trained on.
+The trained specimen writes twenty-two characters after the prompt "␣". Each column is the distribution of the next character, stacked along $[0,1]$ in vocabulary order; the tick is the uniform random number $u$, and the segment it falls in (solid) is the character written. [Drag the temperature, draw new random numbers, or play the writing from the start.]{.web} Under the text: where the specimen's contexts leave the set it was trained on.
 :::
 
 At $\tau=1$ the first column is cut into three nearly equal parts: after a space at the start of a window, the specimen cannot tell "␣be", "␣or" and "␣not" apart, which is the threefold ground state of @ch-energies and the floor of @ch-surprise seen from the writer's side. After that first choice almost every column is a single solid segment. The specimen has memorised its corpus: once a branch is taken, the rest of the line follows. Different random numbers $u$ choose different first characters, and each choice is followed by the rest of the corpus from that point on.
 
 Then the text runs past the last "be" of the corpus. From there on, every context the specimen sees is one it never met in training; the bracket under the text marks the place. The columns stay just as solid. The specimen is exactly as sure of what it never saw as of what it learned, because nothing in training ever asked it to be unsure: softmax always returns a distribution, and away from the data that distribution is whatever the parameters happen to give. Confidence is not knowledge.
 
-Drag the temperature up to $2$ and the outlined segments widen. Branches that were negligible become possible, the text leaves the corpus earlier, and it decays into strings like those a careless copyist might produce. Drag it to the far left and every column is a single segment: greedy decoding, the same text whatever $u$.
+At temperature $2$ the outlined segments widen. Branches that were negligible become possible, the text leaves the corpus earlier, and it decays into strings like those a careless copyist might produce. At temperature zero every column is a single segment: greedy decoding, the same text whatever $u$.
 
 ## A real model {#sec-real-model}
 
@@ -83,7 +83,7 @@ Here, honestly, is what the model has learned. It spells common words. It knows 
 What do its sixteen heads read? @fig-shakespeare-attention runs the trained model on a passage of the held-out text in which one line is spoken twice. Above the passage are arcs for one reader in one head, as in @ch-attention; beneath it, the surprise of each character. Below are all sixteen attention patterns, drawn as lower triangles, as in @ch-attention, with three habits measured for each head: how much weight it puts on the reader itself, on the character before it, and on the character a copying model would read.
 
 ::: {.figure #fig-shakespeare-attention}
-The trained model reading a passage of held-out text that contains a repeated line. Top: the passage, with each character's surprise beneath it; arcs show what the chosen reader reads in the chosen head. Below: every head of every layer, rows readers and columns sources, dot area the weight. Under each head, its mean weight on the reader itself (self), on the previous character (prev), and, over the repeated line, on the character that followed the same character the first time (copy). Point at a character, or click a head.
+The trained model reading a passage of held-out text that contains a repeated line. Top: the passage, with each character's surprise beneath it; arcs show what the chosen reader reads in the chosen head. Below: every head of every layer, rows readers and columns sources, dot area the weight. Under each head, its mean weight on the reader itself (self), on the previous character (prev), and, over the repeated line, on the character that followed the same character the first time (copy). [Point at a character, or click a head.]{.web}
 :::
 
 The first layer spreads its attention widely. In the later layers many heads put a large share of their weight, in several close to half, on the reader itself and on the character before it; their dots crowd the diagonal and the line just below it. That is how a model whose maps act column by column (@ch-block) gets to see pairs and triples of characters at all: a head that reads the previous character copies it into the current column, and the next layer can then react to the pair. One head of the third layer looks different: its dots stand in vertical stripes, because whatever the reader, it puts much of its weight on line breaks and on the capitals that begin lines. A model that writes speeches in lines has use for knowing where the current line began.
@@ -91,7 +91,7 @@ The first layer spreads its attention widely. In the later layers many heads put
 The repeated line is a test. A model that noticed the repetition could predict the second "Good morrow, neighbour" almost perfectly: read where the same characters came before, and copy what followed them. The *copy* number measures exactly that, head by head. It is at most a hundredth for every head of this model, and the surprise per character of the repeated line is the same the second time as the first. Within the 5000 steps of its training, this model has not learned to copy from its own context.
 
 ::: aside
-Heads that do this, called *induction heads*, are well documented in larger transformers trained for longer, where they appear fairly suddenly during training (Olsson et al., *In-context learning and induction heads*, 2022). The mechanism needs two heads in sequence: one that reads the previous character, and one that looks for an earlier position whose previous character matches the current one. This model has several heads of the first kind and none of the second.
+Heads that do this, called *induction heads*, are well documented in larger transformers trained for longer, where they appear fairly suddenly during training ([Olsson et al., *In-context Learning and Induction Heads*, 2022](https://arxiv.org/abs/2209.11895)). The mechanism needs two heads in sequence: one that reads the previous character, and one that looks for an earlier position whose previous character matches the current one. This model has several heads of the first kind and none of the second.
 :::
 
 The two models of this book sit at the ends of the same road. The specimen has learned its eighteen characters perfectly and knows nothing else. The Shakespeare model has learned the statistics of a million characters well enough to imitate their surface, and nothing of what they say. Everything in between, the larger contexts, the more layers, the longer training, the more data, is the subject of the Epilogue.
@@ -107,7 +107,7 @@ Construct a model on two characters $\{x,y\}$ and texts of length two in which g
 :::
 
 ::: exercise
-In @fig-sampling-tree at $\tau=1$, how many different texts can the specimen write from the prompt "␣" before it leaves its corpus? Use "draw again" to check. Then raise $\tau$ to $2$ and count the columns that are no longer a single segment.
+In @fig-sampling-tree at $\tau=1$, how many different texts can the specimen write from the prompt "␣" before it leaves its corpus? [Use "draw again" to check. Then raise $\tau$ to $2$ and count the columns that are no longer a single segment.]{.web}
 :::
 
 ::: exercise
@@ -119,5 +119,5 @@ Why is the loss on held-out text higher than on the training text, and why does 
 :::
 
 ::: exercise
-In @fig-shakespeare-attention, pick a head with a large *prev*. Point at characters in the middle of a word and at the first character after a space. What does each read? Why might the model want the previous character to be available in every column?
+In @fig-shakespeare-attention, pick a head with a large *prev*. [Point at characters in the middle of a word and at the first character after a space.]{.web} What does each read? Why might the model want the previous character to be available in every column?
 :::

@@ -47,14 +47,14 @@
 
 	// geometry
 	const W = $derived(layoutWidth(width, mode, 340));
-	const narrow = $derived(W < 760);
+	const narrow = $derived(interactive && W < 760);
 	const simW = $derived(narrow ? 150 : 128);
 	const perRow = $derived(narrow ? 3 : TAUS.length);
 	const colW = $derived(narrow ? (W - 8) / perRow : (W - simW - 10) / TAUS.length);
 	const ladH = $derived(narrow ? 160 : 176);
 	const rowH = $derived(narrow ? 34 + simW + Math.ceil(TAUS.length / 3) * (ladH + 64) : ladH + 92);
 	const H = $derived(contexts.length * rowH + 8);
-	const pScale = $derived(Math.max(22, Math.min(30, colW - 78)));
+	const pScale = $derived(interactive ? Math.max(22, Math.min(30, colW - 78)) : 14);
 	function cell(k) {
 		// position of the k-th ladder within a row
 		if (!narrow) return { x: simW + 10 + k * colW + 22, y: 46 };
@@ -106,7 +106,7 @@
 					{@const p = gibbs(c.z, t.t)}
 					<g class="fx-temp__col" class:is-on={k === hover} onpointerenter={() => interactive && (hover = k)} onpointerleave={() => interactive && (hover = -1)} role="presentation">
 						<text class="lbl fx-temp__tau" x={g.x - 4} y={y0 + g.y - 14}><tspan class="m">τ</tspan> {t.t === 0 || t.t === Infinity ? t.label : '= ' + t.label}</text>
-						<EnergyLadder z={c.z} labels={specimen.vocab} tau={t.t} {p} x={g.x} y={y0 + g.y} height={ladH} {Emin} {Emax} {pScale} lead={15} gap={14} barH={6} small pLabels="big" track={false} ticks={5} />
+						<EnergyLadder z={c.z} labels={specimen.vocab} tau={t.t} {p} x={g.x} y={y0 + g.y} height={ladH} {Emin} {Emax} {pScale} lead={interactive ? 15 : 10} gap={14} barH={6} small pLabels="big" track={false} ticks={5} />
 						<text class="lbl lbl--micro" x={g.x - 4} y={y0 + g.y + ladH + 18}><tspan class="m">H</tspan> = {fmt(entropy(p), 2)}</text>
 						{#if interactive}<rect class="hit" x={g.x - 20} y={y0 + g.y - 30} width={colW} height={ladH + 56} />{/if}
 					</g>

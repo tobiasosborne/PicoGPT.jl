@@ -11,9 +11,9 @@ A block makes two corrections to the stream of columns, $X\leftarrow X+f(X)$, ea
 | $x_{k+1}=x_k+f_k(x_k)$ | an explicit Euler step | residual connection, skip connection |
 | $\Pi=I-\one\one^\T/D$ | projection out of the uniform mode | mean subtraction, centring |
 | $\hat x=\Pi x/\sigma$, $\lVert\hat x\rVert\lesssim\sqrt D$ | projection to (just inside) a sphere | layer normalisation, LayerNorm |
-| $y=\gamma\odot\hat x+\beta$ | a diagonal affine map | learned gain and bias, "scale and shift" |
+| $y=\gamma\odot\hat x+\beta$ | a diagonal affine map | gain, bias, scale and shift |
 | $y=\sum_k r_k\,(W_2)_{:,k}+b_2$, $r=\relu(W_1\hat f+b_1)$ | a sum of switched sources | MLP, feed-forward layer |
-| $\theta\in\R^p$ | a point in configuration space | the weights, the model |
+| $\theta\in\R^p$ | a point in configuration space | weights, model parameters |
 :::
 
 ## The stream {#sec-stream}
@@ -33,13 +33,13 @@ A residual update $X_{k+1}=X_k+f_k(X_k)$ is exactly an update of this form, with
 The analogy is a statement about the form of the update, and no more. Nothing in the architecture makes the steps small, or makes $f_k$ depend smoothly on $k$, so the model is not a discretisation of some underlying flow and nothing converges to one as layers are added. What the form does give is a default. A branch that outputs zero leaves the stream untouched, so a block can only *refine* the state it is handed; a freshly initialised model whose branches are small is close to the identity, and the embedding survives it intact. The other gift arrives in @ch-pulling-back: the derivative of $x\mapsto x+f(x)$ is $I+Df$, and the $I$ is a road along which the gradient travels back without passing through any branch.
 
 ::: aside
-Residual connections come from image recognition: He, Zhang, Ren and Sun, *Deep residual learning* (2016). The name records the idea that a branch need only learn the *residual* $f(x)=\text{target}-x$, a correction to the identity, rather than the whole map. Reading the stack of updates as an Euler scheme goes back to E (2017) and to Haber and Ruthotto (2017); Chen, Rubanova, Bettencourt and Duvenaud (2018) took the limit seriously and made the depth continuous ("neural ODEs"). The transformer of this book does not.
+Residual connections come from image recognition: He, Zhang, Ren and Sun, [*Deep Residual Learning for Image Recognition* (CVPR 2016)](https://arxiv.org/abs/1512.03385). The name records the idea that a branch need only learn the *residual* $f(x)=\text{target}-x$, a correction to the identity, rather than the whole map. Reading the stack of updates as an Euler scheme goes back to [Weinan E (2017)](https://doi.org/10.1007/s40304-017-0103-z) and to [Haber and Ruthotto (2017)](https://arxiv.org/abs/1705.03341); [Chen, Rubanova, Bettencourt and Duvenaud (2018)](https://arxiv.org/abs/1806.07366) took the limit seriously and made the depth continuous ("neural ODEs"). The transformer of this book does not.
 :::
 
 @fig-residual-stem draws the whole model in this picture. Each token is a vertical stem along which its column flows downwards. The two branches of the block leave the stem, compute, and merge back at a $+$. All the maps act on one column at a time, except attention, which reaches across to the earlier stems: it is still the only place where tokens meet.
 
 ::: {.figure #fig-residual-stem window=1 column=8}
-The whole model for one window, one stem per token. The stream runs down each stem; the attention branch and the MLP branch leave it, compute, and merge back at a $+$. The width of the stem is the size of the column, $\lVert x\rVert/\sqrt D$, and the width of a branch is the size of the update it adds. Only the attention branch reaches across to other stems: an arc is the part of a later token's update that an earlier token hands it. On the left, the selected column is drawn with its vectors. Run the forward pass, or click a stem.
+The whole model for one window, one stem per token. The stream runs down each stem; the attention branch and the MLP branch leave it, compute, and merge back at a $+$. The width of the stem is the size of the column, $\lVert x\rVert/\sqrt D$, and the width of a branch is the size of the update it adds. Only the attention branch reaches across to other stems: an arc is the part of a later token's update that an earlier token hands it. On the left, the selected column is drawn with its vectors. [Run the forward pass, or click a stem.]{.web}
 :::
 
 ## LayerNorm {#sec-layernorm}
@@ -59,7 +59,7 @@ so the column lands *just inside* that sphere, by an amount that depends on the 
 *It applies a diagonal affine map.* $y=\gamma\odot\hat x+\beta$ stretches axis $i$ by $\gamma_i$ and shifts it by $\beta_i$. These $2D$ numbers are learned, and they take the column off the sphere again: what the branch receives lies on (just inside) an ellipsoid, the image of the sphere under $\diag(\gamma)$, shifted by $\beta$. The sphere is an intermediate stage, and the gain and offset give back, in a controlled way, a scale and a centre of the model's own choosing.
 
 ::: aside
-There is an exact sphere behind $\varepsilon$, one dimension up. Append the number $\sqrt{D\varepsilon}$ to $u$, scale the vector $(u,\sqrt{D\varepsilon})\in\R^{D+1}$ to length $\sqrt D$, and drop the last entry: what remains is precisely $\hat x$. The missing coordinate holds the length by which $\hat x$ falls short.
+There is an exact sphere one dimension up. Scale $(u,\sqrt{D\varepsilon})$ to length $\sqrt D$ and drop the last coordinate: the result is $\hat x$. The discarded coordinate accounts for the radial shortfall.
 :::
 
 Centring and scaling do not change the direction of $u$. Up to the tiny effect of $\varepsilon$, what LayerNorm keeps of a column is the unit vector $u/\lVert u\rVert$ and nothing else; it forgets two numbers, the component along $\one$ and the length of what is left. @fig-layernorm-sphere draws exactly those two numbers. Each column $x$ becomes the point
@@ -67,13 +67,13 @@ $$(a,r)=\Bigl(\frac{\one^\T x}{\sqrt D},\ \lVert\Pi x\rVert\Bigr),\qquad a^2+r^2
 in a half-plane whose horizontal axis is the direction $\one/\sqrt D$ and whose vertical axis is distance from it. The circle of radius $\sqrt D$ is the sphere $\lVert x\rVert=\sqrt D$. Centring moves every point horizontally onto the vertical axis; scaling moves it along that axis to just below the top of the circle; and since this picture records only the two forgotten numbers, every column of the window arrives at the same place in it.
 
 ::: {.figure #fig-layernorm-sphere window=1 column=4}
-LayerNorm, geometrically, for the second normalisation of the block, the one in front of the MLP. On the left every column of the window is a point $(\one^\T x/\sqrt D,\ \lVert\Pi x\rVert)$; centring moves it across onto the vertical axis, scaling moves it along that axis to just inside the circle $\lVert x\rVert=\sqrt D$, and the gain and offset move it off again. The inset magnifies how far inside each column lands. On the right, one column as a spoke glyph at each stage, with the dotted circle at root mean square 1. Run the stages, or click a column.
+LayerNorm, geometrically, for the second normalisation of the block, the one in front of the MLP. On the left every column of the window is a point $(\one^\T x/\sqrt D,\ \lVert\Pi x\rVert)$; centring moves it across onto the vertical axis, scaling moves it along that axis to just inside the circle $\lVert x\rVert=\sqrt D$, and the gain and offset move it off again. The inset magnifies how far inside each column lands. On the right, one column as a spoke glyph at each stage, with the dotted circle at root mean square 1. [Run the stages, or click a column.]{.web}
 :::
 
 Why normalise at all? The stream accumulates: every branch adds to it, and nothing in the forward pass ever shrinks it. A branch that read the raw stream would see inputs whose size depends on how much has been written before, and would have to work at every scale. A normalised copy has a fixed size, so each branch sees its input on the same footing, whatever its depth. The price is that a branch cannot see the mean or the length of a column; whatever the model wants a branch to know must be written in the direction. In @ch-pulling-back the same geometry reappears in the derivative: the pullback of LayerNorm projects the incoming adjoint onto $\one^\perp$ and onto the tangent space of the sphere, so no gradient ever asks to change what LayerNorm forgets.
 
 ::: aside
-Ba, Kiros and Hinton introduced layer normalisation in 2016. The original transformer (Vaswani et al., 2017) normalised *after* each residual sum, $\LN(x+f(x))$, which normalises the stream itself. GPT-2 (Radford et al., 2019) moved the normalisation to the input of each branch, as here, and added one more before the readout; this "pre-norm" arrangement leaves the stream un-normalised, and is the one most models now use.
+[Ba, Kiros and Hinton (2016)](https://arxiv.org/abs/1607.06450) introduced LayerNorm. [Vaswani et al. (2017)](https://arxiv.org/abs/1706.03762) normalised *after* each sum. [GPT-2 (Radford et al., 2019)](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf) moved it before each branch and added a final normalisation: the “pre-norm” order used here.
 :::
 
 ## The MLP {#sec-mlp}
@@ -87,13 +87,13 @@ $$y=\sum_{k=1}^{F}\max\bigl(w_k\cdot\hat f+b_{1k},\,0\bigr)\;(W_2)_{:,k}\;+\;b_2
 Unit $k$ owns a fixed vector, the column $(W_2)_{:,k}\in\R^D$, and a detector, the half-space $w_k\cdot\hat f+b_{1k}>0$. When the input lies in the half-space the unit *fires* and adds its vector, scaled by how far inside the input lies; otherwise it adds nothing at all. The MLP is a sum of $F$ switched sources. On each region of $\R^D$ where the set of firing units does not change, it is an affine map, so the whole branch is continuous and piecewise affine, with flat pieces glued along the $F$ hyperplanes $w_k\cdot\hat f+b_{1k}=0$. The rectifier is the only nonlinearity of this kind in the model; the others are the softmax and the normalisation.
 
 ::: {.figure #fig-mlp window=1 column=4}
-The MLP of one column. The normalised column $\hat f$ is mapped to $F$ numbers $u_k$, drawn about a zero line; the rectifier keeps the positive ones and sets the others to zero. Below each firing unit is what it adds, $r_k$ times its column of $W_2$, on one scale with their sum, the update $y$ at the foot. Click a column, or point at a unit.
+The MLP of one column. The normalised column $\hat f$ is mapped to $F$ numbers $u_k$, drawn about a zero line; the rectifier keeps the positive ones and sets the others to zero. Below each firing unit is what it adds, $r_k$ times its column of $W_2$, on one scale with their sum, the update $y$ at the foot. [Click a column, or point at a unit.]{.web}
 :::
 
 Unlike attention, the MLP never looks at another column: a token computes here alone, with the same $W_1$, $W_2$ for every position. Between them, $W_1$ and $W_2$ hold more than half of the specimen's parameters. Attention decides *where* to read; the MLP is where most of the model's fixed, learned content sits, a table of $F$ vectors indexed by $F$ half-spaces.
 
 ::: aside
-The rectifier is an ideal diode: a small change of $u_k$ passes through when the unit fires and is blocked when it does not. At $u_k=0$ exactly it has no derivative; the code uses the slope $0$ there, a convention rather than a theorem (@ch-pulling-back). The perceptron is Rosenblatt's (1958); the transformer paper calls this branch the "position-wise feed-forward network".
+The rectifier is an ideal diode. At zero it has no derivative; the code chooses slope zero (@ch-pulling-back). The perceptron is [Rosenblatt’s (1958)](https://doi.org/10.1037/h0042519); the transformer paper calls this branch the “position-wise feed-forward network”.
 :::
 
 ## One composition {#sec-composition}
@@ -162,7 +162,7 @@ Try it in @fig-layernorm-sphere. Which column of the window lands deepest inside
 :::
 
 ::: exercise
-Try it in @fig-mlp. Click through the eight columns of the window. Is there a unit that fires for every one of them, and one that fires for none? What does a unit that never fires contribute to the window, and what will the gradient of its weights be (@ch-pulling-back)?
+Try it in @fig-mlp. [Click through the eight columns of the window.]{.web} Is there a unit that fires for every one of them, and one that fires for none? What does a unit that never fires contribute to the window, and what will the gradient of its weights be (@ch-pulling-back)?
 :::
 
 ::: exercise

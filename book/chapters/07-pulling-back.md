@@ -7,9 +7,9 @@ The derivative of the loss with respect to every parameter costs about as much a
 ::: names
 | maths | physics | ML |
 |---|---|---|
-| $Df(x)$, pushing $dx$ forward to $dy$ | linear response | Jacobian, forward-mode derivative |
-| $\bar x=Df(x)^\T\bar y$ | the adjoint map | backpropagation through $f$, vector–Jacobian product |
-| $\bar x=\partial\ell/\partial x$, a covector | a generalised force, conjugate to $x$ | the gradient, "grad" |
+| $Df(x)$, pushing $dx$ forward to $dy$ | linear response | Jacobian |
+| $\bar x=Df(x)^\T\bar y$ | the adjoint map | pullback, vector–Jacobian product |
+| $\bar x=\partial\ell/\partial x$, a covector | a generalised force, conjugate to $x$ | gradient |
 | $(f_k\circ\cdots\circ f_1)^*=f_1^*\circ\cdots\circ f_k^*$ | the adjoint method | backward pass, reverse-mode differentiation |
 | $\Delta^*(\bar u,\bar v)=\bar u+\bar v$ | responses superpose | gradient accumulation |
 | $\bigl(\ell(\theta+he_i)-\ell(\theta-he_i)\bigr)/2h$ | a symmetric perturbation experiment | numerical gradient, gradient check |
@@ -48,7 +48,7 @@ Read the brackets from the inside out. Start at the loss with $\bar\ell=1$; appl
 The same product can be bracketed the other way, $J_k(\cdots(J_2(J_1v)))$: push one direction $v$ forward through the maps. That is *forward-mode* differentiation; it yields one directional derivative $D\ell\,v$ per pass, so the whole gradient takes $p$ passes, one per coordinate, no better than finite differences in count. Reverse mode yields the whole gradient in one pass because the chain ends in one number. For a map with many outputs and few inputs the comparison would go the other way.
 
 ::: aside
-Reverse-mode differentiation was described by Seppo Linnainmaa in his 1970 master's thesis, as a way of computing the rounding error of a long calculation. Paul Werbos proposed it for neural networks in 1974; Rumelhart, Hinton and Williams made it famous as *backpropagation* in 1986. Physicists know it as the adjoint method: the costate of Pontryagin's optimal control, and the adjoint equations of weather forecasting, which pull the sensitivity of one forecast number back through a whole simulation.
+Reverse-mode differentiation was described by Seppo Linnainmaa in his [1970 master’s thesis](https://www.finna.fi/Record/helka.9933382303506253), as a way of computing the rounding error of a long calculation. Paul Werbos proposed it for neural networks in [1974](https://gwern.net/doc/ai/nn/1974-werbos.pdf); Rumelhart, Hinton and Williams made it famous as *backpropagation* in [1986](https://doi.org/10.1038/323533a0). Physicists know it as the adjoint method: the costate of Pontryagin's optimal control, and the adjoint equations of weather forecasting, which pull the sensitivity of one forecast number back through a whole simulation.
 :::
 
 How much does it cost? Each map of the model is a matrix product, an elementwise function, a sum, a softmax or a lookup, and the pullback of each costs at most a small constant times the map itself; we derive them all below. Adding up, a forward and a backward pass together cost a constant number of forward passes, independently of $p$. In the web edition, @fig-gradcheck measures the constant in your browser. The price is memory: the pullback of a map needs the values that went into it, so the forward pass must keep its intermediates until the backward pass has used them.
@@ -61,7 +61,7 @@ In the code, every operation returns its value *together with* its pullback, a f
 @fig-forward-backward shows the whole of it on the specimen's stems: the values flow down, then one covector per token flows back up the same paths.
 
 ::: {.figure #fig-forward-backward window=2 column=8}
-Forward, then back. The forward pass flows down the stems in value ink; then the loss sends one covector up each stem, through the same maps in reverse order, in covector ink. The size of each adjoint is drawn where it lands. At every $+$ the adjoint goes both ways, and at every fork the adjoints coming back add. Scrub the clock, or click a stem. Then switch to the trained model: only the predictions whose context is ambiguous still send anything back.
+Forward, then back. The forward pass flows down the stems in value ink; then the loss sends one covector up each stem, through the same maps in reverse order, in covector ink. The size of each adjoint is drawn where it lands. At every $+$ the adjoint goes both ways, and at every fork the adjoints coming back add. [Scrub the clock, or click a stem.]{.web} After training, only the predictions whose context is ambiguous still send anything back. [Switch to the trained model to compare.]{.web}
 :::
 
 ## Fan-out: adjoints add {#sec-fan-out}
@@ -100,7 +100,7 @@ $$\bar W=\bar YX^\T,\quad \bar W_{ij}=\sum_n\bar Y_{in}X_{jn};\qquad \bar X=W^\T
 The input adjoint is the output adjoint pulled back through the transpose. The weight adjoint is a sum over the columns of outer products, $\bar W=\sum_n\bar y_n\,x_n^\T$: for every token, the response at the output times the signal at the input. Each token contributes a matrix of rank one, and the gradient of $W$ is their sum. @fig-affine-pullback shows it for the readout, where $\bar z$ comes straight from the loss.
 
 ::: {.figure #fig-affine-pullback window=1 column=8}
-The pullback of the readout $z=W_{\text{out}}x+b_{\text{out}}$ for one column, before training. The adjoint $\bar z=(p-e_y)/N$ arrives from the loss; $\bar x=W_{\text{out}}^\T\bar z$ carries it back into the stream, and $\bar z\,x^\T$ is this column's rank-one share of the gradient of the weights. The full gradient $\bar W_{\text{out}}$ is the sum of the shares of all the columns. Click a column, move the window, point at a square.
+The pullback of the readout $z=W_{\text{out}}x+b_{\text{out}}$ for one column, before training. The adjoint $\bar z=(p-e_y)/N$ arrives from the loss; $\bar x=W_{\text{out}}^\T\bar z$ carries it back into the stream, and $\bar z\,x^\T$ is this column's rank-one share of the gradient of the weights. The full gradient $\bar W_{\text{out}}$ is the sum of the shares of all the columns. [Click a column, move the window, point at a square.]{.web}
 :::
 
 ### The rectifier
@@ -119,8 +119,7 @@ The model never pulls back through the softmax of its output, because the loss i
 $$\ell=\frac1N\sum_{n=1}^N\Bigl[\lse(z_n)-Z_{y_n,n}\Bigr],\qquad \boxed{\;\bar Z_{:,n}=\frac{p_n-e_{y_n}}{N}\;},$$
 since the derivative of $\lse$ is the softmax and that of $Z_{y,n}$ picks out the target. This is the seed of the backward pass: the prediction minus the truth, one column per token, with the loss's single factor $1/N$.
 
-::: {.code file="src/softmax.jl" fn="crossentropy"}
-:::
+The implementation is `crossentropy` in @sec-code-surprise; its closure returns this pullback.
 
 ### LayerNorm
 
@@ -138,10 +137,10 @@ Notice that $\bar A$ is a full $T\times T$ matrix. The product $VA^\T$ does not 
 $$\bar S_{ij}=\begin{cases}A_{ij}\bigl(\bar A_{ij}-\sum_{k\le i}A_{ik}\bar A_{ik}\bigr),&j\le i,\\[2pt]0,&j>i.\end{cases}$$
 The factor $A_{ij}$, which is zero above the diagonal, discards the future: no gradient comes from it. The mask is not differentiated; it restricts the function to the allowed coordinates. Finally $S=Q^\T K/\sqrt d$ is bilinear in $Q$ and $K$:
 $$\bar Q=\frac{K\bar S^\T}{\sqrt d},\quad \bar q_i=\frac1{\sqrt d}\sum_j\bar S_{ij}\,k_j;\qquad \bar K=\frac{Q\bar S}{\sqrt d},\quad \bar k_j=\frac1{\sqrt d}\sum_i\bar S_{ij}\,q_i.$$
-Three checks of orientation come for free: the first row of $\bar S$ is zero, since $A_{11}=1$ cannot change; everything above the diagonal is zero; and every row of $\bar S$ sums to zero. The last one is worth a section of its own (@sec-bk). The code is the `back` of `attention` and of `mix` in @sec-code.
+Three checks of orientation come for free: the first row of $\bar S$ is zero, since $A_{11}=1$ cannot change; everything above the diagonal is zero; and every row of $\bar S$ sums to zero. The last one is worth a section of its own (@sec-bk). The code is the `back` of `attention` and of `mix` in @sec-code-attention.
 
 ::: {.figure #fig-softmax-pullback window=1 head=1}
-No gradient comes from the future. The weights $A$ of one head before training, the adjoint $\bar A$, which the product $O=VA^\T$ defines on the whole square, and the adjoint $\bar S$ of the scores. Run the pullback: subtract from each row of $\bar A$ its mean under $A$, then multiply by $A$, and everything above the diagonal is lost. Every row of $\bar S$ sums to zero. Point at a row.
+No gradient comes from the future. The weights $A$ of one head before training, the adjoint $\bar A$, which the product $O=VA^\T$ defines on the whole square, and the adjoint $\bar S$ of the scores. The pullback subtracts from each row of $\bar A$ its mean under $A$, then multiplies by $A$, and everything above the diagonal is lost. Every row of $\bar S$ sums to zero. [Point at a row.]{.web}
 :::
 
 That completes the list: embedding, affine maps, the rectifier, LayerNorm, attention, the loss, joined by sums at every fan-out. The backward pass of the whole model is these pullbacks, applied in the reverse of the order of @sec-composition.
@@ -159,7 +158,7 @@ is smallest when the two terms balance, at $h$ of order $u^{1/3}$, about $10^{-5
 @fig-gradcheck runs the experiment on the specimen before training. On the left, one parameter from each of four arrays, against the step: the error follows the $h^2$ line down, turns where it meets the rounding line, and climbs back up it. On the right, every one of the parameters at once.
 
 ::: {.figure #fig-gradcheck h=-6}
-Checking the derivation against an experiment, before training. Left: the error of a central difference against the pulled-back gradient for four parameters, as the step $h$ shrinks: it falls like $h^2$ until rounding takes over, and then it rises like $u\ell/h$. Right: the error for every parameter at one step, grouped by array, with the size of each array's largest gradient entry marked by a bar in covector ink. Click a circle on the left to check every parameter at another step.
+Checking the derivation against an experiment, before training. Left: the error of a central difference against the pulled-back gradient for four parameters, as the step $h$ shrinks: it falls like $h^2$ until rounding takes over, and then it rises like $u\ell/h$. Right: the error for every parameter at one step, grouped by array, with the size of each array's largest gradient entry marked by a bar in covector ink. [Click a circle on the left to check every parameter at another step.]{.web}
 :::
 
 The check also comes in a sharper form, which tests one pullback at a time. For any map $f$ and any covector $\bar y$, the gradient of the scalar function $x\mapsto\inner{\bar y}{f(x)}$ is $Df(x)^\T\bar y$, which is exactly what the pullback claims to return. So draw a random $\bar y$, run `back`, and compare with central differences of that scalar function. This is the *adjoint test*. The test suite applies it to every operation of the model, and the gradient check to the model as a whole.
@@ -213,7 +212,7 @@ Show that the softmax Jacobian $\diag(p)-pp^\T$ is positive semidefinite and tha
 :::
 
 ::: exercise
-In @fig-gradcheck, click the step $h=10^{-2}$, then $h=10^{-10}$. Which arrays have the largest errors in each case, and why? At every step most dots of $b_k$ sit at the bottom of the scale, and a few sit exactly on the rounding line. Explain both: why is the difference quotient of $b_k$ usually exactly zero, and why, when it is not, is it of size $u\ell/h$?
+Compare @fig-gradcheck at $h=10^{-2}$ and $h=10^{-10}$. [Click each step to compare.]{.web} Which arrays have the largest errors in each case, and why? At every step most dots of $b_k$ sit at the bottom of the scale, and a few sit exactly on the rounding line. Explain both: why is the difference quotient of $b_k$ usually exactly zero, and why, when it is not, is it of size $u\ell/h$?
 :::
 
 ::: exercise

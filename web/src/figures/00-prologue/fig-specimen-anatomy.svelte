@@ -49,8 +49,8 @@
 	const labelW = $derived(narrow ? 0 : 112);
 	const countW = $derived(narrow ? 0 : 54);
 	// widest station, in cells: γβ (2) + gap + 4 × (8 + 1) + 3 gaps … and MLP: 2 + gap + 9 + gap + 33
-	const widthCells = $derived(Math.max(2 + 2 + 4 * (D + 1) + 3 * 1.6 + 1.2, 2 + 2 + (D + 1) + 2 + (F + 1)));
-	const c = $derived(Math.max(4.2, Math.min(13, (W - labelW - countW - 10) / widthCells)));
+	const widthCells = $derived(Math.max(2.25 + 2.2 + 4 * (D + 1.25) + 3 * 1.6, 2.25 + 2.2 + (D + 1.25) + 2.2 + (F + 1.25)));
+	const c = $derived(Math.max(4.2, Math.min(interactive ? 13 : 7.5, (W - labelW - countW - 10) / widthCells)));
 	const gx = $derived(labelW + 6);
 	const nameH = 26;
 

@@ -27,7 +27,7 @@ $$p_a=\frac{e^{z_a}}{\sum_{b=1}^{V}e^{z_b}},\qquad\text{in vector form}\qquad p=
 with the exponential taken entry by entry. The entries of $z$ are called *logits*.
 
 ::: aside
-"Logit" began as the name of the log-odds function $\operatorname{logit}(q)=\log\frac{q}{1-q}$ of a probability $q$ (Berkson, 1944). In machine learning it has drifted to mean any real number that becomes a probability after an exponential and a normalisation. Here: an entry of $z$.
+"Logit" began as the name of the log-odds function $\operatorname{logit}(q)=\log\frac{q}{1-q}$ of a probability $q$ ([Berkson, 1944](https://doi.org/10.1080/01621459.1944.10500699)). In machine learning it has drifted to mean any real number that becomes a probability after an exponential and a normalisation. Here: an entry of $z$.
 :::
 
 Why this map? One could normalise any positive function of the logits. The answer is that this particular one is an old acquaintance, and nearly everything we need to know about it was worked out in the nineteenth century.
@@ -40,10 +40,10 @@ This is the Gibbs (or Boltzmann) distribution, and $\mathcal Z$ is the *partitio
 $$E_a=-z_a,\qquad \tau=1,$$
 and it is softmax, symbol for symbol. A logit is a negative energy. A large logit is a deep energy level, and a deep level is heavily occupied. The model's last layer computes the energies of seven levels, and the prediction is the thermal occupation of those levels at temperature one.
 
-@fig-energy-ladder draws exactly this, for one context of the trained specimen. Each character is a rung of a ladder at the height of its energy, and the bar along the rung is its probability. Every rung can be dragged, which changes one logit: lowering a rung fills it, and since the bars must sum to one, every other bar shrinks.
+@fig-energy-ladder draws exactly this, for one context of the trained specimen. Each character is a rung of a ladder at the height of its energy, and the bar along the rung is its probability. Lowering a rung fills it, and since the bars must sum to one, every other bar shrinks. [Every rung can be dragged to change its logit.]{.web}
 
 ::: {.figure #fig-energy-ladder window=3 position=1}
-The trained specimen's prediction for the character after "␣", at the start of the window "␣be␣or␣n", drawn as an energy ladder. Each character is a rung at its energy $E_a=-z_a$, and its bar is its probability $p_a$. The ruler on the left stands on the lowest rung and is $\tau$ long. Drag a rung, drag the axis to shift the whole ladder, or drag the end of the ruler to change the temperature.
+The trained specimen's prediction for the character after "␣", at the start of the window "␣be␣or␣n", drawn as an energy ladder. Each character is a rung at its energy $E_a=-z_a$, and its bar is its probability $p_a$. The ruler on the left stands on the lowest rung and is $\tau$ long. [Drag a rung, drag the axis to shift the whole ladder, or drag the end of the ruler to change the temperature.]{.web}
 :::
 
 Look at the three lowest rungs in the figure. Three of the specimen's ten training windows begin with a space, and in them the space is followed by `b`, by `o` and by `n`. At the first position of a window the model sees nothing but that space, so it cannot tell the three windows apart, and it has put the three characters at almost exactly the same energy, far below the other four. A physicist would call this a threefold (nearly) degenerate ground state. In @ch-surprise we will see that this is not a failure of the model but the best it can possibly do.
@@ -80,7 +80,7 @@ The model is trained at $\tau=1$, and inside the model the softmax always runs a
 
 For every constant $c\in\R$,
 $$\softmax(z+c\one)=\softmax(z),$$
-because numerator and denominator both gain the factor $e^{c}$. In the physics this is the statement that energy has no absolute zero: shifting every level by the same amount is a change of convention, not of the system. Drag the axis in @fig-energy-ladder and the whole ladder slides, the partition function and the free energy change, and not one probability moves.
+because numerator and denominator both gain the factor $e^{c}$. In the physics this is the statement that energy has no absolute zero: shifting every level by the same amount is a change of convention, not of the system. Shifting the whole ladder changes the partition function and the free energy, and not one probability moves. [Drag the axis in @fig-energy-ladder to check.]{.web}
 
 So the map $z\mapsto\softmax(z)$ is not injective. It is constant on every line $z+\R\one$, and its derivative must annihilate $\one$. Differentiating the quotient gives the Jacobian, in index form and in matrix form:
 $$\frac{\partial p_a}{\partial z_b}=p_a(\delta_{ab}-p_b),\qquad Dp(z)=\diag(p)-pp^\T .$$
@@ -120,7 +120,7 @@ $$\lse(z)=c+\log\sum_ae^{z_a-c},\qquad \softmax(z)=\softmax(z-c\one),$$
 and with $c=\max_az_a$ every exponent is at most $0$ and one of them is exactly $0$. The sum then lies between $1$ and $V$: it cannot overflow, and the logarithm never sees zero. The maximum has kinks where two logits tie, but the expression on the right is identically the smooth function on the left, so its derivative is still softmax.
 
 ::: {.figure #fig-logsumexp window=3 position=1}
-Why subtract the maximum. The seven exponentials of the logits of @fig-energy-ladder, multiplied by $\beta$, on a logarithmic axis that spans the whole range of Float64. Top: computed as written, $e^{\beta z_a}$. Bottom: computed after subtracting the maximum, $e^{\beta(z_a-m)}$. Drag $\beta$ to the right: the naive exponentials leave the representable range, their sum becomes $\infty$, and the probabilities become $\infty/\infty$; the shifted ones never exceed $1$.
+Why subtract the maximum. The seven exponentials of the logits of @fig-energy-ladder, multiplied by $\beta$, on a logarithmic axis that spans the whole range of Float64. Top: computed as written, $e^{\beta z_a}$. Bottom: computed after subtracting the maximum, $e^{\beta(z_a-m)}$. As $\beta$ grows, the naive exponentials leave the representable range, their sum becomes $\infty$, and the probabilities become $\infty/\infty$; the shifted ones never exceed $1$. [Drag $\beta$ to compare.]{.web}
 :::
 
 The same care decides how the loss of @ch-surprise is computed: never as the logarithm of a probability, which may have underflowed to zero, but directly from the logits, as $-\log p_y=\lse(z)-z_y$.
@@ -152,13 +152,13 @@ Let $U(\beta)=\sum_ap^{(\beta)}_aE_a$ be the mean energy. Show that $dU/d\beta=-
 :::
 
 ::: exercise
-In @fig-energy-ladder, drag one of the upper rungs down until it snaps level with the lowest one, then drag the end of the ruler down to cool the ladder. What happens to the tied pair, and to everyone else? Compare with the formula for the frozen limit.
+Consider two tied lowest rungs in @fig-energy-ladder as the temperature falls. [Drag an upper rung down to the lowest one, then cool the ladder with the ruler.]{.web} What happens to the tied pair, and to everyone else? Compare with the formula for the frozen limit.
 :::
 
 ::: exercise
-In @fig-energy-ladder, drag the axis. Which of the numbers on the right change, and by how much? Explain why $F$ must move by exactly the shift.
+Shift all the energies in @fig-energy-ladder equally. [Drag the axis.]{.web} Which of the numbers on the right change, and by how much? Explain why $F$ must move by exactly the shift.
 :::
 
 ::: exercise
-In @fig-energy-ladder, click through the positions of the window "o␣be␣or␣". At which position is the trained model unsure of the next character, and between which characters? Find, in the corpus, the reason. (@ch-surprise makes this exact.)
+Consider the positions of the window "o␣be␣or␣" in @fig-energy-ladder. [Click through the positions.]{.web} At which position is the trained model unsure of the next character, and between which characters? Find, in the corpus, the reason. (@ch-surprise makes this exact.)
 :::

@@ -8,13 +8,16 @@ export { Tensor } from './tensor.mjs';
 /** @typedef {{name:string,shape:number[],offset:number,size:number}} LayoutEntry */
 /** @typedef {{ln1:Tensor,Q:Tensor,K:Tensor,V:Tensor,S:Tensor,A:Tensor,O:Tensor,Xmid:Tensor,ln2:Tensor,U:Tensor,R:Tensor,Y:Tensor,Xout:Tensor}} BlockTrace */
 /** @typedef {{X0:Tensor,blocks:BlockTrace[],Xf:Tensor,Z:Tensor,probs:Tensor,loss:number}} Trace */
-/** @typedef {{matrixStd?:number,gamma?:number,beta?:number,bias?:number,residualScaling?:boolean}} InitOptions */
-/** @typedef {{lr?:number,warmupSteps?:number,totalSteps?:number,minLR?:number}} Schedule */
-/** @typedef {{optimizer?:'adamw'|'gd'|'sgd',lr?:number,beta1?:number,beta2?:number,eps?:number,weightDecay?:number,clipNorm?:number,schedule?:Schedule}} OptimizerOptions */
+/** @typedef {{matrixStd?:number|null,gamma?:number,beta?:number,bias?:number,residualScaling?:boolean}} InitOptions */
+/** @typedef {{eta?:number,warmup?:number,steps?:number,eta_min?:number,warmupSteps?:number,totalSteps?:number,minLR?:number,total?:number,etaMin?:number}} Schedule */
+/** @typedef {{optimizer?:'adamw'|'gd'|'sgd',eta?:number,eta_min?:number,warmup?:number,steps?:number,beta1?:number,beta2?:number,eps?:number,weight_decay?:number,clip?:number,schedule?:Schedule|'warmup_cosine'|null,lr?:number,weightDecay?:number,clipNorm?:number}} OptimizerOptions */
 /** @typedef {{E:Tensor,blocks:Object<string,Tensor>[],gammaf:Tensor,betaf:Tensor,Wout:Tensor,bout:Tensor}} Parameters */
 /** @typedef {{config:Config,theta:Float64Array,layout:LayoutEntry[],params:Parameters,grad:Float64Array,gradParams:Parameters,P:Tensor,workspaces:Map<number,any>,trace:Trace|null,optimizer:any}} Model */
 export const SPECIMEN_CONFIG = Object.freeze({ V: 7, D: 8, H: 2, F: 32, L: 1, T: 8, eps: 1e-5 });
-export const DEFAULT_INIT = Object.freeze({ matrixStd: 0.02, gamma: 1, beta: 0, bias: 0, residualScaling: true });
+export const DEFAULT_INIT = Object.freeze({ matrixStd: null, gamma: 1, beta: 0, bias: 0, residualScaling: true });
+export const SPECIMEN_RECIPE = Object.freeze({ optimizer: 'adamw', eta: 0.02, eta_min: 0.002,
+  warmup: 20, steps: 200, schedule: 'warmup_cosine', beta1: 0.9, beta2: 0.95,
+  eps: 1e-8, weight_decay: 0.01, clip: 1 });
 
 function configuration(config) {
   const c = { ...config, F: config.F ?? 4 * config.D, eps: config.eps ?? 1e-5 };
@@ -81,20 +84,45 @@ export function seededRandom(seed = 0) {
   return { uniform, normal };
 }
 
-/** Return an initialized flat θ. Override distributions here or via the third argument.
- * @param {Config} config @param {number} [seed] @param {InitOptions} [options] @returns {Float64Array} */
-export function init(config, seed = 0, options = {}) {
-  const c = configuration(config), layout = parameterLayout(c), last = layout.at(-1);
-  const theta = new Float64Array(last.offset + last.size);
-  const rng = seededRandom(seed), spec = { ...DEFAULT_INIT, ...options };
-  for (const { name, shape, offset, size } of layout) {
-    const key = name.split('.').at(-1);
-    if (shape.length === 2) {
-      const scale = spec.residualScaling && (key === 'Wo' || key === 'W2') ? 1 / Math.sqrt(2 * c.L) : 1;
-      for (let i = 0; i < size; i++) theta[offset + i] = spec.matrixStd * scale * rng.normal();
-    } else theta.fill(key.startsWith('gamma') ? spec.gamma : key.startsWith('beta') ? spec.beta : spec.bias, offset, offset + size);
+/** Julia's initial(name,c): the canonical per-parameter normal distribution. */
+export function initial(name, config) {
+  const { D, L } = config, F = config.F ?? 4 * D;
+  const key = name.split('.').at(-1);
+  const std = key === 'E' ? 1
+    : ['Wq', 'Wk', 'Wv', 'W1'].includes(key) ? 1 / Math.sqrt(D)
+    : key === 'Wo' ? 1 / Math.sqrt(2 * L * D)
+    : key === 'W2' ? 1 / Math.sqrt(2 * L * F)
+    : key === 'Wout' ? 1 / D : 0;
+  return { mean: key.startsWith('gamma') || key.startsWith('γ') ? 1 : 0, std };
+}
+
+/** Draw a layout from explicit per-array {mean,std} distributions (artifact order).
+ * Constants consume no random samples; also used by init and the book's drawTheta API. */
+export function drawTheta(layout, initSpec, seed = 0) {
+  const last = layout.at(-1), theta = new Float64Array(last.offset + last.size);
+  const rng = seededRandom(seed);
+  for (let k = 0; k < layout.length; k++) {
+    const { offset, size } = layout[k], { mean = 0, std = 0 } = initSpec?.[k] ?? {};
+    for (let i = 0; i < size; i++) theta[offset + i] = mean + (std ? std * rng.normal() : 0);
   }
   return theta;
+}
+
+/** Return an initialized flat θ, using BRIEF §13 / Julia initial by default.
+ * @param {Config} config @param {number} [seed] @param {InitOptions} [options] @returns {Float64Array} */
+export function init(config, seed = 0, options = {}) {
+  const c = configuration(config), layout = parameterLayout(c), spec = { ...DEFAULT_INIT, ...options };
+  const distributions = layout.map(({ name, shape }) => {
+    const key = name.split('.').at(-1), distribution = initial(name, c);
+    if (shape.length === 2) {
+      const residual = key === 'Wo' || key === 'W2';
+      // Explicit overrides remain available for initialization experiments.
+      if (spec.matrixStd != null) distribution.std = spec.matrixStd / (spec.residualScaling && residual ? Math.sqrt(2 * c.L) : 1);
+      else if (!spec.residualScaling && residual) distribution.std = 1 / Math.sqrt(key === 'W2' ? c.F : c.D);
+    } else distribution.mean = key.startsWith('gamma') ? spec.gamma : key.startsWith('beta') ? spec.beta : spec.bias;
+    return distribution;
+  });
+  return drawTheta(layout, distributions, seed);
 }
 
 /** Fixed P[:,pos], pos=0,…,T−1, paired sine/cosine frequencies (also for odd D).
@@ -347,17 +375,39 @@ export function clipGlobalNorm(grad, maxNorm = Infinity) {
   return norm;
 }
 
-/** Update numbers start at 1: linear warmup, then cosine to minLR at totalSteps.
- * @param {number} t @param {Schedule} [options] @returns {number} */
-export function learningRate(t, { lr = 1e-3, warmupSteps = 0, totalSteps = 0, minLR = 0 } = {}) {
-  return scheduledRate(t, lr, warmupSteps, totalSteps, minLR);
+/** Update numbers start at 1. Canonical options: eta, eta_min, warmup, steps.
+ * Nested schedule objects and legacy option spellings are compatibility aliases.
+ * @param {number} t @param {OptimizerOptions} [options] @returns {number} */
+export function learningRate(t, options = DEFAULT_OPTIMIZER) {
+  const eta = options.eta ?? options.lr ?? options.learning_rate ?? DEFAULT_OPTIMIZER.eta;
+  if (options.schedule === null || options.schedule === false) return eta;
+  const s = typeof options.schedule === 'object' ? options.schedule : options;
+  const warmup = s.warmup ?? s.warmupSteps ?? s.warmup_steps ?? 0;
+  const steps = s.steps ?? s.total ?? s.totalSteps ?? s.total_steps ?? 0;
+  const min = s.eta_min ?? s.etaMin ?? s.minLR ?? s.min_lr ?? eta / 10;
+  if (t <= warmup && warmup > 0) return eta * t / warmup;
+  if (steps <= warmup) return eta;
+  const progress = Math.min(1, Math.max(0, (t - warmup) / (steps - warmup)));
+  return min + (eta - min) * (1 + Math.cos(Math.PI * progress)) / 2;
 }
 
-function scheduledRate(t, lr, warmupSteps, totalSteps, minLR) {
-  if (warmupSteps > 0 && t <= warmupSteps) return lr * t / warmupSteps;
-  if (totalSteps <= warmupSteps) return lr;
-  const progress = Math.min(1, Math.max(0, (t - warmupSteps) / (totalSteps - warmupSteps)));
-  return minLR + 0.5 * (lr - minLR) * (1 + Math.cos(Math.PI * progress));
+/** 1 on matrix parameters, 0 on gains, offsets and biases. */
+export function matrixMask(layout) {
+  const last = layout.at(-1), mask = new Float64Array(last.offset + last.size);
+  for (const entry of layout) if (entry.shape.length === 2) mask.fill(1, entry.offset, entry.offset + entry.size);
+  return mask;
+}
+
+/** Allocate optimizer buffers once; adapters can share moments, mask and delta. */
+export function prepareOptimizer(model, kind = 'adamw') {
+  if (kind !== 'adamw' && kind !== 'gd' && kind !== 'sgd') throw new RangeError('Unknown optimizer');
+  let state = model.optimizer;
+  if (!state || state.kind !== kind) {
+    state = model.optimizer = { kind, t: 0, m: new Float64Array(model.theta.length), v: new Float64Array(model.theta.length),
+      mask: matrixMask(model.layout), delta: new Float64Array(model.theta.length),
+      result: { loss: NaN, gradNorm: NaN, clipScale: 1, lr: NaN, step: 0, updateNorm: NaN } };
+  }
+  return state;
 }
 
 /** Reset moments/count explicitly when beginning an independent training run.
@@ -365,53 +415,53 @@ function scheduledRate(t, lr, warmupSteps, totalSteps, minLR) {
 export function resetOptimizer(model) { model.optimizer = null; }
 
 /**
- * Apply model.grad. AdamW decays EVERY θ entry, after global-norm clipping, with
- * bias-corrected moments and eps outside sqrt(v̂). GD uses optional decoupled decay.
- * Options: optimizer, lr, beta1, beta2, eps, weightDecay, clipNorm, schedule.
+ * Apply model.grad. Decay acts on matrices only; clipping precedes the moments.
+ * The optional preserveGradient flag lets figure adapters retain the raw gradient.
  * @param {Model} model @param {OptimizerOptions} [opt]
- * @returns {{loss:number,gradNorm:number,clipScale:number,lr:number,step:number}}
+ * @param {{preserveGradient?:boolean}} [options]
+ * @returns {{loss:number,gradNorm:number,clipScale:number,lr:number,step:number,updateNorm:number}}
  */
-export function step(model, opt = DEFAULT_OPTIMIZER) {
+export function step(model, opt = DEFAULT_OPTIMIZER, options) {
   const kind = opt.optimizer ?? opt.kind ?? 'adamw';
-  if (kind !== 'adamw' && kind !== 'gd' && kind !== 'sgd') throw new RangeError('Unknown optimizer');
-  const lr = opt.lr ?? opt.learning_rate ?? 1e-3;
-  const beta1 = opt.beta1 ?? 0.9, beta2 = opt.beta2 ?? 0.999;
+  const eta = opt.eta ?? opt.lr ?? opt.learning_rate ?? DEFAULT_OPTIMIZER.eta;
+  const beta1 = opt.beta1 ?? 0.9, beta2 = opt.beta2 ?? 0.95;
   const eps = opt.eps ?? opt.epsilon ?? 1e-8;
-  const decay = opt.weightDecay ?? opt.weight_decay ?? 0;
-  const clip = opt.clipNorm ?? opt.clip_norm ?? opt.clip ?? Infinity;
-  if (!(lr >= 0 && Number.isFinite(lr)) || !(decay >= 0 && Number.isFinite(decay)) || !(eps > 0 && Number.isFinite(eps)) || !(beta1 >= 0 && beta1 < 1 && beta2 >= 0 && beta2 < 1)) throw new RangeError('Invalid optimizer hyperparameters');
-  let state = model.optimizer;
-  if (!state || state.kind !== kind) {
-    state = model.optimizer = { kind, t: 0, m: new Float64Array(model.theta.length), v: new Float64Array(model.theta.length),
-      result: { loss: NaN, gradNorm: NaN, clipScale: 1, lr, step: 0 } };
-  }
-  const norm = clipGlobalNorm(model.grad, clip), t = ++state.t;
-  let rate = lr;
-  if (opt.schedule) {
-    const s = opt.schedule;
-    const warmup = s.warmupSteps ?? s.warmup_steps ?? 0, total = s.totalSteps ?? s.total_steps ?? 0, min = s.minLR ?? s.min_lr ?? 0;
-    rate = scheduledRate(t, lr, warmup, total, min);
-  }
+  const decay = opt.weight_decay ?? opt.weightDecay ?? 0;
+  const clip = opt.clip ?? opt.clipNorm ?? opt.clip_norm ?? Infinity;
+  if (!(eta >= 0 && Number.isFinite(eta)) || !(decay >= 0 && Number.isFinite(decay)) || !(eps > 0 && Number.isFinite(eps)) || !(clip >= 0) || !(beta1 >= 0 && beta1 < 1 && beta2 >= 0 && beta2 < 1)) throw new RangeError('Invalid optimizer hyperparameters');
+  const state = prepareOptimizer(model, kind);
+  const preserve = options?.preserveGradient;
+  const norm = preserve ? globalNorm(model.grad) : clipGlobalNorm(model.grad, clip);
+  if (!Number.isFinite(norm)) throw new RangeError('Nonfinite gradient');
+  const scale = norm > clip ? clip / norm : 1;
+  const t = ++state.t, rate = learningRate(t, opt), gradientScale = preserve ? scale : 1;
+  const { mask, delta } = state;
   const { theta, grad } = model;
+  let du = 0;
   if (kind === 'adamw') {
     const c1 = 1 - beta1 ** t, c2 = 1 - beta2 ** t, { m, v } = state;
     for (let i = 0; i < theta.length; i++) {
-      const g = grad[i];
+      const g = grad[i] * gradientScale;
       m[i] = beta1 * m[i] + (1 - beta1) * g;
       v[i] = beta2 * v[i] + (1 - beta2) * g * g;
-      theta[i] -= rate * (m[i] / c1 / (Math.sqrt(v[i] / c2) + eps) + decay * theta[i]);
+      const d = -rate * (m[i] / c1 / (Math.sqrt(v[i] / c2) + eps) + decay * mask[i] * theta[i]);
+      theta[i] += d; delta[i] = d; du += d * d;
     }
-  } else for (let i = 0; i < theta.length; i++) theta[i] -= rate * (grad[i] + decay * theta[i]);
+  } else for (let i = 0; i < theta.length; i++) {
+    const d = -rate * (grad[i] * gradientScale + decay * mask[i] * theta[i]);
+    theta[i] += d; delta[i] = d; du += d * d;
+  }
   const r = state.result;
-  r.loss = model.trace?.loss ?? NaN; r.gradNorm = norm; r.clipScale = norm > clip ? clip / norm : 1; r.lr = rate; r.step = t;
+  r.loss = model.trace?.loss ?? NaN; r.gradNorm = norm; r.clipScale = scale; r.lr = rate; r.step = t; r.updateNorm = Math.sqrt(du);
   return r;
 }
-export const DEFAULT_OPTIMIZER = Object.freeze({ optimizer: 'adamw', lr: 1e-3, beta1: 0.9, beta2: 0.999, eps: 1e-8, weightDecay: 0, clipNorm: Infinity });
+export const DEFAULT_OPTIMIZER = Object.freeze({ optimizer: 'adamw', eta: 1e-3, beta1: 0.9, beta2: 0.95, eps: 1e-8, weight_decay: 0, clip: Infinity });
 
 /** Allocation-free after warmup if batch comes from createBatch(). Loss is pre-update.
- * @param {Model} model @param {Batch} batch @param {OptimizerOptions} [opt] */
-export function trainStep(model, batch, opt = DEFAULT_OPTIMIZER) {
-  forward(model, batch); backward(model); return step(model, opt);
+ * @param {Model} model @param {Batch} batch @param {OptimizerOptions} [opt]
+ * @param {{preserveGradient?:boolean}} [options] */
+export function trainStep(model, batch, opt = DEFAULT_OPTIMIZER, options) {
+  forward(model, batch); backward(model); return step(model, opt, options);
 }
 
 /** Sample logits using the Gibbs distribution. Temperature=0 chooses the first maximum.

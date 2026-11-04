@@ -22,9 +22,9 @@ values.blocks[0].A.attention(0, 0);     // cached T×T Tensor view, head 0 / seq
 values.blocks[0].A.attention(0).row(2); // copy of query 2's attention weights
 bars.blocks[0].Xmid.column(2);         // corresponding covector
 bars.theta;                           // flat ∇θ; bars.params has named views
-step(model, { optimizer: 'adamw', lr: 1e-3, clipNorm: 1 });
+step(model, { optimizer: 'adamw', eta: 1e-3, clip: 1 });
 
-const opt = { optimizer: 'adamw', lr: 1e-3, weightDecay: 0.01, clipNorm: 1 };
+const opt = { optimizer: 'adamw', eta: 1e-3, weight_decay: 0.01, clip: 1 };
 trainStep(model, batch, opt);          // forward + backward + step
 const next = sample(forward(model, batch).Z.column(7), {
   temperature: 0.8, rng: seededRandom(42),
@@ -80,34 +80,75 @@ preallocate a shape explicitly.
 ## Initialization, optimization, and sampling
 
 `init(config,seed,options?)` returns θ. `createModel(config)` uses seed 0.
-`DEFAULT_INIT` documents the defaults: Gaussian matrices with std 0.02;
-`Wo,W2` scaled by `1/√(2L)`; γ=1; β and biases=0. Override `matrixStd`,
-`residualScaling`, `gamma`, `beta`, or `bias` in the third argument to adapt an
-exporter's initialization specification. The deterministic RNG is Mulberry32
-with Box–Muller Gaussian samples; Julia conformance uses exported `theta0`
-rather than assuming identical random streams. `model.P` contains paired
-sin/cos frequencies with zero-based positions exactly as in BRIEF §3.
+`initial(name,config)` gives the canonical `{mean,std}` from BRIEF §13 and Julia's
+`src/parameters.jl:initial`:
+
+| Parameter | Mean | Standard deviation |
+|---|---:|---:|
+| `E` | 0 | 1 |
+| `Wq,Wk,Wv,W1` | 0 | `1/√D` |
+| `Wo` | 0 | `1/√(2L·D)` |
+| `W2` | 0 | `1/√(2L·F)` |
+| `Wout` | 0 | `1/D` |
+| every γ | 1 | 0 |
+| every β and bias | 0 | 0 |
+
+`drawTheta(layout,distributions,seed)` draws an explicit array of `{mean,std}`
+records, such as `artifact.init.params`. Both `init` and the figure adapter use
+this one implementation. The deterministic RNG is Mulberry32 with Box–Muller
+Gaussian samples; constants consume no draws. Julia conformance uses exported
+`theta0` rather than assuming identical random streams. `DEFAULT_INIT` uses
+`matrixStd:null` to select the table above. Explicit experimental overrides remain:
+`matrixStd` replaces all matrix standard deviations (with residual scaling for
+`Wo,W2`); `residualScaling:false` removes their `1/√(2L)` factor; `gamma,beta,bias`
+replace the constants. `model.P` contains paired sin/cos frequencies with
+zero-based positions exactly as in BRIEF §3.
 
 `step` applies the current gradient; `trainStep` also runs forward and backward.
-Both return a reused `{loss,gradNorm,clipScale,lr,step}` record; loss is before
-the update. Options and defaults:
+Both return a reused `{loss,gradNorm,clipScale,lr,step,updateNorm}` record; loss is
+before the update. `lr` in this result is the actual scheduled η for that update.
+Canonical option vocabulary matches `artifacts/specimen.json`:
 
 | Option | Default | Meaning |
 |---|---:|---|
 | `optimizer` | `'adamw'` | `'adamw'` or `'gd'` (`'sgd'` is an alias) |
-| `lr` | `0.001` | learning rate |
-| `beta1,beta2` | `0.9,0.999` | Adam moment coefficients |
+| `eta` | `0.001` | peak (or constant) learning rate |
+| `eta_min` | `eta/10` | final scheduled learning rate |
+| `warmup` | `0` | number of linear warmup updates |
+| `steps` | `0` | schedule endpoint; 0 means constant η |
+| `beta1,beta2` | `0.9,0.95` | Adam moment coefficients |
 | `eps` | `1e-8` | Adam denominator ε, outside `sqrt(v̂)` |
-| `weightDecay` | `0` | decoupled decay of every parameter |
-| `clipNorm` | `Infinity` | global-norm threshold, before moments/updates |
-| `schedule` | absent | `{warmupSteps,totalSteps,minLR}` |
+| `weight_decay` | `0` | decoupled decay of **matrix parameters only** |
+| `clip` | `Infinity` | global-norm threshold, before moments/updates |
 
-Adam uses bias correction. For update number `t` starting at 1, warmup uses
-`lr*t/warmupSteps`; cosine then reaches `minLR` at `totalSteps` and stays there.
-`learningRate(t,options)` exposes the same schedule. `resetOptimizer(model)`
-clears moments and the update count. `globalNorm` and `clipGlobalNorm` are also
-exported. The aliases `learning_rate`, `weight_decay`, `clip_norm`, `clip`, and
-`epsilon` support JSON hyperparameters.
+Adam uses bias correction. For update number `t` starting at 1, the schedule is
+`eta*t/warmup` for `t <= warmup`, then
+`eta_min + (eta-eta_min)*(1+cos(π*(t-warmup)/(steps-warmup)))/2`.
+After `steps`, η stays at `eta_min`. `learningRate(t,options)` exposes this same
+schedule. Flat schedule options work directly with the JSON's
+`schedule:'warmup_cosine'`; add `steps:artifact.train.steps` to `train.hyper`.
+`schedule:null` disables scheduling.
+
+Compatibility aliases: `lr,learning_rate` → `eta`; `weightDecay` → `weight_decay`;
+`clipNorm,clip_norm` → `clip`; `epsilon` → `eps`. A nested `schedule` object accepts
+`warmup,warmupSteps,warmup_steps`, `steps,total,totalSteps,total_steps`, and
+`eta_min,etaMin,minLR,min_lr`. Canonical spellings take precedence over aliases.
+
+`SPECIMEN_RECIPE` is the binding full-batch recipe: AdamW, η=0.02, η_min=0.002,
+warmup=20, steps=200, weight_decay=0.01, clip=1, β1=0.9, β2=0.95, ε=1e-8.
+To record the documented trajectory, collect `trainStep(...).loss` for all 200
+updates and append `forward(model,batch).loss`: entry `loss[k]` is the loss after
+`k` updates, for `k=0…steps` (201 entries). A step itself still returns its
+pre-update loss.
+
+`resetOptimizer(model)` clears moments and the update count. `prepareOptimizer`
+allocates reusable `m,v,mask,delta` buffers, also shared by the book's `Run` API.
+`matrixMask(layout)` marks entries with 2-D parameter shapes. The optional third
+argument to `step` (fourth to `trainStep`) is `{preserveGradient:true}`: use the
+clipped gradient for moments while retaining raw `model.grad` for figures.
+`Run` delegates to `trainStep` with that flag; its existing option names and
+per-step histories remain supported. `globalNorm` and `clipGlobalNorm` are also
+exported.
 
 `sample(logitColumn,{temperature,rng,tokenBase})` returns one ID. Temperature
 zero chooses the first maximum; positive temperature uses stable Gibbs weights.
@@ -149,7 +190,10 @@ They also check arbitrary output covectors, causality, independent sequences,
 attention normalization, stable cross-entropy, initialization, optimizers,
 scheduling, and sampling. If `artifacts/specimen.json` exists, conformance checks
 layout offsets/shapes, P and every forward array (absolute tolerance `1e-12`),
-∇θ (`1e-12`), every pre-update training loss (`1e-9`), and final θ (`1e-9`).
+∇θ (`1e-12`), all `steps+1` training losses (`1e-9`), and final θ (`1e-9`).
+It also checks init distributions against the artifact and replays the figure
+adapter's trajectory through the same engine. The training tolerance accommodates
+Julia's measured sensitivity to a one-ulp perturbation of θ₀ (≈9e-11 in final θ).
 If absent, that test reports an explicit skip.
 
 The corpus has 18 characters, so there are **10** length-8 inputs with complete

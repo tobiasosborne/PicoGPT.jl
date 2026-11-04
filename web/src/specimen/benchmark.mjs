@@ -3,7 +3,7 @@ import { createModel, SPECIMEN_CONFIG, trainStep } from './index.mjs';
 import { specimenBatch } from './fixtures.mjs';
 
 const model = createModel(SPECIMEN_CONFIG), batch = specimenBatch(11);
-const opt = { optimizer: 'adamw', lr: 1e-3, weightDecay: 0.01, clipNorm: 1 };
+const opt = { optimizer: 'adamw', eta: 1e-3, weight_decay: 0.01, clip: 1 };
 const steps = Number(process.argv[2] ?? 3000), rounds = 5;
 if (!Number.isSafeInteger(steps) || steps < 1) throw new RangeError('Steps must be a positive integer');
 for (let i = 0; i < 1500; i++) trainStep(model, batch, opt);

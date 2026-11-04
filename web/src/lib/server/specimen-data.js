@@ -8,13 +8,13 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createModel, createBatch, init, trainStep, SPECIMEN_CONFIG } from '#specimen';
+import { createModel, createBatch, init, forward, trainStep, SPECIMEN_CONFIG, SPECIMEN_RECIPE } from '#specimen';
 import { ROOT } from './book.js';
 
 export const CORPUS = 'to be or not to be';
 export const VOCAB = [' ', 'b', 'e', 'n', 'o', 'r', 't'];
 
-const PROVISIONAL = { seed: 0, optimizer: 'adamw', lr: 3e-3, weightDecay: 0, clipNorm: 1, steps: 2000 };
+const PROVISIONAL = { seed: 0, ...SPECIMEN_RECIPE };
 
 let cached = null;
 let cachedKey = '';
@@ -62,9 +62,9 @@ function provisional() {
 	const batch = createBatch(x, y);
 	const theta0 = init(config, PROVISIONAL.seed);
 	const model = createModel(config, theta0);
-	const opt = { optimizer: PROVISIONAL.optimizer, lr: PROVISIONAL.lr, weightDecay: PROVISIONAL.weightDecay, clipNorm: PROVISIONAL.clipNorm };
 	const loss = [];
-	for (let i = 0; i < PROVISIONAL.steps; i++) loss.push(trainStep(model, batch, opt).loss);
+	for (let i = 0; i < PROVISIONAL.steps; i++) loss.push(trainStep(model, batch, PROVISIONAL).loss);
+	loss.push(forward(model, batch).loss);
 	return {
 		config: { ...config },
 		vocab: VOCAB,

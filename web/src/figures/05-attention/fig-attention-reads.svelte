@@ -12,15 +12,15 @@
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import Arcs from '../primitives/Arcs.svelte';
-	import { fmt, showChar, clamp, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
 	const T = $derived(specimen.config.T);
-	const maxStart = $derived(specimen.corpus.length - T);
+	const maxStart = $derived(specimen.windows.length - 1);
 
 	// svelte-ignore state_referenced_locally
-	let start = $state(clamp((+attrs.window || 11) - 1, 0, 10));
+	let start = $state(clamp((+attrs.window || 10) - 1, 0, specimen.windows.length - 1));
 	// svelte-ignore state_referenced_locally
 	let reader = $state(clamp((+attrs.reader || 8) - 1, 0, 7));
 	let preview = $state(-1);
@@ -93,7 +93,7 @@
 		const i = reader;
 		const parts = tr.heads.map((h, k) => {
 			const row = h.A[i].slice(0, i + 1).map((w, j) => ({ w, j })).sort((a, b) => b.w - a.w).slice(0, 3);
-			return `head ${k + 1} reads ${row.map((r) => `‘${showChar(tr.chars[r.j])}’${r.j === i ? ' (itself)' : ''} ${fmt(r.w)}`).join(', ')}`;
+			return `head ${k + 1} reads ${row.map((r) => `‘${showChar(tr.chars[r.j])}’ at ${r.j + 1}${r.j === i ? ' (itself)' : ''} ${fmtProb(r.w, 2, true)}`).join(', ')}`;
 		});
 		return { who: `‘${showChar(tr.chars[i])}’, position ${i + 1} of “${tr.text}”`, parts };
 	});
@@ -109,7 +109,7 @@
 			<path class="fx-reads__bracket" d="M {stripX0 + strip.cs * start + 2} {strip.y + 16} v 4 H {stripX0 + strip.cs * (start + T) - 2} v -4" />
 			<text class="lbl lbl--micro" x={stripX0 + strip.cs * (start + T) + 6} y={strip.y + 21}>window</text>
 			{#if interactive}
-				<rect class="hit hit--drag" x={stripX0 - 6} y={strip.y - 6} width={strip.cs * specimen.corpus.length + 12} height="34" onpointerdown={stripDown} onpointermove={stripMove} onpointerup={stripUp} role="slider" tabindex="-1" aria-label="window position" aria-valuenow={start + 1} aria-valuemin="1" aria-valuemax={maxStart + 1} />
+				<rect class="hit hit--drag" x={stripX0 - 6} y={strip.y - 6} width={strip.cs * specimen.corpus.length + 12} height="34" onpointerdown={stripDown} onpointermove={stripMove} onpointerup={stripUp} role="slider" tabindex="0" onkeydown={(e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); start = clamp(start + (e.key === 'ArrowLeft' ? -1 : 1), 0, maxStart); } }} aria-label="window position" aria-valuenow={start + 1} aria-valuemin="1" aria-valuemax={maxStart + 1} />
 			{/if}
 		</g>
 
@@ -155,22 +155,22 @@
 					width={step}
 					height={fs * 1.3}
 					role="button"
-					tabindex="-1"
+					tabindex="0"
 					aria-label="read from position {j + 1}"
-					onpointerenter={() => (preview = j)}
-					onpointerleave={() => (preview = -1)}
+					onpointerenter={() => (preview = j)} onfocus={() => (preview = j)}
+					onpointerleave={() => (preview = -1)} onblur={() => (preview = -1)}
 					onclick={() => pick(j)}
-					onkeydown={() => {}}
+					onkeydown={(e) => { key(e); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(j); } }}
 				/>
 			{/each}
 		{/if}
 	{/snippet}
 	{#if interactive}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="slider" tabindex="0" aria-label="Reader position (arrow keys)" aria-valuemin="1" aria-valuemax={T} aria-valuenow={reader + 1} aria-valuetext="reader {readout.who}: {readout.parts.join('; ')}" onkeydown={key}>
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="group" aria-label="Reader position (arrow keys on a character): {readout.who}: {readout.parts.join('; ')}" >
 			{@render body()}
 		</svg>
 	{:else}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Attention arcs for the reader {readout.who}: {readout.parts.join('; ')}">
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Attention arcs for the reader {readout.who}: {readout.parts.join('; ')}">
 			{@render body()}
 		</svg>
 	{/if}

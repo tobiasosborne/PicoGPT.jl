@@ -112,6 +112,7 @@
 </script>
 
 <div class="fx fx-rot" use:measure={(w) => (width = w)}>
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard navigation on the composite drawing) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}

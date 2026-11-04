@@ -17,7 +17,7 @@
 	import Scrubber from '../primitives/Scrubber.svelte';
 	import SpokeGlyph from '../primitives/SpokeGlyph.svelte';
 	import { stemWindow, stemGeometry, rms } from '../primitives/stem.js';
-	import { fmt, showChar, clamp, maxAbs, spokeScale, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, maxAbs, spokeScale, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -115,10 +115,10 @@
 		const src = sw.arcF[shown].slice(0, shown + 1).map((v, j) => ({ j, v: rms(v) })).sort((a, b) => b.v - a.v)[0];
 		return {
 			who: `‘${showChar(chars[shown])}’, position ${shown + 1} of “${specimen.corpus.slice(win, win + T)}”.`,
-			flow: `The stream enters at ${fmt(rms(c.x0))}; attention adds ${fmt(rms(c.a))}` +
+			flow: `The stream’s RMS goes ${fmt(rms(c.x0))} → ${fmt(rms(c.mid))} under an attention update of RMS ${fmt(rms(c.a))}` +
 				(shown > 0 ? ` (the largest share, ${fmt(src.v)}, from ‘${showChar(chars[src.j])}’ at ${src.j + 1}${src.j === shown ? ', itself' : ''})` : ', all of it read from itself') +
-				`, giving ${fmt(rms(c.mid))}; the MLP adds ${fmt(rms(c.y))}, giving ${fmt(rms(c.out))}.`,
-			pred: `It predicts ‘${showChar(specimen.vocab[c.pred])}’ with p = ${fmt(c.probs[c.pred])}; the next character is ‘${showChar(specimen.vocab[c.target])}’.`
+				`; under an MLP update of RMS ${fmt(rms(c.y))}, it goes ${fmt(rms(c.mid))} → ${fmt(rms(c.out))}.`,
+			pred: `It predicts ‘${showChar(specimen.vocab[c.pred])}’ with p = ${fmtProb(c.probs[c.pred], 2, true)}; the next character is ‘${showChar(specimen.vocab[c.target])}’.`
 		};
 	});
 	const sub = (r) => String(r).split('').map((ch) => '₀₁₂₃₄₅₆₇₈₉'[+ch]).join('');
@@ -178,7 +178,7 @@
 			{#if t >= 0.95}
 				{@const px = G.detail.x - (7 * 6 + 6 * 2.2) / 2 + c.pred * 8.2 + 3}
 				<text class="tok fx-stem__dpred" x={px} y={yPred} text-anchor="middle">{showChar(specimen.vocab[c.pred])}</text>
-				<text class="lbl lbl--micro" x={px + 9} y={yPred}>{fmt(c.probs[c.pred])}</text>
+				<text class="lbl lbl--micro" x={px + 9} y={yPred}>{fmtProb(c.probs[c.pred])}</text>
 			{/if}
 		{/if}
 
@@ -197,8 +197,8 @@
 		<line class="fx-stem__sel" x1={G.xs[shown] - 7} x2={G.xs[shown] + 7} y1={G.Y.char + 6} y2={G.Y.char + 6} />
 		{#if interactive}
 			{#each chars as _, i (i)}
-				<rect class="hit" x={G.ox + G.lane * i} y={G.Y.char - 22} width={G.lane} height={yPred - G.Y.char + 30} role="presentation"
-					onpointerenter={() => (hover = i)} onpointerleave={() => (hover = -1)} onclick={() => { col = i; hover = -1; }} />
+				<rect class="hit" x={G.ox + G.lane * i} y={G.Y.char - 22} width={G.lane} height={yPred - G.Y.char + 30} role="button" aria-label="read this entry; details in the live readout" tabindex="0"
+					onpointerenter={() => (hover = i)} onfocus={() => (hover = i)} onpointerleave={() => (hover = -1)} onblur={() => (hover = -1)} onclick={() => { col = i; hover = -1; }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); { col = i; hover = -1; }; } }} />
 			{/each}
 		{/if}
 
@@ -225,7 +225,7 @@
 			aria-label="The forward pass of the window “{specimen.corpus.slice(win, win + T)}”, one stem per token. {readout.who} {readout.flow} {readout.pred}"
 			aria-valuemin="1" aria-valuemax={T} aria-valuenow={col + 1} onkeydown={key}>{@render body()}</svg>
 	{:else}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 			aria-label="The forward pass of the window “{specimen.corpus.slice(win, win + T)}”, one stem per token. {readout.who} {readout.flow} {readout.pred}">{@render body()}</svg>
 	{/if}
 	{#if interactive}

@@ -164,3 +164,5 @@ html.film .fig__foot { display: none; }
 	.scrub__phase .scrub__label { display: none; }
 	.scrub__current { display: block; position: absolute; top: 1.47rem; left: 0; color: var(--ink); font-size: var(--fs-micro); }
 }
+
+.fx :is(.hit, .handle-hit):focus-visible { outline: 1.5px solid var(--ink); outline-offset: 2px; }

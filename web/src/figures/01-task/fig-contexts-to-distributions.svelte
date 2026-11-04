@@ -11,15 +11,15 @@
 	// Data: windowTrace(start).probs. Drag the window along the corpus.
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
-	import { fmt, showChar, clamp, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
 	const T = $derived(specimen.config.T);
 	const V = $derived(specimen.config.V);
-	const maxStart = $derived(specimen.corpus.length - T);
+	const maxStart = $derived(specimen.windows.length - 1);
 	// svelte-ignore state_referenced_locally
-	let start = $state(clamp((+attrs.window || 1) - 1, 0, specimen.corpus.length - specimen.config.T));
+	let start = $state(clamp((+attrs.window || 1) - 1, 0, specimen.windows.length - 1));
 	let focus = $state(-1);
 	let width = $state(868);
 	const interactive = $derived(mode !== 'print');
@@ -64,7 +64,7 @@
 	const describe = (t) => {
 		const p = tr.probs[t];
 		const ctx = tr.chars.slice(0, t + 1).map(showChar).join('');
-		const top = p.map((v, a) => ({ v, a })).filter((o) => o.v >= 0.01).sort((u, w) => w.v - u.v).map((o) => `‘${showChar(specimen.vocab[o.a])}’ ${fmt(o.v)}`).join(', ');
+		const top = p.map((v, a) => ({ v, a })).filter((o) => o.v >= 0.01).sort((u, w) => w.v - u.v).map((o) => `‘${showChar(specimen.vocab[o.a])}’ ${fmtProb(o.v, 2, true)}`).join(', ');
 		const nx = nextId(t);
 		return `After “${ctx}”: ${top}.${nx >= 0 ? ` The text continues with ‘${showChar(specimen.vocab[nx])}’.` : ' The corpus ends here.'}`;
 	};
@@ -77,15 +77,13 @@
 </script>
 
 <div class="fx fx-ctx" use:measure={(w) => (width = w)}>
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (composite figure supports arrow-key navigation) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}
 		height={H}
-		role={interactive ? 'slider' : 'img'}
+		role={interactive ? 'group' : 'img'}
 		tabindex={interactive ? 0 : undefined}
-		aria-valuemin={interactive ? 1 : undefined}
-		aria-valuemax={interactive ? maxStart + 1 : undefined}
-		aria-valuenow={interactive ? start + 1 : undefined}
 		aria-label="The model's next-character distributions for the prefixes of “{tr.text}”. {describe(T - 1)}"
 		onkeydown={key}
 	>
@@ -122,12 +120,12 @@
 						<rect class="fx-ctx__next" x={x0(t) + 1.5} y={y + rowH * 0.1} width={barMax + 5} height={rowH * 0.8} />
 					{/if}
 					{#if v >= 0.1}
-						<text class="lbl lbl--micro fx-ctx__p" class:lbl--strong={true} x={x0(t) + 4 + v * barMax + (v > 0.78 ? -3 : 3)} y={y + rowH * 0.5 + 3.6} text-anchor={v > 0.78 ? 'end' : 'start'} class:fx-ctx__p--in={v > 0.78}>{fmt(v, 2).replace(/^0\./, '.')}</text>
+						<text class="lbl lbl--micro fx-ctx__p" class:lbl--strong={true} x={x0(t) + 4 + v * barMax + (v > 0.78 ? -3 : 3)} y={y + rowH * 0.5 + 3.6} text-anchor={v > 0.78 ? 'end' : 'start'} class:fx-ctx__p--in={v > 0.78}>{fmtProb(v, 2).replace(/^0\./, '.')}</text>
 					{/if}
 				{/each}
 			</g>
 			{#if interactive}
-				<rect class="hit" x={x0(t)} y={yCtx - 34} width={colW} height={yBars + rowH * V - yCtx + 34} role="presentation" onpointerenter={() => (focus = t)} onpointerleave={() => (focus = -1)} />
+				<rect class="hit" x={x0(t)} y={yCtx - 34} width={colW} height={yBars + rowH * V - yCtx + 34} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (focus = t)} onfocus={() => (focus = t)} onpointerleave={() => (focus = -1)} onblur={() => (focus = -1)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (focus = t); } }} />
 			{/if}
 		{/each}
 		<text class="lbl lbl--micro" x={padL + 4} y={H - 10}>outlined: the character that actually comes next</text>

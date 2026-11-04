@@ -12,7 +12,7 @@
 	// Data: specimen.predictions(θ) and predictions(θ₀) on the training windows.
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
-	import { fmt, showChar, clamp, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -96,10 +96,11 @@
 	}
 	const total1 = $derived(c1.at(-1));
 	const total0 = $derived(c0?.at(-1));
-	const summary = $derived(`The trained specimen gives the window probability exp(−${fmt(total1, 3)}) = ${fmt(Math.exp(-total1), 3)}${P0 ? `; before training it gave exp(−${fmt(total0, 2)})` : ''}. Uniform guessing would give exp(−${fmt(T * lnV, 2)}).`);
+	const summary = $derived(`The trained specimen gives the window probability exp(−${fmt(total1, 3)}) = ${fmtProb(Math.exp(-total1), 3, true)}${P0 ? `; before training it gave exp(−${fmt(total0, 2)})` : ''}. Uniform guessing would give exp(−${fmt(T * lnV, 2)}).`);
 </script>
 
 <div class="fx fx-chain" use:measure={(w) => (width = w)}>
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (composite figure supports arrow-key navigation) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}
@@ -127,7 +128,7 @@
 			{@const x = xs[t + 1]}
 			<rect class="fx-chain__frame" x={x - 7} y={yBarBase - hB} width="14" height={hB} />
 			<rect class="bar--value" x={x - 7} y={yBarBase - p * hB} width="14" height={p * hB} />
-			<text class="lbl lbl--micro" class:lbl--strong={p >= 0.1} x={x} y={yBarBase - hB - 6} text-anchor="middle">{fmt(p, 2)}</text>
+			<text class="lbl lbl--micro" class:lbl--strong={p >= 0.1} x={x} y={yBarBase - hB - 6} text-anchor="middle">{fmtProb(p, 2)}</text>
 		{/each}
 		{#if !narrow}
 			<text class="lbl lbl--micro" x={padL - 8} y={yBarBase - hB + 8} text-anchor="end">1</text>
@@ -140,7 +141,7 @@
 			<text class="tok fx-chain__char" class:is-given={k === 0} class:is-on={k === sel + 1} x={xs[k]} y={yChar} text-anchor="middle" font-size={fs}>{c}</text>
 			<text class="lbl lbl--micro" x={xs[k] + fs * 0.34} y={yChar + 3}>{k + 1}</text>
 			{#if interactive && k > 0}
-				<rect class="hit" x={xs[k] - step / 2} y={yBarBase - hB - 18} width={step} height={yChar - yBarBase + hB + 26} role="button" tabindex="-1" aria-label="open the distribution at position {k}" onclick={() => (sel = k - 1)} onkeydown={() => {}} />
+				<rect class="hit" x={xs[k] - step / 2} y={yBarBase - hB - 18} width={step} height={yChar - yBarBase + hB + 26} role="button" tabindex="0" aria-label="open the distribution at position {k}" onclick={() => (sel = k - 1)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (sel = k - 1); } }} />
 			{/if}
 		{/each}
 		<text class="lbl lbl--micro" x={xs[0]} y={yChar + 18} text-anchor="middle">given</text>
@@ -172,7 +173,7 @@
 					{@const x = ix + ibar * (a + 0.5)}
 					<rect class="bar--value" x={x - ibar * 0.3} y={iy + ih - v * ih} width={ibar * 0.6} height={v * ih} />
 					{#if a === ySel}<rect class="fx-ctx__next" x={x - 7} y={iy + ih + 3} width="14" height="17" />{/if}
-					{#if v >= 0.1}<text class="lbl lbl--micro lbl--strong" x={x} y={iy + ih - v * ih - 5} text-anchor="middle">{fmt(v, 2).replace(/^0\./, '.')}</text>{/if}
+					{#if v >= 0.1}<text class="lbl lbl--micro lbl--strong" x={x} y={iy + ih - v * ih - 5} text-anchor="middle">{fmtProb(v, 2).replace(/^0\./, '.')}</text>{/if}
 					<text class="tok fx-chain__ich" x={x} y={iy + ih + 15} text-anchor="middle">{showChar(specimen.vocab[a])}</text>
 				{/each}
 				<text class="lbl lbl--micro" x={ix} y={iy + ih + 36}>outlined: what came next</text>

@@ -11,7 +11,7 @@ Character $a$ becomes the column $Ee_a$ of a learned matrix $E\in\R^{D\times V}$
 | $E\in\R^{D\times V}$, column $a$ is $Ee_a$ | a coupling of each symbol to $D$ modes | embedding matrix, token embedding |
 | $x\mapsto E[:,x]=EC$, with $C$ one-hot | evaluating a linear map on basis states | embedding lookup |
 | the dimension $D$ of the columns | the number of modes | model dimension, width |
-| $P_t=\bigl(\sin\omega_rt,\cos\omega_rt\bigr)_{r}$, fixed | phases of $D/2$ oscillators | sinusoidal positional encoding |
+| $P_t=\bigl(\sin\bigl(\omega_r(t-1)\bigr),\cos\bigl(\omega_r(t-1)\bigr)\bigr)_{r}$, fixed | phases of $D/2$ oscillators | sinusoidal positional encoding |
 | $X_0=E[:,x]+P\in\R^{D\times T}$ | the initial condition | input embeddings |
 :::
 
@@ -29,7 +29,7 @@ The model's first parameters are a matrix $E\in\R^{D\times V}$, whose columns ar
 $$Ee_a=E_{:,a}\in\R^D,\qquad (Ee_a)_i=\sum_bE_{ib}\,\delta_{ba}=E_{ia}.$$
 That is the whole of the *embedding*: column $a$ of $E$ is what the model means by the character $a$. For a sequence $x_1,\dots,x_T$, collect the one-hot vectors as the columns of $C=(e_{x_1},\dots,e_{x_T})\in\{0,1\}^{V\times T}$; then
 $$EC=\bigl(E_{:,x_1},\dots,E_{:,x_T}\bigr)=E[:,x]\in\R^{D\times T}.$$
-In matrix form the lookup is a product with a one-hot matrix; in code it is indexing, and $C$ is never formed. The specimen has $D=8$ and $V=7$, so $E$ holds 56 of its parameters. Training adjusts them like all the others.
+In matrix form the lookup is a product with a one-hot matrix; in code it is indexing, and $C$ is never formed. The specimen has $D=8$ and $V=7$, so $E$ holds {{value:embeddingParams}} of its parameters. Training adjusts them like all the others.
 
 ::: {.figure #fig-one-hot char=5}
 A character becomes a vector. The alphabet is a row of seven slots, and the one-hot vector $e_a$ fills one of them; the embedding returns column $a$ of $E$, drawn as a spoke glyph with one spoke for each of its eight components. [Click another character.]{.web}

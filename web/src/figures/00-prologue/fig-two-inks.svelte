@@ -15,7 +15,7 @@
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import Scrubber from '../primitives/Scrubber.svelte';
-	import { fmt, showChar, clamp, phase, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, phase, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -82,28 +82,28 @@
 	const panelW = $derived(narrow ? W : (W - 40) / 2);
 	const c = $derived(Math.min(26, (panelW - 92) / (D + 3.2)));
 	const ox = (k) => (narrow ? 0 : k * (panelW + 40)); // panel origin
-	const oy = (k) => (narrow ? k * (top + 12 * c + 130) : 0);
+	const oy = (k) => (narrow ? k * (top + 12 * c + 160) : 0);
 	const top = 62;
 	const lx = 34; // left of the matrix within a panel
 	const yX = top + 14;
 	const yM = $derived(yX + c + 22);
 	const xZ = $derived(lx + (D + 1) * c + 0.25 * c + 34);
 	const yL = $derived(yM + V * c + 30);
-	const H = $derived(narrow ? oy(1) + yL + 64 : yL + 64);
+	const H = $derived(narrow ? oy(1) + yL + 94 : yL + 94);
 	const sq = (v, s, k = 1) => c * 0.9 * Math.sqrt(Math.min(1, Math.abs(v) / s)) * k;
 	const cellX = (j) => lx + c * j + (j === D ? 0.25 * c : 0);
 
-	const readout = $derived(`Predicting position ${pos + 2} of window ${b + 1}, after “${train.x[b].slice(0, pos + 1).map((id) => showChar(specimen.vocab[id - 1])).join('')}”: the text has ‘${showChar(specimen.vocab[y])}’, to which the model gave p = ${fmt(p[y], 3)}, so ℓ = ${fmt(loss, 3)} nats. Its adjoint z̄ = p − e_y is largest at ${zbar.map((v, a) => ({ v, a })).sort((u, w) => Math.abs(w.v) - Math.abs(u.v)).slice(0, 2).map((o) => `‘${showChar(specimen.vocab[o.a])}’ (${fmt(o.v, 2)})`).join(' and ')}.`);
+	const readout = $derived(`Predicting position ${pos + 2} of window ${b + 1}, after “${train.x[b].slice(0, pos + 1).map((id) => showChar(specimen.vocab[id - 1])).join('')}”: the text has ‘${showChar(specimen.vocab[y])}’, to which the model gave p = ${fmtProb(p[y], 3, true)}, so ℓ = ${fmt(loss, 3)} nats. Its adjoint z̄ = p − e_y is largest at ${zbar.map((v, a) => ({ v, a })).sort((u, w) => Math.abs(w.v) - Math.abs(u.v)).slice(0, 2).map((o) => `‘${showChar(specimen.vocab[o.a])}’ (${fmt(o.v, 2)})`).join(' and ')}.`);
 	const sub = (n) => String(n);
 </script>
 
 <div class="fx fx-inks" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="The readout map forward in value ink and backward in covector ink. {readout}">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="The readout map forward in value ink and backward in covector ink. {readout}">
 		<!-- the window: choose the column -->
 		<g>
 			{#each train.x[b] as id, k (k)}
 				<text class="tok fx-inks__w" class:is-on={k === pos} x={(narrow ? 20 : W / 2 - 120) + k * 26} y={22} text-anchor="middle">{showChar(specimen.vocab[id - 1])}</text>
-				{#if interactive}<rect class="hit" x={(narrow ? 20 : W / 2 - 120) + k * 26 - 13} y="2" width="26" height="30" role="button" tabindex="-1" aria-label="column {k + 1}" onclick={() => (pos = k)} onkeydown={() => {}} />{/if}
+				{#if interactive}<rect class="hit" x={(narrow ? 20 : W / 2 - 120) + k * 26 - 13} y="2" width="26" height="30" role="button" tabindex="0" aria-label="column {k + 1}" onclick={() => (pos = k)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (pos = k); } }} />{/if}
 			{/each}
 			<text class="lbl lbl--micro" x={(narrow ? 20 : W / 2 - 120) + T * 26 - 4} y={22}>→ ‘{showChar(specimen.vocab[y])}’ next</text>
 			<line class="fx-inks__under" x1={(narrow ? 20 : W / 2 - 120) + pos * 26 - 8} x2={(narrow ? 20 : W / 2 - 120) + pos * 26 + 8} y1={28} y2={28} />
@@ -194,6 +194,8 @@
 				{/if}
 				<text class="lbl lbl--micro" x={lx} y={yL + 4}>{fwd ? '[W  b] (x, 1) = Wx + b' : 'x̄ = Wᵀz̄,   [W̄  b̄] = z̄ (xᵀ, 1)'}</text>
 				<text class="lbl lbl--micro" x={lx} y={yL + 18}>{fwd ? 'W = W_out, b = b_out' : 'every value has a covector of its shape'}</text>
+				<text class="lbl lbl--micro" x={lx} y={yL + 46}>full cell |entry| = {fwd ? `x ${sx.toPrecision(3)}; W,b ${sW.toPrecision(3)}` : `x̄ ${sxb.toPrecision(3)}; W̄,b̄ ${sWb.toPrecision(3)}`}</text>
+				<text class="lbl lbl--micro" x={lx} y={yL + 60}>{fwd ? `z ${sz.toPrecision(3)}` : `z̄ ${szb.toPrecision(3)}`}</text>
 			</g>
 		{/each}
 		{#if !agree}<text class="lbl lbl--covector" x={4} y={H - 4}>check failed: the engine’s adjoints disagree</text>{/if}

@@ -19,7 +19,7 @@
 	import ResidualStem, { FORWARD_PHASES, BACKWARD_PHASES } from '../primitives/ResidualStem.svelte';
 	import Scrubber from '../primitives/Scrubber.svelte';
 	import { stemWindow, stemGeometry, rms } from '../primitives/stem.js';
-	import { fmt, showChar, clamp, maxAbs, spokeScale, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, maxAbs, spokeScale, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -157,7 +157,7 @@
 	const readout = $derived.by(() => {
 		const c = sw.cols[shown];
 		const who = `‘${showChar(chars[shown])}’, position ${shown + 1} of “${specimen.corpus.slice(win, win + T)}”, ${trained ? 'after training' : 'at θ₀, before training'}.`;
-		if (!back) return { who, part: `Forward: the stream enters at ${fmt(rms(c.x0))}, attention adds ${fmt(rms(c.a))}, the MLP adds ${fmt(rms(c.y))}; p(next = ‘${showChar(specimen.vocab[c.target])}’) = ${fmt(c.probs[c.target])}.` };
+		if (!back) return { who, part: `Forward: the stream enters at ${fmt(rms(c.x0))}, attention adds ${fmt(rms(c.a))}, the MLP adds ${fmt(rms(c.y))}; p(next = ‘${showChar(specimen.vocab[c.target])}’) = ${fmtProb(c.probs[c.target], 2, true)}.` };
 		const z = rms(c.zbar), x0 = rms(c.bx0);
 		const sent = sw.arcB[shown].slice(0, shown).map((v, j) => ({ j, v: rms(v) })).sort((a, b) => b.v - a.v)[0];
 		const got = sw.arcB.slice(shown + 1).map((r, q) => ({ i: shown + 1 + q, v: rms(r[shown]) })).sort((a, b) => b.v - a.v)[0];
@@ -272,13 +272,13 @@
 			{/if}
 
 			{#each chars as _, i (i)}
-				<rect class="hit" x={G.ox + G.lane * i} y={G.Y.char - 22} width={G.lane} height={S.yPred - G.Y.char + 30} role="presentation"
-					onpointerenter={() => (hover = i)} onpointerleave={() => (hover = -1)} onclick={() => { col = i; hover = -1; }} />
+				<rect class="hit" x={G.ox + G.lane * i} y={G.Y.char - 22} width={G.lane} height={S.yPred - G.Y.char + 30} role="button" aria-label="read this entry; details in the live readout" tabindex="0"
+					onpointerenter={() => (hover = i)} onfocus={() => (hover = i)} onpointerleave={() => (hover = -1)} onblur={() => (hover = -1)} onclick={() => { col = i; hover = -1; }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); { col = i; hover = -1; }; } }} />
 			{/each}
 		</svg>
 	{:else}
 		{@const PH = PS.H + 6}
-		<svg viewBox="0 0 {W} {PH}" width={W} height={PH} role="img"
+		<svg viewBox="0 0 {W} {PH}" width={W} height={PH} role={interactive ? 'group' : 'img'}
 			aria-label="Forward pass (left, values flowing down) and backward pass (right, adjoints flowing up) of the window “{specimen.corpus.slice(win, win + T)}”, {trained ? 'after training' : 'at θ₀, before training'}.">
 			{@render strip()}
 			<text class="lbl lbl--head" x="4" y={stripY + 10}>forward: values, down</text>

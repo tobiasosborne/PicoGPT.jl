@@ -4,6 +4,7 @@
 	//   /figures/<id>/?print      static (print) state
 	//   /figures/<id>/?film&t=0.5 static frame at time t; window.__pico.setT(t) changes it
 	// <html data-figure-ready="1"> is set once fonts are loaded and the figure has laid out.
+	import { resolve } from '$app/paths';
 	import { onMount, setContext, tick } from 'svelte';
 	import { makeSpecimen } from '#lib/model/specimen.js';
 	import Figure from '#lib/shell/Figure.svelte';
@@ -16,6 +17,7 @@
 
 	let mode = $state('interactive');
 	let t = $state(null);
+	const figureLinks = (html) => html.replace(/href="\.\.\/([^"#]*)(#[^"]*)?"/g, (_, route, hash = '') => `href="${resolve(`/${route}`)}${hash}"`).replace(/href="#([^"]*)"/g, (_, hash) => `href="${resolve(`/${data.fig.chapter.slug}/`)}#${hash}"`);
 	const attrs = $derived(t == null ? data.fig.attrs : { ...data.fig.attrs, t: String(t) });
 
 	onMount(async () => {
@@ -51,7 +53,7 @@
 	{/if}
 	<p class="figure-solo__meta label">{data.fig.id} · chapter {data.fig.chapter.num} · {mode}{t != null ? ` · t = ${t}` : ''}</p>
 	<div class="book flow">
-		<Figure {...data.fig} {attrs} entry={data.figures[data.fig.id]} {mode} />
+		<Figure {...data.fig} caption={figureLinks(data.fig.caption)} notes={data.fig.notes.map(figureLinks)} {attrs} entry={data.figures[data.fig.id]} {mode} />
 	</div>
 </main>
 

@@ -13,13 +13,13 @@
 	import { measure } from '../primitives/measure.js';
 	import TriangleDots from '../primitives/TriangleDots.svelte';
 	import Scrubber from '../primitives/Scrubber.svelte';
-	import { fmt, showChar, clamp, phase, maxAbs, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, phase, maxAbs, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
 	const T = $derived(specimen.config.T);
 	// svelte-ignore state_referenced_locally
-	const start = clamp((+attrs.window || 11) - 1, 0, 10);
+	const start = clamp((+attrs.window || 10) - 1, 0, specimen.windows.length - 1);
 	const tr = $derived(specimen.windowTrace(start));
 
 	// svelte-ignore state_referenced_locally
@@ -80,7 +80,7 @@
 		const ch = showChar(tr.chars[i]);
 		return tr.heads.map((h, k) => {
 			const best = h.A[i].slice(0, i + 1).map((w, j) => ({ w, j })).sort((a, b) => b.w - a.w)[0];
-			return `head ${k + 1}: ‘${ch}’ reads ‘${showChar(tr.chars[best.j])}’ most (${fmt(best.w)})`;
+			return `head ${k + 1}: ‘${ch}’ at ${i + 1} reads ‘${showChar(tr.chars[best.j])}’ at ${best.j + 1} most (${fmtProb(best.w, 2, true)})`;
 		});
 	});
 
@@ -109,7 +109,7 @@
 
 <div class="fx fx-tri" use:measure={(w) => (width = w)}>
 	{#if interactive}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="Attention matrices of head 1 and head 2 for the window “{tr.text}”, phase: {heading}">
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="Attention matrices of head 1 and head 2 for the window “{tr.text}”, phase: {heading}">
 			<text class="lbl lbl--phase" x={x0} y={14}>{heading}</text>
 			<text class="lbl lbl--head" x={x0} y={38}>head 1</text>
 			<text class="lbl lbl--head" x={x1} y={narrow ? y1 - 16 : 38}>head 2</text>
@@ -134,7 +134,7 @@
 		</p>
 	{:else}
 		{@const PH = 2 * (pCell * T + 46) + 10}
-		<svg viewBox="0 0 {W} {PH}" width={W} height={PH} role="img" aria-label="The attention computation for both heads in three phases: scores, mask, softmax">
+		<svg viewBox="0 0 {W} {PH}" width={W} height={PH} role={interactive ? 'group' : 'img'} aria-label="The attention computation for both heads in three phases: scores, mask, softmax">
 			{#each [0, 1] as h (h)}
 				{#each printPhases as p, k (k)}
 					{@const x = 20 + k * (pCell * T + 20 + pGap)}

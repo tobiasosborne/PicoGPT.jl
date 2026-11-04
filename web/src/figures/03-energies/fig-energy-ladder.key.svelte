@@ -8,7 +8,7 @@
 
 	let { attrs = {} } = $props();
 	const specimen = $derived(getContext('specimen')());
-	const start = $derived(clamp((+attrs.window || 3) - 1, 0, specimen.corpus.length - specimen.config.T));
+	const start = $derived(clamp((+attrs.window || 3) - 1, 0, specimen.windows.length - 1));
 	const pos = $derived(clamp((+attrs.position || 1) - 1, 0, specimen.config.T - 1));
 	const z = $derived(specimen.windowTrace(start).Z[pos]);
 	const p = $derived(gibbs(z, 1));

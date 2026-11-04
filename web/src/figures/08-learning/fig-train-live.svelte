@@ -34,7 +34,7 @@
 
 	// the window and reader whose attention is drawn
 	// svelte-ignore state_referenced_locally
-	const wStart = clamp((+attrs.window || 1) - 1, 0, specimen.corpus.length - T);
+	const wStart = clamp((+attrs.window || 1) - 1, 0, specimen.windows.length - 1);
 	// svelte-ignore state_referenced_locally
 	const reader = clamp((+attrs.reader || T) - 1, 0, T - 1);
 	const wText = specimen.corpus.slice(wStart, wStart + T);
@@ -109,16 +109,14 @@
 	}
 
 	// the static states: print shows the book's run (its own Run); interactive starts at θ₀
-	const PRINT_STEPS = [0, 10, 30, 200];
 	function bookRun() {
 		const r = lab.run({});
-		const frames = [], smp = [];
+		const smp = [];
 		for (let s = 0; s <= 200; s++) {
 			if (CHECK.includes(s)) smp.push({ step: s, loss: r.currentLoss(), text: lab.greedy(r.theta, PROMPT, 10), prompt: PROMPT });
-			if (PRINT_STEPS.includes(s)) frames.push({ step: s, theta: Float64Array.from(r.theta), A: ev.look(r.theta, wIds).A, loss: r.currentLoss() });
 			if (s < 200) r.step();
 		}
-		return { losses: [...r.loss, r.currentLoss()], samples: smp, frames };
+		return { losses: [...r.loss, r.currentLoss()], samples: smp };
 	}
 	const printed = $derived(mode === 'print' ? bookRun() : null);
 	// the book's samples, set in ghost ink at checkpoints the reader's run has not reached
@@ -345,7 +343,7 @@
 <div class="fx fx-live" data-step={k} use:measure={(w) => (width = w)}>
 	{#if interactive}
 		{@html bookSamples.tag}
-		<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+		<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 			aria-label="Training the specimen: step {k}, loss {fmt(lossNow ?? NaN, 4)} nats; uniform guessing {fmt(lnV, 2)}, entropy floor {fmt(lab.floor, 4)}.">
 			<LossChart x={0} y={0} width={leftW} height={chartH} series={ghostSeries} {xMax} {lnV} floor={lab.floor} samples={narrow ? [] : shownSamples} rows={narrow ? 0 : CHECK.filter((c) => c <= xMax).length} margin={sampW} yMax={2.5} xLabel="" />
 
@@ -422,25 +420,8 @@
 			<span class="readout__hint">Press ▶ to train ({optLabel}, {sched === 'cosine' ? 'warmup and cosine over 200 steps' : 'constant η'}, seed {seed}{seed === 0 ? ': the book’s θ₀' : ''}). Drag η on its axis; changing anything starts again from θ₀.</span>
 		</p>
 	{:else}
-		{@const PW = W}
-		{@const panelW = (PW - 3 * 20) / 4}
-		{@const pc = Math.min(5.2, (panelW - 2) / field.wCells)}
-		{@const pfh = field.hCells * pc}
-		{@const pTop = chartH + 34}
-		{@const pxs = (x0) => Array.from({ length: T }, (_, j) => x0 + ((panelW - 8) / T) * (j + 0.5) + 4)}
-		{@const pUp = Math.min(30, ((panelW - 8) / T) * (T - 1) * 0.25 + 4)}
-		{@const PH = pTop + 20 + pfh + 30 + 2 * pUp + 40}
-		<svg viewBox="0 0 {PW} {PH}" width={PW} height={PH} role="img" aria-label="The specimen's training run: loss from {fmt(specimen.loss[0], 2)} to {fmt(specimen.loss.at(-1), 4)} nats in 200 steps, with samples, parameters and attention at steps {PRINT_STEPS.join(', ')}.">
-			<LossChart x={0} y={0} width={PW} height={chartH} series={[{ values: printed.losses, style: 'main' }]} xMax={200} {lnV} floor={lab.floor} samples={printed.samples} margin={170} yMax={2.5} />
-			{#each printed.frames as f, n (f.step)}
-				{@const x0 = n * (panelW + 20)}
-				<g>
-					<text class="lbl lbl--head" x={x0} y={pTop}>step {f.step}</text>
-					<text class="lbl lbl--micro" x={x0 + panelW} y={pTop} text-anchor="end">loss {fmt(f.loss, 3)}</text>
-					{@render params(f.theta, x0, pTop + 12, pc, n === 0, true)}
-					{@render reads(f.A, pTop + 12 + pfh + 26 + pUp, pxs(x0), pUp, true)}
-				</g>
-			{/each}
+		<svg viewBox="0 0 {W} {chartH}" width={W} height={chartH} role={interactive ? 'group' : 'img'} aria-label="The recorded training loss from {fmt(specimen.loss[0], 2)} to {fmt(specimen.loss.at(-1), 4)} nats in {lab.steps} steps, with samples.">
+			<LossChart x={0} y={0} width={W} height={chartH} series={[{ values: printed.losses, style: 'main' }]} xMax={lab.steps} {lnV} floor={lab.floor} samples={printed.samples} margin={240} yMax={2.5} />
 		</svg>
 	{/if}
 </div>

@@ -16,7 +16,7 @@
 	import { measure } from '../primitives/measure.js';
 	import EnergyLadder, { gibbs, entropy } from '../primitives/EnergyLadder.svelte';
 	import CorpusStrip from '../primitives/CorpusStrip.svelte';
-	import { fmt, showChar, clamp, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -25,7 +25,7 @@
 	const interactive = $derived(mode !== 'print');
 
 	// svelte-ignore state_referenced_locally
-	let start = $state(clamp((+attrs.window || 3) - 1, 0, specimen.corpus.length - specimen.config.T));
+	let start = $state(clamp((+attrs.window || 3) - 1, 0, specimen.windows.length - 1));
 	// svelte-ignore state_referenced_locally
 	let pos = $state(clamp((+attrs.position || 1) - 1, 0, specimen.config.T - 1));
 	let tau = $state(1);
@@ -146,7 +146,7 @@
 		return z.filter((v) => v === m).length;
 	});
 	const readout = $derived.by(() => {
-		const top3 = ranked.slice(0, 3).map(({ q, a }) => `‘${showChar(specimen.vocab[a])}’ ${fmt(q, 3)}`).join(', ');
+		const top3 = ranked.slice(0, 3).map(({ q, a }) => `‘${showChar(specimen.vocab[a])}’ ${fmtProb(q, 3, true)}`).join(', ');
 		const parts = [`At τ = ${fmt(tau, 2)}${tau === 1 ? ' (the model’s own)' : ''}: ${top3}; entropy ${fmt(H, 2)} of a possible ${fmt(Math.log(V), 2)} nats.`];
 		if (shift !== 0) parts.push(`Every energy shifted by ${fmt(-shift, 2)}: the partition function and F changed, the probabilities did not.`);
 		if (dz != null) parts.push(ties > 1 ? `${ties} rungs are tied for lowest: cool the ladder and they share the probability equally.` : 'Logits changed by hand.');
@@ -161,13 +161,13 @@
 		viewBox="0 0 {W} {Hsvg}"
 		width={W}
 		height={Hsvg}
-		role="img"
-		aria-label="Energy ladder for the character after ‘{ctxText}’: {ranked.slice(0, 3).map(({ q, a }) => `${showChar(specimen.vocab[a])} ${fmt(q, 2)}`).join(', ')} at τ = {fmt(tau, 2)}"
+		role={interactive ? 'group' : 'img'}
+		aria-label="Energy ladder for the character after ‘{ctxText}’: {ranked.slice(0, 3).map(({ q, a }) => `${showChar(specimen.vocab[a])} ${fmtProb(q, 2)}`).join(', ')} at τ = {fmt(tau, 2)}"
 		onpointermove={onmove}
 		onpointerup={onup}
 		onpointercancel={onup}
 	>
-		<CorpusStrip corpus={specimen.corpus} {T} bind:start bind:pos maxStart={specimen.corpus.length - T} x={narrow ? 8 : xRail - 30} y={24} width={narrow ? W - 16 : Math.min(520, W - xRail)} {interactive} label="context" />
+		<CorpusStrip corpus={specimen.corpus} {T} bind:start bind:pos maxStart={specimen.windows.length - 1} x={narrow ? 8 : xRail - 30} y={24} width={narrow ? W - 16 : Math.min(520, W - xRail)} {interactive} label="context" />
 		<text class="lbl" x={narrow ? 8 : xRail - 30} y={60}>the next character after ‘<tspan class="fx-ladder__ctx">{ctxText}</tspan>’ (window {start + 1}, position {pos + 1})</text>
 
 		<!-- column heads -->
@@ -207,7 +207,7 @@
 			<text class="fx-ladder__eq" x="0" y="86"><tspan class="m">H</tspan> = −Σ <tspan class="m">p</tspan> ln <tspan class="m">p</tspan> = {fmt(H, 2)} nats</text>
 			<text class="lbl lbl--micro" x="0" y="104">of at most ln {V} = {fmt(Math.log(V), 2)}</text>
 			<text class="fx-ladder__eq" x="0" y="138"><tspan class="m">p</tspan>(‘<tspan class="fx-ladder__ctx">{showChar(specimen.vocab[focusA])}</tspan>’) = exp(<tspan class="m">z</tspan>/<tspan class="m">τ</tspan>) / <tspan class="mz">𝒵</tspan></text>
-			<text class="fx-ladder__eq" x="0" y="160"><tspan dx="38">= exp({fmt(z[focusA] / tau, 2)}) / <tspan class="mz">𝒵</tspan> = {fmt(p[focusA], 3)}</tspan></text>
+			<text class="fx-ladder__eq" x="0" y="160"><tspan dx="38">= exp({fmt(z[focusA] / tau, 2)}) / <tspan class="mz">𝒵</tspan> = {fmtProb(p[focusA], 3, true)}</tspan></text>
 			{#if interactive && modified}
 				<text class="lbl fx-ladder__reset" x="0" y="196" role="button" tabindex="0" onclick={reset} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && reset()}>↺ back to the model’s own numbers</text>
 			{/if}

@@ -162,7 +162,7 @@
 
 <div class="fx fx-adam" use:measure={(w) => (width = w)}>
 	{#if interactive}
-		<svg viewBox="0 0 {W} {panelH}" width={W} height={panelH} role="img"
+		<svg viewBox="0 0 {W} {panelH}" width={W} height={panelH} role={interactive ? 'group' : 'img'}
 			aria-label="Step sizes at update {step} of {STEPS}: gradients span {summary.g.dec.toFixed(1)} decades, Adam's steps {summary.d.dec.toFixed(1)} decades">
 			<text class="lbl lbl--head" x="0" y="14">step {step}</text>
 			<text class="lbl" x={narrow ? 0 : x0} y={narrow ? 32 : 14}><tspan class="fx-adam__cov">bars: |<tspan class="m">g</tspan><tspan class="m sub" dy="3">i</tspan><tspan dy="-3">|, the gradient</tspan></tspan>{#if !narrow}{" · "}{/if}<tspan class="fx-adam__val" x={narrow ? 0 : null} dy={narrow ? 15 : 0}>dots: |Δ<tspan class="m">θ</tspan><tspan class="m sub" dy="3">i</tspan><tspan dy="-3">| / </tspan><tspan class="m">η</tspan>, Adam’s step</tspan></text>
@@ -171,8 +171,8 @@
 			{@render axis(top)}
 			{@render strips(top, drawn, true, hoverRow)}
 			{#each rows as r, k (r.name)}
-				<rect class="hit" x="0" y={top + k * rowH} width={W} height={rowH} role="button" tabindex="-1"
-					aria-label={r.name} onpointerenter={() => (hoverRow = k)} onpointerleave={() => (hoverRow = -1)} onclick={() => (hoverRow = hoverRow === k ? -1 : k)} onkeydown={() => {}} />
+				<rect class="hit" x="0" y={top + k * rowH} width={W} height={rowH} role="button" tabindex="0"
+					aria-label={r.name} onpointerenter={() => (hoverRow = k)} onfocus={() => (hoverRow = k)} onpointerleave={() => (hoverRow = -1)} onblur={() => (hoverRow = -1)} onclick={() => (hoverRow = hoverRow === k ? -1 : k)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (hoverRow = hoverRow === k ? -1 : k); } }} />
 			{/each}
 			<text class="lbl lbl--micro" x={labelW + gutterW / 2 + 1} y={top + rows.length * rowH + 14} text-anchor="middle">rounding</text>
 			<text class="lbl lbl--micro" x={x1} y={top + rows.length * rowH + 14} text-anchor="end">log scale, per unit of learning rate</text>
@@ -190,7 +190,7 @@
 		</p>
 	{:else}
 		{@const half = (W - labelW - 24) / 2}
-		<svg viewBox="0 0 {W} {panelH + 18}" width={W} height={panelH + 18} role="img" aria-label="Gradient sizes and Adam step sizes for every parameter at the first and the last update of the book’s run">
+		<svg viewBox="0 0 {W} {panelH + 18}" width={W} height={panelH + 18} role={interactive ? 'group' : 'img'} aria-label="Gradient sizes and Adam step sizes for every parameter at the first and the last update of the book’s run">
 			<text class="lbl" x={labelW + gutterW + 10} y="12"><tspan class="fx-adam__cov">bars: |<tspan class="m">g</tspan><tspan class="m sub" dy="3">i</tspan><tspan dy="-3">|</tspan>, the gradient</tspan> · <tspan class="fx-adam__val">dots: |Δ<tspan class="m">θ</tspan><tspan class="m sub" dy="3">i</tspan><tspan dy="-3">| / </tspan><tspan class="m">η</tspan>, Adam’s step</tspan> · per unit of learning rate, log scale</text>
 			{#each printSnaps as ps, c (ps.t)}
 				<g transform="translate({c ? labelW + half + 24 : 0} 18)">

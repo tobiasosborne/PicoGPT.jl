@@ -400,3 +400,12 @@ span.pg-note-mark { display: inline; }
 .print-edition-root .pp--map .map__note, .print-edition-root .pp--map .map__legend { font-size: 6.5pt; }
 .print-edition-root .pp--map .toc__page { align-self: center; font-size: 7pt; }
 .print-edition-root .pp--map .toc__page::after { content: target-counter(attr(href url), page); }
+
+.print-edition-root .print { display: revert; }
+@media print { .print { display: revert; } }
+
+/* Keep the PDF text layer faithful: the font’s Th ligature loses its h in extraction. */
+.print-edition-root { font-variant-ligatures: none; }
+
+/* Keep the dictionary heading with its first entries. */
+.print-edition-root #sec-dictionary { break-before: page; }

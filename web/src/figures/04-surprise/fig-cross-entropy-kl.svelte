@@ -13,7 +13,7 @@
 	import { getContext, onMount } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import Scrubber from '../primitives/Scrubber.svelte';
-	import { fmt, showChar, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -141,7 +141,7 @@
 					<rect class="fx-ce__data" x={x - 9} y={yb - g.p[a] * distH} width="18" height={g.p[a] * distH} />
 					<rect class="bar--value" x={x - 4} y={yb - r.q[a] * distH} width="8" height={r.q[a] * distH} />
 					<text class="tok fx-ce__vch" x={x} y={yb + 16} text-anchor="middle">{showChar(ch)}</text>
-					{#if g.p[a] > 0}<text class="lbl lbl--micro" x={x} y={yb - distH - 5} text-anchor="middle">{fmt(r.q[a], 2)}</text>{/if}
+					{#if g.p[a] > 0}<text class="lbl lbl--micro" x={x} y={yb - distH - 5} text-anchor="middle">{fmtProb(r.q[a], 2)}</text>{/if}
 				{/each}
 				<line class="axis" x1={colB} x2={colB + slot * V} y1={yb} y2={yb} />
 				<!-- H + KL -->

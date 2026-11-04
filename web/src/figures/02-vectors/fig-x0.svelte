@@ -17,9 +17,9 @@
 	const specimen = $derived(getContext('specimen')());
 	const T = $derived(specimen.config.T);
 	const D = $derived(specimen.config.D);
-	const maxStart = $derived(specimen.corpus.length - T);
+	const maxStart = $derived(specimen.windows.length - 1);
 	// svelte-ignore state_referenced_locally
-	let start = $state(clamp((+attrs.window || 1) - 1, 0, specimen.corpus.length - specimen.config.T));
+	let start = $state(clamp((+attrs.window || 1) - 1, 0, specimen.windows.length - 1));
 	let focus = $state(-1);
 	let width = $state(868);
 	const interactive = $derived(mode !== 'print');
@@ -89,15 +89,13 @@
 </script>
 
 <div class="fx fx-x0" use:measure={(w) => (width = w)}>
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (composite figure supports arrow-key navigation) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}
 		height={H}
-		role={interactive ? 'slider' : 'img'}
+		role={interactive ? 'group' : 'img'}
 		tabindex={interactive ? 0 : undefined}
-		aria-valuemin={interactive ? 1 : undefined}
-		aria-valuemax={interactive ? maxStart + 1 : undefined}
-		aria-valuenow={interactive ? start + 1 : undefined}
 		aria-label="X₀ for the window “{tr.text}”. {readout}"
 		onkeydown={key}
 	>
@@ -128,7 +126,7 @@
 			<SpokeGlyph values={rowsP[t]} x={xs[t]} y={yP} rmax={sc.rmax} scale={sc.scale} tip={narrow ? 1.6 : 2.1} />
 			<SpokeGlyph values={rowsX[t]} x={xs[t]} y={yX} rmax={sc.rmax} scale={sc.scale} weight={1.35} tip={narrow ? 1.9 : 2.5} />
 			{#if interactive}
-				<rect class="hit" x={xs[t] - step / 2} y={yChar - fs} width={step} height={yX + rG - yChar + fs} role="presentation" onpointerenter={() => (focus = t)} onpointerleave={() => (focus = -1)} />
+				<rect class="hit" x={xs[t] - step / 2} y={yChar - fs} width={step} height={yX + rG - yChar + fs} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (focus = t)} onfocus={() => (focus = t)} onpointerleave={() => (focus = -1)} onblur={() => (focus = -1)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (focus = t); } }} />
 			{/if}
 		{/each}
 

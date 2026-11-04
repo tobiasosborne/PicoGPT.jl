@@ -94,7 +94,7 @@
 </script>
 
 <div class="fx fx-emb" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="The embedding matrix. {label}">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="The embedding matrix. {label}">
 		{#each [[mx0, E0, 0], [mx1, Eshow, shownStep]] as [mx, E, k], m (m)}
 			<text class="lbl lbl--head" x={mx} y={my - 26}>step {k}</text>
 			{#if m === 1 && !narrow}<text class="lbl lbl--micro" x={mx + mW} y={my - 26} text-anchor="end">{k === steps ? 'trained' : 'training'}</text>{/if}
@@ -105,7 +105,7 @@
 			<MatrixGlyph get={(i, j) => E[i + D * j]} m={D} n={V} x={mx} y={my} {cell} {vmax} grid />
 			{#if interactive && m === 1}
 				{#each Array.from({ length: D * V }) as _, q (q)}
-					<rect class="hit" x={mx + cell * Math.floor(q / D)} y={my + cell * (q % D)} width={cell} height={cell} role="presentation" onpointerenter={() => (hover = { i: q % D, a: Math.floor(q / D) })} onpointerleave={() => (hover = null)} />
+					<rect class="hit" x={mx + cell * Math.floor(q / D)} y={my + cell * (q % D)} width={cell} height={cell} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (hover = { i: q % D, a: Math.floor(q / D) })} onfocus={() => (hover = { i: q % D, a: Math.floor(q / D) })} onpointerleave={() => (hover = null)} onblur={() => (hover = null)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (hover = { i: q % D, a: Math.floor(q / D) }); } }} />
 				{/each}
 			{/if}
 		{/each}

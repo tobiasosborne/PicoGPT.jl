@@ -19,11 +19,11 @@ The derivative of the loss with respect to every parameter costs about as much a
 
 Fix the training windows. Then the model and its loss are one function of the parameters,
 $$\ell:\R^p\to\R,\qquad \theta\longmapsto\text{the mean surprise of the targets},$$
-with $p=1007$ for the specimen. Learning, in @ch-learning, moves $\theta$ downhill, and for that it needs the gradient $\nabla\ell(\theta)\in\R^p$: for every parameter, how fast the loss changes when that parameter alone is nudged.
+with $p={{value:specimenParams}}$ for the specimen. Learning, in @ch-learning, moves $\theta$ downhill, and for that it needs the gradient $\nabla\ell(\theta)\in\R^p$: for every parameter, how fast the loss changes when that parameter alone is nudged.
 
 The obvious way to get it is to nudge. For each coordinate $i$,
 $$\frac{\partial\ell}{\partial\theta_i}\approx\frac{\ell(\theta+h e_i)-\ell(\theta-he_i)}{2h},$$
-which costs two evaluations of $\ell$, that is two forward passes, per parameter: $2p=2014$ for the specimen and about 1.6 million for the Shakespeare model of @ch-speaking, every time the parameters move. It is also only approximate, and we shall see in @sec-gradcheck that its accuracy cannot be pushed very far.
+which costs two evaluations of $\ell$, that is two forward passes, per parameter: $2p={{value:differencePasses}}$ for the specimen and about {{value:shakespeareDifferenceMillions}} million for the Shakespeare model of @ch-speaking, every time the parameters move. It is also only approximate, and we shall see in @sec-gradcheck that its accuracy cannot be pushed very far.
 
 This chapter derives the other way. One forward pass computes the loss and records its intermediate values. One backward pass then computes all $p$ derivatives exactly (up to rounding), at a cost of a small constant number of forward passes, whatever $p$ is. The backward pass is not a new idea; it is the chain rule, read from the end. What makes it cheap is the order in which the chain rule's factors are multiplied, and what makes it simple is that each factor is a transpose.
 
@@ -51,7 +51,7 @@ The same product can be bracketed the other way, $J_k(\cdots(J_2(J_1v)))$: push 
 Reverse-mode differentiation was described by Seppo Linnainmaa in his [1970 master’s thesis](https://www.finna.fi/Record/helka.9933382303506253), as a way of computing the rounding error of a long calculation. Paul Werbos proposed it for neural networks in [1974](https://gwern.net/doc/ai/nn/1974-werbos.pdf); Rumelhart, Hinton and Williams made it famous as *backpropagation* in [1986](https://doi.org/10.1038/323533a0). Physicists know it as the adjoint method: the costate of Pontryagin's optimal control, and the adjoint equations of weather forecasting, which pull the sensitivity of one forecast number back through a whole simulation.
 :::
 
-How much does it cost? Each map of the model is a matrix product, an elementwise function, a sum, a softmax or a lookup, and the pullback of each costs at most a small constant times the map itself; we derive them all below. Adding up, a forward and a backward pass together cost a constant number of forward passes, independently of $p$. In the web edition, @fig-gradcheck measures the constant in your browser. The price is memory: the pullback of a map needs the values that went into it, so the forward pass must keep its intermediates until the backward pass has used them.
+How much does it cost? Each map of the model is a matrix product, an elementwise function, a sum, a softmax or a lookup, and the pullback of each costs at most a small constant times the map itself; we derive them all below. Adding up, a forward and a backward pass together cost a constant number of forward passes, independently of $p$. [In the web edition, @fig-gradcheck measures the constant in your browser.]{.web} The price is memory: the pullback of a map needs the values that went into it, so the forward pass must keep its intermediates until the backward pass has used them.
 
 In the code, every operation returns its value *together with* its pullback, a function `back` that has kept what it needs. The loss itself is two such operations, and its pullback is the composition of theirs, in reverse order:
 
@@ -171,9 +171,9 @@ An exercise of @ch-attention noticed that the key bias $b_k$ shifts every score 
 $$S=\frac{Q^\T\tilde K}{\sqrt d}+\frac{(Q^\T b_k)\,\one^\T}{\sqrt d},$$
 and the second term is constant along every row. The softmax of a row does not change when a constant is added to it, so $A$, the outputs and the loss do not depend on $b_k$ at all. The backward pass agrees. By the affine rule, $\bar b_k=\bar K\one=Q\bar S\one/\sqrt d$, and $\bar S\one=0$ because every row of $\bar S$ sums to zero: $\sum_jA_{ij}\bigl(\bar A_{ij}-c_i\bigr)=c_i-c_i=0$ with $c_i=\sum_kA_{ik}\bar A_{ik}$. So
 $$\bar b_k=0,$$
-identically, for every input and every value of the other parameters. Of the 1007 numbers of the specimen, these eight can never learn. They are kept on purpose: they belong to the standard architecture, which this book follows, and they make a good puzzle. Many implementations drop them.
+identically, for every input and every value of the other parameters. Of the {{value:specimenParams}} numbers of the specimen, these eight can never learn. They are kept on purpose: they belong to the standard architecture, which this book follows, and they make a good puzzle. Many implementations drop them.
 
-In floating point, "identically zero" becomes "zero up to rounding". The computed rows of $\bar S$ sum to numbers like $10^{-19}$ rather than to zero (point at a row of @fig-softmax-pullback), and the computed $\bar b_k$ is of that size, at the very bottom of the scale of @fig-gradcheck, far below every other array's gradient. For the difference quotient the loss does not change at all, except in its last bit, so the check of $b_k$ measures nothing but rounding.
+In floating point, "identically zero" becomes "zero up to rounding". The computed rows of $\bar S$ sum to numbers like $10^{-19}$ rather than to zero (see the row sums in @fig-softmax-pullback), and the computed $\bar b_k$ is of that size, at the very bottom of the scale of @fig-gradcheck, far below every other array's gradient. For the difference quotient the loss does not change at all, except in its last bit, so the check of $b_k$ measures nothing but rounding.
 
 ::: aside
 Rounding-level gradients still move parameters, if the optimiser divides by the size of the gradient. Adam does (@ch-learning): at the floor of the loss its small constant $\epsilon$ is all that stands between a gradient of order $10^{-17}$ and a step of order the learning rate. In the specimen's training run the key bias drifts away from zero by about $10^{-11}$, and the eight paths of $b_k$ in the cover's trace of every parameter are the ones that never visibly move.
@@ -216,5 +216,5 @@ Compare @fig-gradcheck at $h=10^{-2}$ and $h=10^{-10}$. [Click each step to comp
 :::
 
 ::: exercise
-In @fig-softmax-pullback, point at the first row, then at the last. Why is the first row of $\bar S$ empty? Which row of $\bar A$ loses the most to the mask, and why does losing it cost the model nothing?
+In @fig-softmax-pullback, compare the first and last rows. Why is the first row of $\bar S$ empty? Which row of $\bar A$ loses the most to the mask, and why does losing it cost the model nothing?
 :::

@@ -20,6 +20,11 @@ The model ends every column with $V$ unconstrained real numbers, the logits; rea
 
 The model's final map takes the residual stream, normalises each column, and applies one affine map:
 $$Z=W_{\rm out}\,\LN(X;\gamma_f,\beta_f)+b_{\rm out}\one^\T\in\R^{V\times N},\qquad W_{\rm out}\in\R^{V\times D}.$$
+
+::: aside
+$X$ is the array of token columns. $\LN$ is the columnwise normalisation of @ch-block, with learned gain $\gamma_f$ and offset $\beta_f$. For now treat its output as a rescaled copy of $X$: this chapter starts with the resulting scores $Z$ and needs no details of the preceding maps.
+:::
+
 Column $n$ of $Z$, which we call $z\in\R^V$, holds one real number for each character of the vocabulary. For the specimen that is seven numbers, one each for `␣ b e n o r t`. The model's job at this column is to state a probability distribution over the next character, that is, a point of the *probability simplex*
 $$\Delta^{V-1}=\Bigl\{p\in\R^V:\ p_a\ge 0,\ \textstyle\sum_a p_a=1\Bigr\}.$$
 The entries of $z$ obey no such constraint. They may be negative, and they need not sum to anything. We need a map $\R^V\to\Delta^{V-1}$, and we want it to be positive, normalised, increasing in each $z_a$, and smooth, because @ch-pulling-back will differentiate it. The map the model uses is
@@ -106,7 +111,7 @@ Mind the signs: with $E=-z$, the derivative of $\mathcal F_\beta(-z)$ with respe
 
 *It is a smooth maximum.* Factor out the largest exponential: with $m=\max_az_a$,
 $$m\;\le\;\lse_\beta(z)\;\le\;m+\frac{\log V}{\beta}.$$
-As $\tau\to0$, log-sum-exp tends to the maximum logit, and the free energy to the ground-state energy. In @fig-energy-ladder the free energy is the small triangle $F$ on the axis. It sits below the lowest rung, never more than $\tau\log V$ below it, and it follows the ladder when the ladder slides, because $\lse(z+c\one)=\lse(z)+c$.
+As $\tau\to0$, log-sum-exp tends to the maximum logit, and the free energy to the ground-state energy. In @fig-energy-ladder the free energy is the small triangle $\mathcal F$ on the axis. It sits below the lowest rung, never more than $\tau\log V$ below it, and it follows the ladder when the ladder slides, because $\lse(z+c\one)=\lse(z)+c$.
 
 *It is a variational principle.* Substitute $\log p_a=-\beta E_a-\log\mathcal Z_\beta$ into the definitions of mean energy and entropy. For every distribution $r$,
 $$\sum_ar_aE_a-\tau H(r)=\mathcal F_\beta(E)+\tau\KL(r\,\|\,p^{(\beta)}),$$
@@ -115,7 +120,7 @@ The divergence $\KL$ is never negative and vanishes only at $r=p$; we prove this
 
 ### Computing it {.unnumbered}
 
-The definition is a recipe for disaster on a computer. A Float64 number cannot exceed about $1.8\times10^{308}$, so $e^{x}$ overflows to $\infty$ once $x$ passes about $709.8$, and for very negative $x$ it underflows to $0$. Logits of size $710$ are rare, but a logit of $10$ at temperature $1/100$ is the same thing, and then softmax computes $\infty/\infty$, which is not a number. The cure is shift invariance itself. For any $c$,
+The definition is a recipe for disaster on a computer. A Float64 number cannot exceed about $1.8\times10^{308}$, so $e^{x}$ overflows to $\infty$ once $x$ passes about ${{value:expOverflow}}$, and for very negative $x$ it underflows to $0$. Logits of size $710$ are rare, but a logit of $10$ at temperature $1/100$ is the same thing, and then softmax computes $\infty/\infty$, which is not a number. The cure is shift invariance itself. For any $c$,
 $$\lse(z)=c+\log\sum_ae^{z_a-c},\qquad \softmax(z)=\softmax(z-c\one),$$
 and with $c=\max_az_a$ every exponent is at most $0$ and one of them is exactly $0$. The sum then lies between $1$ and $V$: it cannot overflow, and the logarithm never sees zero. The maximum has kinks where two logits tie, but the expression on the right is identically the smooth function on the left, so its derivative is still softmax.
 

@@ -103,6 +103,18 @@
 		hover = best ? { b: s.clouds[k].b, set: best[2].split('.').map(Number), norm: best[3] } : null;
 	}
 
+	function cloudKey(e, c) {
+		const current = Math.max(0, c.pts.findIndex((p) => p[2] === hover?.set.join('.')));
+		let j = current;
+		if (e.key === 'ArrowRight' || e.key === 'ArrowUp') j++;
+		else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') j--;
+		else if (e.key === 'Home') j = 0;
+		else if (e.key === 'End') j = c.pts.length - 1;
+		else return;
+		e.preventDefault();
+		const p = c.pts[Math.max(0, Math.min(c.pts.length - 1, j))];
+		hover = { b: c.b, set: p[2].split('.').map(Number), norm: p[3] };
+	}
 	const formula = (b) => Math.sqrt((M - b) / (b * (M - 1)));
 	const readout = $derived.by(() => {
 		if (!st) return null;
@@ -158,7 +170,7 @@
 			<text class="lbl lbl--micro" x={ox + side - 4} y={oy + side - 6} text-anchor="end">{c.b === 1 ? 'rms distance' : `rms × ${fmt(c.rmsP / s.clouds[0].rmsP, 2)}`}</text>
 		{/if}
 		{#if interactive}
-			<rect class="hit" x={ox} y={oy} width={side} height={side} role="presentation" onpointermove={(e) => onmove(e, s, k, fr, ox, oy)} onpointerleave={() => (hover = null)} />
+			<rect class="hit" x={ox} y={oy} width={side} height={side} role="slider" tabindex="0" aria-label="minibatch gradient, batch size {c.b} (arrow keys select a point)" aria-valuemin="1" aria-valuemax={c.pts.length} aria-valuenow={Math.max(0, c.pts.findIndex((p) => p[2] === hover?.set.join('.'))) + 1} aria-valuetext={hover ? `windows ${hover.set.map((b) => b + 1).join(', ')}, gradient norm ${hover.norm}` : undefined} onkeydown={(e) => cloudKey(e, c)} onfocus={() => { const p = c.pts[0]; hover = { b: c.b, set: p[2].split('.').map(Number), norm: p[3] }; }} onblur={() => (hover = null)} onpointermove={(e) => onmove(e, s, k, fr, ox, oy)} onpointerleave={() => (hover = null)} />
 		{/if}
 	</g>
 {/snippet}
@@ -183,13 +195,13 @@
 <div class="fx fx-mb" use:measure={(w) => (width = w)}>
 	{@html job.tag}
 	{#if !data}
-		<svg viewBox="0 0 {W} 60" width={W} height="60" role="img" aria-label="computing every minibatch gradient">
+		<svg viewBox="0 0 {W} 60" width={W} height="60" role={interactive ? 'group' : 'img'} aria-label="computing every minibatch gradient">
 			<line class="rule" x1="0" x2={W} y1="30" y2="30" />
 			<line class="fx-mb__progress" x1="0" x2={W * job.progress} y1="30" y2="30" />
 			<text class="lbl lbl--micro" x="0" y="20">computing all 616 minibatch gradients…</text>
 		</svg>
 	{:else if interactive}
-		<svg viewBox="0 0 {W} {blockH + head}" width={W} height={blockH + head} role="img"
+		<svg viewBox="0 0 {W} {blockH + head}" width={W} height={blockH + head} role={interactive ? 'group' : 'img'}
 			aria-label="{readout.state}: {readout.g}; {readout.unbiased}; rms distance {readout.rms}">
 			<g class="fx-mb__states">
 				{#each ['before training', 'after training'] as label, k (k)}
@@ -210,7 +222,7 @@
 			{/if}
 		</p>
 	{:else}
-		<svg viewBox="0 0 {W} {2 * (blockH + 22)}" width={W} height={2 * (blockH + 22)} role="img" aria-label="Every minibatch gradient before and after training">
+		<svg viewBox="0 0 {W} {2 * (blockH + 22)}" width={W} height={2 * (blockH + 22)} role={interactive ? 'group' : 'img'} aria-label="Every minibatch gradient before and after training">
 			{@render block(data[0], 0, 'before training', false)}
 			{@render block(data[1], blockH + 22, 'after training', true)}
 		</svg>

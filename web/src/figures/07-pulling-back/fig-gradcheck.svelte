@@ -176,7 +176,7 @@
 
 <div class="fx fx-gc" use:measure={(w) => (width = w)}>
 	{@html job.tag}
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 		aria-label="Gradient check at θ₀: the error of central differences against the pulled-back gradient falls like h squared and then rises like 1 over h; for every parameter at h = {powTxt(sel)}. {readout ? readout.worst : ''}">
 		<!-- shared log axis (left) -->
 		{#each ticks as e (e)}
@@ -220,7 +220,7 @@
 				<g class="fx-gc__pick" class:is-on={e === sel}>
 					<circle cx={X(e)} cy={top + plotH + 46} r="4.5" />
 					{#if interactive}
-						<rect class="hit" x={X(e) - 14} y={top} width="28" height={plotH + 58} role="button" tabindex="-1" aria-label="h = {powTxt(e)}" onclick={() => (sel = e)} onkeydown={() => {}} />
+						<rect class="hit" x={X(e) - 14} y={top} width="28" height={plotH + 58} role="button" tabindex="0" aria-label="h = {powTxt(e)}" onclick={() => (sel = e)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (sel = e); } }} />
 					{/if}
 				</g>
 			{/each}

@@ -28,8 +28,8 @@ Contents: 1 Principles · 2 Palette · 3 Type · 4 The web page · 5 Glyphs · 6
    covector is drawn as Misner–Thorne–Wheeler draw a 1-form: a stack of planes). In greyscale,
    the inks print at about 33 %, 50 % and 87 % grey (ink, covector, value), and the shapes
    still differ.
-6. **Print first.** Every figure has a static state that is complete on paper. Interaction is
-   for asking the next question, never for revealing what the page withheld.
+6. **Print first.** Every figure has a labelled representative state or set of stages on paper.
+   Interaction varies the selected examples; both editions carry the mathematical argument.
 7. **Direct labels, generous white space.** No legend boxes and no chart chrome. A "how to read"
    key with hairline leaders appears the first time each glyph appears.
 8. **No cards, no panels, no dashboards.** Figures sit on the page like plates in a book: no
@@ -102,7 +102,7 @@ weight 300, `opsz` 72. **Print** (§8): 9.6/13.6 pt, notes 7.8 pt, labels 7 pt, 
 - The first line of each chapter is set in small capitals.
 - **The three names.** In the `names` table the maths name is roman, the physics name italic,
   and the ML name is set in the label face between quotation marks: jargon is shown as jargon.
-- Numbers: minus sign U+2212, never a hyphen; two decimals in figures (`fmt`); dense tables
+- Numbers: minus sign U+2212, never a hyphen; two decimals in figures (`fmt`), except probabilities near 0 or 1 (`fmtProb`), which retain the finite gap; dense tables
   drop the leading zero (`.37`, `−.12`, `fmtDense`).
 - The space character is drawn as `␣` in figures.
 
@@ -150,7 +150,7 @@ planned chapters are grey and say "in preparation". Nothing links to text that d
 
 Every glyph is a component in `web/src/figures/primitives/`. Scales come from `scales.js` and
 are computed **from every number the glyph will be compared with** (small multiples share a
-scale; never scale per glyph).
+scale; never scale per glyph). The two-inks and affine-pullback plates use separate, explicitly labelled array scales to keep their different ranges legible.
 
 | glyph | component | encoding | sign | ink |
 |---|---|---|---|---|
@@ -246,11 +246,11 @@ Chapters open on a recto. The break sits on the `<article>`: `break-before: left
 a trace (verso trace facing recto opening), `right` otherwise. Inserted `:blank` pages have no
 head or folio. The contents include the same model map as the web edition, as a separate plate.
 
-**Figures in print.** Static state; no scrubbers, readouts, hit areas or handles. Animations
+**Figures in print.** Labelled representative state or stages; no scrubbers, readouts, hit areas or handles. Animations
 become small multiples of their phases. Figures lay out at `width / 0.78` and scale to the
 column, so a 12 px label prints at ≈ 7 pt (`PRINT_SCALE` in `scales.js`). `break-inside:
 avoid`; the key goes in the outer margin beside the caption. Colour is exact
-(`print-color-adjust: exact`). Sentences marked `[text]{.web}` are omitted from print. The four
+(`print-color-adjust: exact`). Sentences marked `[text]{.web}` are omitted from print; `[text]{.print}` supplies a paper-only counterpart. The four
 tall plates have dedicated print spacing; labels keep the shared print scale. For one-colour
 printing the shape rules of §1.5 keep value and covector apart.
 
@@ -305,7 +305,7 @@ A figure is `src/figures/<NN-chapter>/fig-<id>.svelte`. The prose places it with
    `layoutWidth(width, mode)` so print labels come out at 7 pt.
 4. **Labelled directly.** A `.readout` paragraph states the current state in words and numbers
    (the live caption); the static caption lives in the prose.
-5. **Accessible.** `role="img"` with an `aria-label` that states the numbers; keyboard
+5. **Accessible.** `role="group"` for containers of controls, `role="img"` for static drawings, with an `aria-label` that states the numbers; keyboard
    equivalents for every pointer interaction (arrow keys, Enter); visible focus.
 6. **Exports** from `<script module>`: `meta = { size, title }` and, if the figure introduces a
    glyph, `Key` (a component, usually `fig-<id>.key.svelte`).
@@ -322,7 +322,9 @@ Each figure can be viewed alone at `/figures/<id>/` (interactive) and `/figures/
 (`## Title {#sec-…}`; `{.unnumbered}` to opt out of numbering). Cross-reference with `@fig-…`,
 `@sec-…`, `@ch-…` and `@ex-…`; planned chapters resolve to "Chapter n" without a link. Code
 comes in only as `::: {.code file="src/x.jl" fn="name"}` (also `struct=`, `region=`, `lines=`,
-`method=`, `doc=true`). Maths is LaTeX. Never paste a number that a figure can compute.
+`method=`, `doc=true`). Maths is LaTeX. Never paste a number that a figure can compute. Load-bearing prose readings use
+`{{value:name}}`, expanded from the artifacts/layout before Pandoc by
+`web/src/lib/server/prose-values.js`; unknown or inconsistent values fail the build.
 
 **A figure.** Add the `::: {.figure #fig-id}` div, add the entry in `book/figures.md`, and write
 `src/figures/NN-slug/fig-id.svelte` against the primitives. Until the component exists the

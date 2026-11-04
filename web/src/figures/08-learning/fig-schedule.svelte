@@ -79,7 +79,7 @@
 
 <div class="fx fx-sched" use:measure={(w) => (width = w)}>
 	{@html job.tag}
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 		aria-label="The learning rate rises linearly to {fmt(R.eta, 3)} over {R.schedule.warmup} steps, then falls along a cosine to {fmt(R.schedule.etaMin, 4)} at step {steps}. The gradient's length stays below the clip radius {fmt(R.clip, 0)} at every step{job.value ? `; its largest value is ${fmt(gMax, 3)}` : ''}.">
 		<!-- the learning rate -->
 		<text class="lbl lbl--head" x={Lm} y={top1 - 26}>learning rate <tspan class="m">η</tspan><tspan class="m sub" dy="3">k</tspan></text>

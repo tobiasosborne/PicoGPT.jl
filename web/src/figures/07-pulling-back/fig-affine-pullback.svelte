@@ -13,7 +13,7 @@
 	import { getContext } from 'svelte';
 	import { measure } from '../primitives/measure.js';
 	import MatrixGlyph from '../primitives/MatrixGlyph.svelte';
-	import { fmt, showChar, clamp, maxAbs, layoutWidth } from '../primitives/scales.js';
+	import { fmt, fmtProb, showChar, clamp, maxAbs, layoutWidth } from '../primitives/scales.js';
 
 	let { attrs = {}, mode = 'interactive' } = $props();
 	const specimen = $derived(getContext('specimen')());
@@ -74,7 +74,7 @@
 	const yW = $derived(narrow ? yM : yM);
 	const yS = $derived(narrow ? yM + mh + 2 * lolH + 96 : yM);
 	const yT = $derived(narrow ? yS + mh + 84 : yM);
-	const H = $derived((narrow ? yT : yM) + mh + 62);
+	const H = $derived((narrow ? yT : yM) + mh + 104);
 
 	const colX = (x0, r) => x0 + r * c + c / 2;
 	const rowY = (y0, a) => y0 + a * c + c / 2;
@@ -102,7 +102,7 @@
 		const ch = showChar(chars[col]), y = showChar(specimen.vocab[target]);
 		const base = {
 			who: `Column ${col + 1} of window ${win + 1}, ‘${ch}’, followed by ‘${y}’.`,
-			z: `The model gives ‘${y}’ p = ${fmt(p[target], 3)}, so z̄ = (p − e_y)/${N} is ${fmt(zbar[target], 4)} there and positive elsewhere.`,
+			z: `The model gives ‘${y}’ p = ${fmtProb(p[target], 3, true)}, so z̄ = (p − e_y)/${N} is ${fmt(zbar[target], 4)} there and positive elsewhere.`,
 			x: `x̄ = W_outᵀ z̄ has length ${fmt(Math.hypot(...xbar), 4)}; this column’s share of W̄_out has norm ${fmt(norm(share), 4)}, the sum of all ${N} shares ${fmt(norm(Wbar), 4)}.`
 		};
 		if (cell) {
@@ -145,21 +145,21 @@
 	{#if interactive}
 		{#each { length: V } as _, a (a)}
 			{#each { length: D } as _, r (r)}
-				<rect class="hit" x={x0 + r * c} y={y0 + a * c} width={c} height={c} role="presentation" onpointerenter={() => (cell = { a, r })} onpointerleave={() => (cell = null)} />
+				<rect class="hit" x={x0 + r * c} y={y0 + a * c} width={c} height={c} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (cell = { a, r })} onfocus={() => (cell = { a, r })} onpointerleave={() => (cell = null)} onblur={() => (cell = null)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (cell = { a, r }); } }} />
 			{/each}
 		{/each}
 	{/if}
 {/snippet}
 
 <div class="fx fx-ap" use:measure={(v) => (width = v)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img"
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'}
 		aria-label="Pullback of the readout for column {col + 1} of window {win + 1}: z̄ from the loss, x̄ = W_outᵀ z̄, and the weight gradient share z̄ xᵀ. {readout.x}">
 		<!-- the corpus, with the training window bracketed -->
 		<g class="fx-ap__corpus">
 			{#each corpusChars as ch, k (k)}
 				<text class="tok fx-ap__cc" class:is-in={k >= win && k < win + T} x={cx0 + k * cs + cs / 2} y="14" text-anchor="middle">{showChar(ch)}</text>
 				{#if interactive && k <= B - 1}
-					<rect class="hit" x={cx0 + k * cs} y="0" width={cs} height="22" role="button" tabindex="-1" aria-label="window {k + 1}" onclick={() => (win = k)} onkeydown={() => {}} />
+					<rect class="hit" x={cx0 + k * cs} y="0" width={cs} height="22" role="button" tabindex="0" aria-label="window {k + 1}" onclick={() => (win = k)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (win = k); } }} />
 				{/if}
 			{/each}
 			<path class="fx-ap__bracket" d="M {cx0 + win * cs + 1} 19 v 3 H {cx0 + (win + T) * cs - 1} v -3" />
@@ -175,7 +175,7 @@
 			<text class="lbl lbl--micro" x={wx0 + t * wx + wx / 2 + 9} y={top - 22}>{t + 1}</text>
 			{#if t === col}<line class="fx-ap__under" x1={wx0 + t * wx + 8} x2={wx0 + t * wx + wx - 8} y1={top - 17} y2={top - 17} />{/if}
 			{#if interactive}
-				<rect class="hit" x={wx0 + t * wx} y={top - 50} width={wx} height="38" role="button" tabindex="-1" aria-label="column {t + 1}" onclick={() => (col = t)} onkeydown={() => {}} />
+				<rect class="hit" x={wx0 + t * wx} y={top - 50} width={wx} height="38" role="button" tabindex="0" aria-label="column {t + 1}" onclick={() => (col = t)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (col = t); } }} />
 			{/if}
 		{/each}
 		<text class="lbl lbl--micro" x={narrow ? wx0 + T * wx : wx0 + T * wx + 6} y={narrow ? top - 2 : top - 26} text-anchor={narrow ? 'end' : 'start'}>next: <tspan class="tok fx-ap__next">{showChar(specimen.vocab[target])}</tspan></text>
@@ -236,6 +236,8 @@
 			{@render hits(xT, yT)}
 			<text class="lbl lbl--micro" x={xT} y={yT + mh + 16}>largest square {fmt(gMax, 3)}</text>
 		</g>
+		<text class="lbl lbl--micro" x="8" y={H - 32}>full scale |entry|: W {wMax.toPrecision(3)}; x {xMax.toPrecision(3)}; z̄ {zMax.toPrecision(3)}</text>
+		<text class="lbl lbl--micro" x="8" y={H - 16}>x̄ {xbMax.toPrecision(3)}; share {sMax.toPrecision(3)}; sum {gMax.toPrecision(3)}</text>
 	</svg>
 	{#if interactive}
 		<p class="readout" aria-live="polite">

@@ -58,11 +58,11 @@
 				width={(i + 1) * cell}
 				height={cell}
 				role="button"
-				tabindex="-1"
+				tabindex="0"
 				aria-label="row {i + 1}"
-				onpointerenter={() => onrow(i, 'hover')}
+				onpointerenter={() => onrow(i, 'hover')} onfocus={() => onrow(i, 'hover')}
 				onclick={() => onrow(i, 'select')}
-				onkeydown={() => {}}
+				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onrow(i, 'select'); } }}
 			/>
 		{/each}
 	{/if}

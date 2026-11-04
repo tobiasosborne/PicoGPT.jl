@@ -161,11 +161,12 @@
 
 <div class="fx fx-ln" use:measure={(w) => (width = w)}>
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (composite figure supports arrow-key navigation) -->
 	<svg
 		viewBox="0 0 {W} {H}"
 		width={W}
 		height={H}
-		role="img"
+		role={interactive ? 'group' : 'img'}
 		tabindex={interactive ? 0 : -1}
 		onkeydown={key}
 		aria-label="LayerNorm of the columns of “{chars.join('')}”: centring moves each column onto the axis orthogonal to 1, scaling moves it to just inside the sphere of radius √{D}. {readout.lands}"
@@ -207,7 +208,7 @@
 				{@const p0 = merid(c.x)}
 				<text class="tok fx-ln__lab" class:is-on={j === col} x={X(p0.a) + 7} y={Y(p0.r) + 5}>{showChar(chars[j])}</text>
 				{#if interactive}
-					<circle class="hit" cx={X(p0.a)} cy={Y(p0.r)} r="11" role="button" tabindex="-1" aria-label="column {j + 1}" onclick={() => (col = j)} onkeydown={() => {}} />
+					<circle class="hit" cx={X(p0.a)} cy={Y(p0.r)} r="11" role="button" tabindex="0" aria-label="column {j + 1}" onclick={() => (col = j)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (col = j); } }} />
 				{/if}
 			{/each}
 
@@ -243,7 +244,7 @@
 			{@const cx = narrow ? (W / (T + 1)) * (j + 1) : GX0 + 10 + ((GW - 20) / T) * (j + 0.5)}
 			<text class="tok fx-ln__char" class:tok--reader={j === col} x={cx} y={charsY} text-anchor="middle">{showChar(ch)}</text>
 			{#if interactive}
-				<rect class="hit" x={cx - 14} y={charsY - 20} width="28" height="28" role="button" tabindex="-1" aria-label="column {j + 1}" onclick={() => (col = j)} onkeydown={() => {}} />
+				<rect class="hit" x={cx - 14} y={charsY - 20} width="28" height="28" role="button" tabindex="0" aria-label="column {j + 1}" onclick={() => (col = j)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (col = j); } }} />
 			{/if}
 		{/each}
 

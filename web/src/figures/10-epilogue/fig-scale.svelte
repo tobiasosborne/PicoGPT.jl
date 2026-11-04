@@ -66,13 +66,13 @@
 				<g class="matrix matrix--value">
 					{#each specimen.theta as v, i (i)}
 						{@const cw = S / grid}
-						{@const s = cw * 0.9 * Math.sqrt(Math.abs(v) / tmax)}
-						{#if s > 0.25}<rect class="matrix__cell" class:matrix__cell--neg={v < 0} x={x + cw * (i % grid) + (cw - s) / 2} y={y + cw * Math.floor(i / grid) + (cw - s) / 2} width={s} height={s} />{/if}
+						{@const s = Math.max(0.25, cw * 0.9 * Math.sqrt(Math.abs(v) / tmax))}
+						<rect class="matrix__cell" class:matrix__cell--neg={v < 0} x={x + cw * (i % grid) + (cw - s) / 2} y={y + cw * Math.floor(i / grid) + (cw - s) / 2} width={s} height={s} />
 					{/each}
 				</g>
 			{:else}
 				<!-- the previous model, at its true size, in the corner -->
-				{@const s = Math.max(0.8, S * r)}
+				{@const s = S * r}
 				<rect class="fx-scale__prev" x={x + 3} y={y + 3} width={s} height={s} />
 				{#if k % cols !== 0}
 					<!-- zoom lines back to the previous panel -->

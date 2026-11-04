@@ -10,7 +10,7 @@ Attention is the one map in the model through which positions talk to each other
 | row-stochastic, lower-triangular $A\in\R^{T\times T}$ | causal transition kernel | attention pattern |
 | $o_i=\sum_j A_{ij}v_j$, a convex combination | expectation value $\langle v\rangle_i$ | attention output |
 | $S_{ij}=q_i\cdot k_j/\sqrt d$ | negative energy | attention score, logit |
-| $\sqrt d$ | temperature | scale factor |
+| $\sqrt d$ | temperature by the Gibbs analogy | scale factor |
 | $A_{ij}=0$ for $j>i$ | causality | causal mask |
 | $\R^D=\R^d\oplus\cdots\oplus\R^d$ | direct sum of subsystems | multi-head attention |
 :::
@@ -35,11 +35,15 @@ Rows are readers and columns are sources, everywhere in this book. Since tokens 
 
 @fig-attention-reads shows this for the trained specimen. Each character of the window is a reader. Its two heads, which we explain in @sec-heads, read with two different distributions: one is drawn above the line, the other below.
 
-::: {.figure #fig-attention-reads window=11 reader=8}
+::: {.figure #fig-attention-reads window=10 reader=8}
 What each character reads. The arcs leave the selected reader and land on the earlier characters it reads; the width of an arc is the weight $A_{ij}$, and the arcs of one head sum to one. Head 1 is drawn above the line and head 2 below. A loop is a character reading itself. [Drag the window along the line to change the text.]{.web}
 :::
 
 ## Scores, and why a softmax {#sec-scores}
+
+::: aside
+The Gibbs analogy is row by row: each reader normalises its own energies, with its own partition function. Nothing equilibrates between readers. The normalised column $\hat x_i$ is the output of LayerNorm (@ch-block); for this chapter it is simply the vector from which the three affine maps form queries, keys and values.
+:::
 
 Where do the weights come from? Every position emits three vectors. Each is an affine image of the position's column $\hat x_i$ of the normalised stream:
 $$q_i=W_q\hat x_i+b_q,\qquad k_i=W_k\hat x_i+b_k,\qquad v_i=W_v\hat x_i+b_v.$$
@@ -51,9 +55,11 @@ A source is read in proportion to the exponential of how well its key matches th
 
 The score is a bilinear form on the stream. Write $W_q^{(h)},W_k^{(h)}\in\R^{d\times D}$ for the rows of $W_q,W_k$ that belong to one head (@sec-heads). Up to the bias terms, $q_i\cdot k_j=\hat x_i^\T\,W_q^{(h)\T}W_k^{(h)}\,\hat x_j$. The matrix $W_q^{(h)\T}W_k^{(h)}$ is a general $D\times D$ matrix of rank at most $d$, and nothing makes it symmetric: "what does $i$ look for in $j$" and "what does $j$ look for in $i$" are different questions.
 
-::: {.figure #fig-attention-pipeline window=11 reader=8 head=1}
+::: {.figure #fig-attention-pipeline window=10 reader=8 head=1}
 One reader and one head, from top to bottom: the keys $k_j$ of the sources, the reader's query $q_i$, the scores $S_{ij}=q_i\cdot k_j/\sqrt d$, the weights $A_{ij}$, and the values, each scaled by its weight; their sum is $o_i$. Cold rows read one source; hot rows read all of them equally. [Drag the temperature $\tau$ away from $\sqrt d$.]{.web}
 :::
+
+
 
 ## Why $\sqrt d$ {#sec-sqrt-d}
 
@@ -71,7 +77,7 @@ Since $e^{-\infty}=0$, the upper triangle of $A$ vanishes, and $A$ is lower-tria
 
 Lower-triangularity is causality written as a matrix. Column $i$ of the output depends on columns $1,\dots,i$ of the input and on nothing later, so the Jacobian of the map $X\mapsto O$ is block lower-triangular. One pass therefore yields $T$ conditional distributions, each conditioned on its own past. These are exactly the factors of the chain rule of probability, and the loss uses all of them.
 
-::: {.figure #fig-attention-triangle window=11}
+::: {.figure #fig-attention-triangle window=10}
 The attention matrices of the specimen's two heads for one window. Row $i$ is reader $i$ and column $j$ is source $j$; the area of a dot is $A_{ij}$. Nothing is drawn above the diagonal. The forward computation: scores for every pair, then the mask, then the softmax of each row. [Run the computation.]{.web}
 :::
 
@@ -85,7 +91,7 @@ The specimen has $D=8$ and $H=2$ heads of width $d=D/H=4$. Split the space as $\
 $$O^{(h)}=V^{(h)}A^{(h)\T}\in\R^{d\times T},\qquad O=\begin{pmatrix}O^{(1)}\\ O^{(2)}\end{pmatrix}\in\R^{D\times T}.$$
 The output map $W_o$ then mixes the blocks, and the result is added to the residual stream,
 $$X\;\longleftarrow\;X+W_oO+b_o\,\mathbf 1^\T.$$
-Two heads let a position read two different things at once, and each pays for it with a smaller $d$. The four matrices $W_q,W_k,W_v,W_o$ and their biases hold $4(D^2+D)$ numbers, which is $288$ of the specimen's parameters.
+Two heads let a position read two different things at once, and each pays for it with a smaller $d$. The four matrices $W_q,W_k,W_v,W_o$ and their biases hold $4(D^2+D)$ numbers, which is ${{value:attentionParams}}$ of the specimen's parameters.
 
 ## In the code {#sec-code-attention}
 

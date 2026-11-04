@@ -51,7 +51,7 @@
 </script>
 
 <div class="fx fx-win" use:measure={(w) => (width = w)}>
-	<svg viewBox="0 0 {W} {H}" width={W} height={H} role="img" aria-label="The training set: {B} windows of {T} characters, each with its targets shifted by one: {B * T} predictions.">
+	<svg viewBox="0 0 {W} {H}" width={W} height={H} role={interactive ? 'group' : 'img'} aria-label="The training set: {B} windows of {T} characters, each with its targets shifted by one: {B * T} predictions.">
 		<!-- guides: one per corpus position -->
 		{#each Array.from({ length: m }) as _, k (k)}
 			<line class="fx-win__guide" x1={xc(k)} x2={xc(k)} y1={yCorpus + 8} y2={y0 + pairH * B - 6} />
@@ -79,7 +79,7 @@
 			{/if}
 			{#if interactive}
 				{#each ys as _, t (t)}
-					<rect class="hit" x={xc(b + t + 1) - cw / 2} y={yIn(b) - rowH + 2} width={cw} height={pairH} role="presentation" onpointerenter={() => (hover = { b, t })} onpointerleave={() => (hover = null)} />
+					<rect class="hit" x={xc(b + t + 1) - cw / 2} y={yIn(b) - rowH + 2} width={cw} height={pairH} role="button" aria-label="read this entry; details in the live readout" tabindex="0" onpointerenter={() => (hover = { b, t })} onfocus={() => (hover = { b, t })} onpointerleave={() => (hover = null)} onblur={() => (hover = null)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (hover = { b, t }); } }} />
 				{/each}
 			{/if}
 		{/each}

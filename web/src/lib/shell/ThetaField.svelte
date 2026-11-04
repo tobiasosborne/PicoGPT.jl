@@ -39,22 +39,33 @@
 		const b = blocks[+el.dataset.b];
 		hover = describe(b, +el.dataset.k);
 	}
+	function key(e) {
+		let k = (hover?.at ?? 1) - 1;
+		if (e.key === 'ArrowRight' || e.key === 'ArrowDown') k++;
+		else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') k--;
+		else if (e.key === 'Home') k = 0;
+		else if (e.key === 'End') k = specimen.paramCount - 1;
+		else return;
+		e.preventDefault(); k = Math.max(0, Math.min(specimen.paramCount - 1, k));
+		const b = blocks.find((b) => k >= b.offset && k < b.offset + b.size);
+		hover = describe(b, k - b.offset);
+	}
 </script>
 
 <div class="theta">
-	<p class="theta__field" onpointerover={over} onpointerleave={() => (hover = null)}>
+	<div class="theta__field" role="slider" tabindex="0" aria-label="trained parameters in storage order" aria-valuemin="1" aria-valuemax={specimen.paramCount} aria-valuenow={hover?.at ?? 1} aria-valuetext={hover ? `${hover.name} = ${hover.value}` : undefined} onkeydown={key} onfocus={() => { if (!hover) hover = describe(blocks[0], 0); }} onpointerover={over} onpointerleave={() => (hover = null)}>
 		{#each blocks as b, bi (b.name)}
 			<span class="theta__name" title={b.name}><i>{b.label.sym}</i>{#if b.label.sub}<sub>{b.label.sub}</sub>{/if}</span>
 			{#each b.values as v, k (k)}
 				<span class="theta__n" data-b={bi} data-k={k} style:font-weight={weightOf(v)}>{fmtDense(v, digits)}</span>{' '}
 			{/each}
 		{/each}
-	</p>
+	</div>
 	<p class="theta__readout label" aria-live="polite">
 		{#if hover}
 			<span class="theta__hname">{hover.name}</span> = {hover.value} <span class="theta__at">· θ<sub>{hover.at}</sub> of {specimen.paramCount}</span>
 		{:else}
-			<span class="theta__hint">θ ∈ ℝ<sup>{specimen.paramCount}</sup>: every parameter of the trained specimen, in the order the code keeps them. The weight of the type is |θ<sub>i</sub>|.</span>
+			<span class="theta__hint">θ ∈ ℝ<sup>{specimen.paramCount}</sup>: every parameter of the trained specimen, in the order the code keeps them, read across before down (unlike the computation). The weight of the type is |θ<sub>i</sub>|.</span>
 		{/if}
 	</p>
 </div>

@@ -50,6 +50,7 @@
 	--serif: 'Literata', 'XCharter Math', 'JuliaMono', serif;
 	--sans: 'Archivo', 'Literata', 'XCharter Math', 'JuliaMono', sans-serif;
 	--mono: 'JuliaMono', monospace;
+	--math: 'XCharter Math', 'JuliaMono', math;   /* JuliaMono supplies ‾ (U+203E, Temml's \bar) */
 	font-family: var(--serif);
 
 	width: var(--wide);
@@ -83,10 +84,13 @@
 .print-edition-root .flow p { text-wrap: pretty; }
 .print-edition-root .flow > p + p,
 .print-edition-root .flow > .noted + p { text-indent: 1.25em; }
-/* the opening line of a chapter's text, in small capitals (after its first heading too) */
+/* the opening line of a chapter's text, in small capitals: the first paragraph is marked by
+   print/paginate.js, wherever it falls (the web's :first-child rule would also catch the first
+   paragraph of every page) */
 .print-edition-root .chapter-body > p:first-child::first-line,
-.print-edition-root .chapter-body > h2:first-child + p::first-line,
-.print-edition-root .chapter-body > h2:first-child + .noted > p::first-line { font-variant-caps: all-small-caps; letter-spacing: 0.045em; }
+.print-edition-root .chapter-body > .noted:first-child > p::first-line { font-variant-caps: normal; letter-spacing: 0; }
+.print-edition-root .chapter-body p.pg-firstpara::first-line { font-variant-caps: all-small-caps; letter-spacing: 0.045em; }
+.print-edition-root .chapter-body p.pg-firstpara[data-split-from]::first-line { font-variant-caps: normal; letter-spacing: 0; }
 .print-edition-root blockquote { margin: calc(var(--rhythm) * 0.6) 0; padding-left: 1.25em; font-style: italic; }
 .print-edition-root blockquote p { text-indent: 0; }
 .print-edition-root .flow ul, .print-edition-root .flow ol { padding-left: 1.25em; margin-block: calc(var(--rhythm) * 0.5); }
@@ -116,6 +120,10 @@
 .print-edition-root .eq { margin-block: calc(var(--rhythm) * 0.55); overflow: visible; break-inside: avoid; }
 .print-edition-root .eq-scroll { overflow: visible; }
 .print-edition-root .flow > .eq + p { text-indent: 0; }
+/* display maths wider than the main column spans the text block (marked by paginate.js) */
+.print-edition-root .flow > .eq.pg-eq-wide { width: var(--wide); }
+.print-edition-root p .eq-scroll.pg-eq-wide { width: var(--wide); }
+.pagedjs_left_page .print-edition-root p .eq-scroll.pg-eq-wide { margin-left: calc(-1 * var(--pg-shift)); }
 
 /* ── margin notes (::: aside) and numbered sidenotes (^[…]) ── */
 .print-edition-root .note,
@@ -293,12 +301,16 @@
 .pagedjs_pagebox { position: relative; }
 .pagedjs_page_content { position: relative; }
 
-/* versos: the main column moves right, notes float into the left (outer) margin */
-.pagedjs_left_page .print-edition-root .flow > *:not(.fig--wide):not(.fig--full):not(.code:not(.pg-code-main)):not(.names):not(.dict):not(.pg-anchor) { margin-left: var(--pg-shift); }
+/* margin notes in the paged book are page furniture: paginate.js takes each out of the flow,
+   leaving a mark, and sets it in the notes column of the page its mark lands on */
+.pagedjs_page .print-edition-root .pg-note { position: absolute; float: none; margin: 0; width: var(--pg-notes); }
+.pg-note-mark { display: block; height: 0; margin: 0; }
+span.pg-note-mark { display: inline; }
+
+/* versos: the main column moves right, notes go to the left (outer) margin */
+.pagedjs_left_page .print-edition-root .flow > *:not(.fig--wide):not(.fig--full):not(.code:not(.pg-code-main)):not(.names):not(.dict):not(.pg-anchor):not(.pg-eq-wide) { margin-left: var(--pg-shift); }
 /* a wide excerpt on a verso starts at the outer edge of the text block: its line numbers stay inside it */
 .pagedjs_left_page .print-edition-root .code:not(.pg-code-main) { padding-left: 7.6mm; }
-.pagedjs_left_page .print-edition-root .note,
-.pagedjs_left_page .print-edition-root .sidenote,
 .pagedjs_left_page .print-edition-root .exercise__label {
 	float: left;
 	clear: left;
@@ -311,9 +323,12 @@
 .pagedjs_left_page .print-edition-root .fig--main .fig__foot { margin-left: calc(-1 * var(--pg-shift)); }
 .pagedjs_left_page .print-edition-root .flow h2 .secnum { right: calc(100% + 3.2mm); }
 
+/* every paragraph keeps the indent it has in the unbroken text (classes from paginate.js) */
+.pagedjs_page .print-edition-root .chapter-body p.pg-ti { text-indent: 1.25em; }
+.pagedjs_page .print-edition-root .chapter-body p.pg-ti0 { text-indent: 0; }
 /* continuations: a block resumed at the head of a page is not a new paragraph */
 .pagedjs_page .print-edition-root [data-split-from] { margin-top: 0 !important; }
-.pagedjs_page .print-edition-root p[data-split-from] { text-indent: 0 !important; }
+.pagedjs_page .print-edition-root .chapter-body p[data-split-from] { text-indent: 0 !important; }
 .pagedjs_page .print-edition-root [data-split-to] { margin-bottom: 0 !important; }
 .pagedjs_page .print-edition-root .chapter-body[data-split-from] > p:first-child::first-line { font-variant-caps: normal; letter-spacing: 0; }
 /* the first block on a page starts at the head of the text block */

@@ -21,7 +21,9 @@ subset() { # in out unicodes
   uv run --quiet --with fonttools --with brotli pyftsubset "$1" --output-file="$2" --flavor=woff2 \
     --unicodes="$3" --layout-features='*' --name-IDs='*' --notdef-outline --no-hinting --desubroutinize
 }
-TEXT='U+0000-017F,U+0192,U+0218-021B,U+02BC-02DD,U+0300-036F,U+0370-03FF,U+2000-206F,U+2070-209F,U+20AC,U+2100-214F,U+2190-21FF,U+2200-22FF,U+2423,U+FB00-FB06'
+# No U+FB00-FB06: the ligature glyphs stay (GSUB reaches them), but without a code point of
+# their own, so a PDF text layer maps them back to the letters (fi, not ﬁ).
+TEXT='U+0000-017F,U+0192,U+0218-021B,U+02BC-02DD,U+0300-036F,U+0370-03FF,U+2000-206F,U+2070-209F,U+20AC,U+2100-214F,U+2190-21FF,U+2200-22FF,U+2423'
 LABEL='U+0000-017F,U+02BC-02DD,U+0300-036F,U+2000-206F,U+2070-209F,U+2190-21FF,U+2200-22FF,U+25A0-25FF'
 MONO='U+0000-017F,U+02B0-02FF,U+0300-036F,U+0370-03FF,U+1D00-1DBF,U+2000-206F,U+2070-209F,U+2100-214F,U+2190-21FF,U+2200-22FF,U+2300-23FF,U+2423,U+2500-257F,U+25A0-25FF,U+27C0-27EF'
 subset Literata.ttf        "$OUT/Literata-var.woff2"        "$TEXT"

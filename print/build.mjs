@@ -302,12 +302,20 @@ try {
 }
 await finish(res.raw, res.result);
 const families = checkFonts();
-// A cheap extraction proof: no empty text layer and no lost h in the Th ligature.
+// A cheap extraction proof: the text is set with ligatures (Th, fi, fl, ff, ffi…), and the PDF text
+// layer must still read as the letters: no empty layer, no Th that lost its h, no ligature glyph
+// that came out as a presentation-form or private-use character.
+let extracted;
 try {
-	const text = execFileSync('pdftotext', [OUT, '-'], { encoding: 'utf8', maxBuffer: 32 << 20 });
-	if (text.trim().length < 1000) die('PDF text extraction is empty or incomplete');
-	if (/^Te /m.test(text)) die('PDF text extraction lost the h in The (Th ligature)');
+	extracted = execFileSync('pdftotext', [OUT, '-'], { encoding: 'utf8', maxBuffer: 32 << 20 });
 } catch (e) { die(`PDF text-extraction proof failed: ${e.message}`); }
+if (extracted.trim().length < 1000) die('PDF text extraction is empty or incomplete');
+{
+	const lostH = extracted.match(/.{0,30}\bTe\b.{0,30}/g);
+	if (lostH) die(`PDF text extraction lost the h of a Th ligature (${lostH.length}×), e.g. “${lostH[0].trim()}”`);
+	const odd = extracted.match(/[ﬀ-ﬆ-]/g);
+	if (odd) die(`PDF text extraction has ${odd.length} ligature or private-use characters, e.g. U+${odd[0].codePointAt(0).toString(16).toUpperCase()}`);
+}
 // every mark in the book is vector; a raster image means Chromium flattened something (a pattern,
 // a blend over translucency) and it would print soft
 {

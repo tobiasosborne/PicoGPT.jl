@@ -406,6 +406,7 @@ span.pg-note-mark { display: inline; }
 
 /* Keep the PDF text layer faithful: the font’s Th ligature loses its h in extraction. */
 .print-edition-root { font-variant-ligatures: none; }
+.print-edition-root :is(.flow h2, .claim, .opening__title, .toc__title, .map__title, .dict__term) { font-feature-settings: normal; }
 
 /* Keep the dictionary heading with its first entries. */
 .print-edition-root #sec-dictionary { break-before: page; }

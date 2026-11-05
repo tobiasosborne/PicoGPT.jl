@@ -811,7 +811,11 @@
 			}
 			// holes: text that stops well above the foot of a page that the chapter continues past
 			const next = pages[pages.indexOf(pg) + 1];
-			const forced = !next || next.classList.contains('pagedjs_blank_page') || next.querySelector('.opening:not([data-split-from]), .pp');
+			// (a page is not underfull when the next one begins with a forced break: a chapter
+			// opening, front matter, or a section such as the dictionary that starts on a new page)
+			const head = next?.querySelector('.chapter-body > *:not(.pg-anchor)');
+			const forcedHead = head && /^(page|left|right|recto|verso)$/.test(head.dataset.breakBefore || getComputedStyle(head).breakBefore);
+			const forced = !next || forcedHead || next.classList.contains('pagedjs_blank_page') || next.querySelector('.opening:not([data-split-from]), .pp');
 			if (!forced && !pg.classList.contains('pg-front') && !pg.classList.contains('pg-frontis') && !pg.classList.contains('pg-blank')) {
 				let bottom = A.top;
 				for (const el of area.querySelectorAll('.chapter-body > *, .opening')) {
@@ -916,6 +920,20 @@
 
 			window.Paged.registerHandlers(PicoWords, PicoFloats, PicoPageTop, PicoPages);
 			const previewer = new window.Paged.Previewer({ hyphenGlyph: '-' });
+			// Paged.js's base styles give every child of a split block a ::first-letter rule (to undo
+			// drop caps on the continuation). The book has no drop caps, and any ::first-letter style
+			// makes Chromium paint the first letter as its own fragment, which cuts a paragraph-initial
+			// Th ligature in two: it prints whole, but the PDF text layer reads "Te". The base styles
+			// are inserted inside preview(), so the rule is taken out right after they are.
+			const polisherSetup = previewer.polisher.setup.bind(previewer.polisher);
+			previewer.polisher.setup = () => {
+				const sheet = polisherSetup();
+				for (const st of document.querySelectorAll('style[data-pagedjs-inserted-styles]')) {
+					const rules = st.sheet?.cssRules ?? [];
+					for (let i = rules.length - 1; i >= 0; i--) if (rules[i].selectorText?.includes('::first-letter')) st.sheet.deleteRule(i);
+				}
+				return sheet;
+			};
 			const flow = await previewer.preview(html, sheets, holder);
 			// Paged.js resolves every url() in the CSS against its stylesheet, which turns the
 			// paint reference fill: url(#hatch-covector) into ….css#hatch-covector: nothing paints.

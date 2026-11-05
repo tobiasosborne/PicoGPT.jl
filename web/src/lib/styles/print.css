@@ -404,9 +404,9 @@ span.pg-note-mark { display: inline; }
 .print-edition-root .print { display: revert; }
 @media print { .print { display: revert; } }
 
-/* Keep the PDF text layer faithful: the font’s Th ligature loses its h in extraction. */
-.print-edition-root { font-variant-ligatures: none; }
-.print-edition-root :is(.flow h2, .claim, .opening__title, .toc__title, .map__title, .dict__term) { font-feature-settings: normal; }
+/* The font's ligatures (Th, fi, fl, ff, ffi…) are set, as on the web (base.css asks for them in
+   letter-spaced headings and claims too). Chromium writes each ligature's characters into the PDF
+   text layer; build.mjs checks the extracted text has no ligature glyphs or lost letters. */
 
 /* Keep the dictionary heading with its first entries. */
 .print-edition-root #sec-dictionary { break-before: page; }

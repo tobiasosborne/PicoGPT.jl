@@ -19,6 +19,11 @@ html {
 	scroll-padding-top: 4.5rem;
 }
 
+/* Chromium drops the font's ligatures (Th, fi, fl, ff…) from any letter-spaced run, and only a
+   low-level 'liga' brings them back; so tracked serif and dictionary text asks for them. Not set
+   globally: it would override `font-variant-ligatures: none` on code and figure tokens. */
+.flow h2, .claim, .opening__title, .toc__title, .map__title, .rhead__book, .dict__term { font-feature-settings: 'liga' 1; }
+
 body {
 	margin: 0;
 	font-size: var(--fs-body);

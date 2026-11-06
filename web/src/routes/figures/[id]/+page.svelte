@@ -9,6 +9,7 @@
 	import { makeSpecimen } from '#lib/model/specimen.js';
 	import Figure from '#lib/shell/Figure.svelte';
 	import RunningHead from '#lib/shell/RunningHead.svelte';
+	import { BOOK } from '#lib/outline.js';
 
 	let { data } = $props();
 	const specimen = $derived(makeSpecimen(data.specimen));
@@ -42,12 +43,12 @@
 	});
 </script>
 
-<svelte:head><title>{data.fig.id} — PicoGPT figures</title></svelte:head>
+<svelte:head><title>{data.fig.id} — {BOOK.title} figures</title></svelte:head>
 {#if mode !== 'print' && t == null}<RunningHead meta={{ num: data.fig.chapter.num, title: data.fig.chapter.title }} />{/if}
 <main class="figure-solo" class:print-edition-root={mode === 'print'}>
 	{#if t != null}
 		<header class="film-heading">
-			<p class="label">PicoGPT · Chapter {data.fig.chapter.num}</p>
+			<p class="label">{BOOK.title} · Chapter {data.fig.chapter.num}</p>
 			<h1>{data.figures[data.fig.id]?.meta?.title ?? data.fig.id}</h1>
 		</header>
 	{/if}

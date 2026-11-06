@@ -1,10 +1,10 @@
-// /frontis/<slug>.svg — the trace from public/traces/<slug>.svg as the page uses it:
+// /frontis/<slug>.svg — the edition's trace <traces>/<slug>.svg as the page uses it:
 // any full-bleed background rectangle is removed so the strokes sit on the book's
 // own paper (and invert cleanly at night). Prerendered for every trace present.
 import fs from 'node:fs';
 import path from 'node:path';
+import { TRACES as DIR } from '#lib/server/book.js';
 
-const DIR = path.join(process.cwd(), 'public', 'traces');
 export const prerender = true;
 export const trailingSlash = 'never';
 

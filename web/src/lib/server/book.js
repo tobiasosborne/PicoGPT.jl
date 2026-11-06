@@ -15,11 +15,12 @@ import temml from 'temml';
 import { extract, highlight } from './julia.js';
 import { expandProse } from './prose-values.js';
 import { MACROS } from './macros.js';
-import { OUTLINE, BOOK } from '../outline.js';
+import { OUTLINE, BOOK, PATHS } from '../outline.js';
 
 const WEB = process.cwd(); // vite runs in web/
 export const ROOT = process.env.BOOK_ROOT ?? path.resolve(WEB, '..');
-const CHAPTERS = path.join(ROOT, 'book', 'chapters');
+const CHAPTERS = path.join(ROOT, PATHS.chapters); // the edition's prose
+export const TRACES = path.join(ROOT, PATHS.traces); // its frontispieces
 const FILTER = path.join(WEB, 'src', 'lib', 'server', 'book.lua');
 const STRICT = process.env.BOOK_STRICT === '1';
 
@@ -220,9 +221,9 @@ export function neighbours(slug) {
 	return { prev: pick(list[k - 1]), next: pick(list[k + 1]) };
 }
 
-/** Does a frontispiece trace exist? (public/traces/<slug>.svg, cover.svg) */
+/** Does a frontispiece trace exist? (<traces>/<slug>.svg, cover.svg) */
 export function traceFor(slug) {
-	const p = path.join(WEB, 'public', 'traces', `${slug}.svg`);
+	const p = path.join(TRACES, `${slug}.svg`);
 	if (!fs.existsSync(p)) return null;
 	const svg = fs.readFileSync(p, 'utf8');
 	const vb = svg.match(/viewBox="([^"]+)"/)?.[1]?.split(/[\s,]+/).map(Number);

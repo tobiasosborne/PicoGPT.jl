@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './book.js';
+import * as EDITION from '#edition';
 
 const SOURCES = [
 	{ key: 'overfitting', match: /^fig-(overfitting|memorised)$/, load: overfitting },
@@ -16,10 +17,13 @@ const SOURCES = [
 	{ key: 'shakespeareModel', match: /^fig-scale$/, load: () => readJSON(path.join(ROOT, 'artifacts', 'shakespeare', 'loss.json'))?.model ?? null }
 ];
 
-/** {key: data} for the sources the given figures need. */
+/** {key: data} for the sources the given figures need. An edition adds its own through
+ *  edition.js: artifacts(ids, read) → {key: data}, a pure function of the files it reads
+ *  (`read(file relative to the repository)` returns parsed JSON, or null if absent). */
 export function artifactsFor(ids = []) {
 	const out = {};
 	for (const s of SOURCES) if (ids.some((id) => s.match.test(id))) out[s.key] = s.load();
+	if (EDITION.artifacts) Object.assign(out, EDITION.artifacts(ids, (f) => readJSON(path.join(ROOT, f))));
 	return out;
 }
 

@@ -1,0 +1,7 @@
+# generated: the staged site build and the proof pages (the PDF is committed); run logs
+.work/
+proof/
+artifacts/*.log
+artifacts/*-time.txt
+# the paper's own text: kept locally for the agents, not republished (read it at transformer-circuits.pub/2026/workspace)
+briefs/paper.txt

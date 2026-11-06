@@ -1,0 +1,17 @@
+Maximum finite-difference relative block error: 3.4559228746713074e-10
+Test Summary:                                 | Pass  Total   Time
+Residual semantics and hand-written Jacobians |  107    107  42.3s
+Scale-free final lens probability discrepancy: 0.0
+Literal paper-weighted final lens epsilon discrepancy (80 columns): 1.7232390429833266e-5
+Test Summary:                          | Pass  Total  Time
+Final-depth lens and LayerNorm epsilon |    5      5  8.9s
+Test Summary:                          | Pass  Total   Time
+NNLS versus exhaustive active supports |  125    125  14.5s
+Test Summary:                         | Pass  Total   Time
+Gram pursuit agrees with direct NNOMP |   40     40  12.8s
+Test Summary:          | Pass  Total  Time
+Two-block continuation |    6      6  1.4s
+Test Summary:                 | Pass  Total  Time
+Pseudoinverse coordinate swap |    4      4  2.0s
+Test Summary: | Pass  Total  Time
+Linear CKA    |    3      3  2.6s

@@ -1,8 +1,11 @@
 // The handful of prose readings that depend on model data, expanded before Pandoc.
 // Shapes and worked mathematical examples remain explicit in the chapter source.
+// An edition may supply its own readings: edition.js exports proseValues(read), a pure
+// function of the JSON files it reads through `read(file relative to the repository)`.
 import fs from 'node:fs';
 import path from 'node:path';
 import { parameterLayout } from '#specimen';
+import * as EDITION from '#edition';
 
 export function proseValues(root) {
 	const read = (file) => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -43,9 +46,14 @@ export function proseValues(root) {
 
 export function expandProse(md, root) {
 	if (!md.includes('{{value:')) return md;
-	const values = proseValues(root);
-	return md.replace(/\{\{value:([A-Za-z]+)\}\}/g, (_, name) => {
+	const read = (file) => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+	const values = EDITION.proseValues ? EDITION.proseValues(read) : proseValues(root);
+	const out = md.replace(/\{\{value:([A-Za-z0-9_]+)\}\}/g, (_, name) => {
 		if (!(name in values)) throw new Error(`Unknown computed prose value: ${name}`);
 		return values[name];
 	});
+	// a reading that did not match the pattern would otherwise reach the page as raw text
+	const left = out.match(/\{\{value:[^}]*\}\}/);
+	if (left) throw new Error(`Malformed computed prose value: ${left[0]}`);
+	return out;
 }

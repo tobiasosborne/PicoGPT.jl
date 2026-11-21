@@ -12,11 +12,15 @@ const MODELS = (
     looped = (injection = :anchor_normalized, start = :boundary, supervision = :deep,
               passes = 3:5, eval_pass = 4),
     stock = (injection = :none, start = :embedded, supervision = :last, passes = 4:4, eval_pass = 4),
+    fullstart = (injection = :anchor_normalized, start = :embedded, supervision = :deep,
+                 passes = 3:5, eval_pass = 4),
+    window = (injection = :anchor_normalized, start = :embedded, supervision = :deep,
+              passes = 1:8, eval_pass = 8, width = 2),
 )
 
 run_dir(model) = joinpath(TRIAL, string(model))
 model_options(recipe, c) = (; recipe.injection, recipe.start, position = :sinusoidal,
-                            width = c.T, lag_bias = 0)
+                            width = get(recipe, :width, c.T), lag_bias = 0)
 
 function trial_data()
     text = read(artifact("data", "tinyshakespeare.txt"), String)

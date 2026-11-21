@@ -11,7 +11,7 @@ function check_shakespeare()
     K = 3
 
     @testset "Shakespeare tied forward and pullback" begin
-        for name in (:looped, :stock)
+        for name in (:looped, :stock, :fullstart, :window)
             opts = model_options(MODELS[name], c)
             rollout(w, x = x; trace = nothing) = windowgpt(w, x, c; K, readouts = :all, trace, opts...)
             trace = NamedTuple[]
@@ -28,8 +28,25 @@ function check_shakespeare()
             @test loss_error < 1e-6
             @info "Float64 finite differences" model = name logit_error loss_error
 
-            @test all(frame.weights[t, s, h, b] == 0 for frame in trace[2:end]
-                      for h in 1:c.H, b in axes(x, 2), s in axes(x, 1) for t in 1:s-1)
+            if opts.width == 2
+                @test all(iszero, (w for frame in trace[2:end]
+                                   for w in frame.weights[2, :, 1:c.T:end]))
+                for k in 1:K-1
+                    outside, inside = copy(x), copy(x)
+                    t = c.T
+                    outside[t-k-1, 1] = mod1(x[t-k-1, 1] + 1, c.V)
+                    inside[t-k, 1] = mod1(x[t-k, 1] + 1, c.V)
+                    @test first(rollout(θ, outside))[k][:, t] == Zs[k][:, t]
+                    @test first(rollout(θ, inside))[k][:, t] != Zs[k][:, t]
+                end
+                changed_first = copy(x)
+                changed_first[:, 1] .= 5
+                @test all(Z[:, c.T+1:end] == Z′[:, c.T+1:end] for
+                          (Z, Z′) in zip(Zs, first(rollout(θ, changed_first))))
+            else
+                @test all(frame.weights[t, s, h, b] == 0 for frame in trace[2:end]
+                          for h in 1:c.H, b in axes(x, 2), s in axes(x, 1) for t in 1:s-1)
+            end
             changed = copy(x)
             changed[end, 1] = 5
             @test all(isapprox(Z[:, 1:3], Z′[:, 1:3]) for

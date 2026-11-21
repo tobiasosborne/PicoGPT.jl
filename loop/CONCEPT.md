@@ -289,7 +289,38 @@ full causal attention, sinusoidal positions, no predecessor bias; **215,233 para
   against (k+1)-gram statistics) was skipped. Wall times were measured under the laptop's Power Saver
   profile (one pass 24.9 min, looped 83.1, stock tied 75.1) and do not compare with Book 1's 36.2.
 
-**Reading for the book.** Shakespeare works as a closing chapter about what looping does and does not
-buy at scale, an honest counterweight to the toy, but not as a second specimen with the toy's
-exactness. The window-of-two Shakespeare run is the one experiment that could tie the two together
-(pass k sees k + 1 characters, so per-pass loss could meet an n-gram curve); it is untested.
+### Round 2: the confound removed, and the window of two on text
+
+Two more runs, one seed each, same recipe (`loop/notes/shakespeare.md`, Round 2).
+
+| model (215,233 params) | best held-out loss | pass 16 |
+|---|---|---|
+| A: specimen recipe, stream started from the full input, K ∈ 3…5 | 1.710 (pass 3) | 1.782 |
+| B: as A with the **window of two**, K ∈ 1…8 | **1.626** (pass 6) | 1.639 |
+| (round 1) stock tied ×4 / one pass / specimen recipe with first-word start | 1.654 / 1.698 / 1.784 | |
+| interpolated Kneser–Ney n-gram of order k+2 (k+1 characters of context, as pass k sees) | 1.530 at order 7 | 1.540 at order 18 |
+
+- **What the stabilisers cost, confound removed:** the first-word start was most of round 1's
+  deficit (full-input start improves pass 4 by 0.070 nats). What remains is small: 1.710 against
+  one pass's 1.698 (+0.012) and stock tied's 1.654 (+0.056), in exchange for a loop that does not
+  collapse beyond its trained depth (1.78 at pass 16 against stock tied's 5.31).
+- **The window of two is the best of the small models** (1.626 at pass 6, 0.029 better than stock
+  tied with full attention, 0.094 above Book 1's 810k-parameter 1.531), and its **cone is real in
+  the trained logits**: all 96 perturbations outside t−k…t left the pass-k logits exactly unchanged,
+  all 48 at the cone's inner edge changed them. (The window and the longer unroll changed together
+  from A to B, so their separate contributions are open.)
+- **Against the n-gram ladder it lags, pass by pass, but follows its shape.** The gap is 0.019 nats
+  at pass 1, 0.065 at pass 2, then a nearly constant 0.09–0.10 from pass 3 to 16; both curves drop
+  steeply while the first five or six characters enter the context and are flat after pass 5–6. The
+  ladder is a fitted reference line (discounts tuned on the last 5 % of the *training* split), not a
+  floor; the transformer also sees absolute positions.
+- **A sobering by-product:** the smoothed 7-gram (1.530) is as good as Book 1's four-block model at its
+  5,000 steps (1.531). Book 1's Chapter 9 should know this.
+
+**Reading for the book (revised).** Shakespeare gives a good closing chapter, not a second specimen.
+With the window of two, the toy's central object survives on text exactly: pass k of the trained
+language model provably and measurably sees k + 1 characters, so each pass can be set beside an
+n-gram of matching order, and the reader watches the loop climb the n-gram ladder a rung per pass,
+about 0.1 nats short of it, levelling where the ladder levels. What it cannot claim: that looping
+beats untied depth (1.626 vs 1.531), that it beats a well-smoothed n-gram, or an exact floor. One
+seed per model throughout.

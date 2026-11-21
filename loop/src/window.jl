@@ -6,9 +6,9 @@ using PicoGPT: foreach_head, record!
 export window_mask, masked_attention, windowgpt, windowloss, register_window, register_windowloss
 
 """An additive causal mask whose window includes the query itself."""
-function window_mask(T, width = 2, R = Float64)
+function window_mask(T, width = 2, R = Float64; lag_bias = 0)
     width ≥ 1 || throw(ArgumentError("window width must be positive"))
-    R[0 ≤ i - j < width ? 0 : -Inf for i in 1:T, j in 1:T]
+    R[0 ≤ i - j < width ? (i - j == 1 ? lag_bias : 0) : -Inf for i in 1:T, j in 1:T]
 end
 
 """PicoGPT attention with a supplied fixed additive mask, shared by heads and words."""
@@ -102,12 +102,25 @@ function window_mix(Q, K, V, H, T; lag_bias = 0)
     O, back, weights
 end
 
-function window_block(X, p, H, T; correction_only = false, anchor = nothing, lag_bias = 0)
+function attention_mix(Q, K, V, H, T, mask, lag_bias)
+    isnothing(mask) && return window_mix(Q, K, V, H, T; lag_bias)
+    A, back_attention = masked_attention(Q, K, H, mask)
+    O, back_mix = mix(A, V)
+    function back(Ō)
+        Ā, V̄ = back_mix(Ō)
+        Q̄, K̄ = back_attention(Ā)
+        Q̄, K̄, V̄
+    end
+    O, back, A
+end
+
+function window_block(X, p, H, T; correction_only = false, anchor = nothing, lag_bias = 0,
+                      mask = nothing)
     Â, back_ln1 = layernorm(X, p.γ1, p.β1)
     Q, back_q = affine(Â, p.Wq, p.bq)
     K, back_k = affine(Â, p.Wk, p.bk)
     V, back_v = affine(Â, p.Wv, p.bv)
-    O, back_mix, weights = window_mix(Q, K, V, H, T; lag_bias)
+    O, back_mix, weights = attention_mix(Q, K, V, H, T, mask, lag_bias)
     Y₁, back_o = affine(O, p.Wo, p.bo)
     X₁ = (isnothing(anchor) ? X : anchor) + Y₁
     F̂, back_ln2 = layernorm(X₁, p.γ2, p.β2)
@@ -208,10 +221,10 @@ function initial_stream(X₀, T, start)
     X
 end
 
-function advance(X, X₀, p, H, T, injection, lag_bias)
+function advance(X, X₀, p, H, T, injection, lag_bias, mask = nothing)
     anchored = injection in (:anchor, :anchor_normalized)
     Y, back, weights = window_block(X, p, H, T; correction_only = injection == :refresh,
-                                    anchor = anchored ? X₀ : nothing, lag_bias)
+                                    anchor = anchored ? X₀ : nothing, lag_bias, mask)
     (anchored || injection == :none) || (Y = Y + X₀)
     if injection in (:normalized, :anchor_normalized)
         R, D = eltype(Y), size(Y, 1)
@@ -230,16 +243,18 @@ end
 
 """Visit each forward pass without retaining the unrolled pullback."""
 function visit_passes(f, θ, x, c::Config; K, tied = true, injection = :after,
-                      position = :sinusoidal, lag_bias = 0, start = :embedded)
+                      position = :sinusoidal, lag_bias = 0, start = :embedded, width = 2)
     check_window(c, K, tied, injection)
     p, X₀, _, T, data, _ = window_start(θ, x, c, position)
     X = initial_stream(X₀, T, start)
+    mask = width == 2 ? nothing : window_mask(T, width, eltype(X); lag_bias)
     for k in 1:K
         previous = X
-        X, _, weights, _ = advance(X, X₀, p.blocks[tied ? 1 : k], c.H, T, injection, lag_bias)
+        X, _, weights, _ = advance(X, X₀, p.blocks[tied ? 1 : k], c.H, T, injection, lag_bias, mask)
         Z, _ = readout(data_stream(X, data), p)
         if position == :bos
-            f(k, Z, data_stream(X, data), data_stream(previous, data), weights[:, :, data])
+            data_weights = isnothing(mask) ? weights[:, :, data] : weights[2:end, :, :, :]
+            f(k, Z, data_stream(X, data), data_stream(previous, data), data_weights)
         else
             f(k, Z, X, previous, weights)
         end
@@ -247,20 +262,22 @@ function visit_passes(f, θ, x, c::Config; K, tied = true, injection = :after,
 end
 
 """
-Run tied or untied width-two blocks with stock embeddings and readout.
-An optional forward trace records streams and the two weights at every query
-(self first). The pullback can record state cotangents in reverse pass order.
+Run tied or untied causal blocks with stock embeddings and readout.
+An optional forward trace records streams and attention weights. With width two
+the weights are compact (self first), otherwise they are query × key × head × batch.
+The pullback can record state cotangents in reverse pass order.
 With `position = :bos`, append the input-only BOS embedding to the parameter vector.
 The trace includes BOS columns, while the returned logits contain only data columns.
 """
 function windowgpt(θ, x, c::Config; K::Int = c.L, tied::Bool = true, injection = :after,
                    position = :sinusoidal, lag_bias = 0, start = :embedded,
-                   readouts = :last, trace = nothing)
+                   width = 2, readouts = :last, trace = nothing)
     check_window(c, K, tied, injection)
     readouts in (:all, :last) || throw(ArgumentError("unknown readout mode"))
 
     p, X₀, back_embed, T, data, P = window_start(θ, x, c, position)
     X = initial_stream(X₀, T, start)
+    mask = width == 2 ? nothing : window_mask(T, width, eltype(X); lag_bias)
     record!(trace, (; pass = 0, X))
     Zs = typeof(X₀)[]
     back_blocks = Vector{Function}(undef, K)
@@ -268,7 +285,7 @@ function windowgpt(θ, x, c::Config; K::Int = c.L, tied::Bool = true, injection 
     back_readouts = Vector{Function}(undef, readouts == :all ? K : 1)
     for k in 1:K
         X, back_blocks[k], weights, back_streams[k] = advance(
-            X, X₀, p.blocks[tied ? 1 : k], c.H, T, injection, lag_bias)
+            X, X₀, p.blocks[tied ? 1 : k], c.H, T, injection, lag_bias, mask)
         if readouts == :all || k == K
             Z, back_Z = readout(data_stream(X, data), p)
             push!(Zs, Z)

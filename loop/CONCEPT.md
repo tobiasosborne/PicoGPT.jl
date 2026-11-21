@@ -254,3 +254,42 @@ path is perhaps 150), tests with gradchecks, the exact floors audited. Remaining
 As a target, not a measurement: about two weeks of orchestrated agent work, the size of the J-space supplement or a little larger,
 quota permitting; the main risk is the transformer form's measured 83 % fresh-seed reliability (67 % without the
 predecessor bias), which a further round could try to raise.
+
+## 12. Does it generalise to Shakespeare? (trial, 21 Nov 2026)
+
+One run per model, Book 1's data, evaluation windows and 5,000-step recipe, D=128, H=4, F=512, T=256,
+full causal attention, sinusoidal positions, no predecessor bias; **215,233 parameters** each
+(Book 1's untied four blocks: 810,049, held-out 1.5313). Details: `loop/notes/shakespeare.md`.
+
+| model | held-out loss at its best pass | at pass 8 | at pass 16 |
+|---|---|---|---|
+| one block, one pass | 1.698 (pass 1) | 5.973 | 6.899 |
+| stock tied, `blocks[1]` ×4, loss at pass 4 | **1.654** (pass 4) | 3.600 | 5.312 |
+| specimen recipe (fresh input, normalised stream, loss every pass, K ∈ {3,4,5}, first-word start) | 1.784 (pass 4) | 1.848 | 1.891 |
+
+- **What carries over unchanged:** the code path (one block, tied, hand-written pullback, gradchecked
+  in Float64), and the specimen's stabilisers do what they did on the toy: the looped state
+  contracts (centred step 103 at pass 1, 19.7 at pass 4, 0.83 at pass 16 on the "Good morrow,
+  neighbour" passage; 78 of 83 predictions final by pass 8), and extra passes cost little (1.78 → 1.89
+  over 12 extra passes). The stock tied loop, by contrast, is tuned to exactly four passes and falls
+  apart beyond them (1.65 → 5.31): "overthinking", seen cleanly.
+- **What does not:** the light cone, the exact floor and the extrapolation story have no counterpart
+  with full attention on text. More passes at test time do **not** help: every model is best at its
+  trained pass count. And the stabilisers cost loss at scale (1.784 against stock tied's 1.654;
+  even the one-pass control, 1.698, beats it). Tying itself costs against Book 1 (1.654 vs 1.531) and
+  buys only 0.044 over one block at equal parameters, for 4× the compute.
+- **What a Shakespeare chapter could honestly claim:** one shared block of 215k parameters writes
+  Shakespeare-like text; weight-tying trades parameters for compute at a measurable price; the loop's
+  behaviour beyond its trained depth depends on how it is built (a contracting, settling loop versus a
+  stock one that is tuned to one depth). **What it could not claim:** that looping improves the model,
+  that thinking longer helps, or anything resembling the specimen's exact anchors.
+- **Confounds and open questions:** one seed each; the looped run also carried over the toy's
+  first-word-only start, which may explain part of its pass-1 weakness (2.49) and its higher loss; the
+  separate effect of each change is untested; the window-of-two Shakespeare model (to set per-pass loss
+  against (k+1)-gram statistics) was skipped. Wall times were measured under the laptop's Power Saver
+  profile (one pass 24.9 min, looped 83.1, stock tied 75.1) and do not compare with Book 1's 36.2.
+
+**Reading for the book.** Shakespeare works as a closing chapter about what looping does and does not
+buy at scale, an honest counterweight to the toy, but not as a second specimen with the toy's
+exactness. The window-of-two Shakespeare run is the one experiment that could tie the two together
+(pass k sees k + 1 characters, so per-pass loss could meet an n-gram curve); it is untested.

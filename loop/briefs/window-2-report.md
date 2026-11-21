@@ -1,0 +1,27 @@
+# Two-token window, round 2
+
+A bounded predecessor register with two learned gains met the full target in **5 of 5** random initializations. Exhaustive mixed deep loss was 0.161459555–0.161646040 nats, within 0.067–0.183% of the exact 0.161350951729293-nat floor. All five models scored 100% at lengths 32 and 64 with both `K=T` and `K=2T`. Timed updates took 1.02–1.98 seconds per seed, excluding compilation and evaluation.
+
+The register uses fixed lag-one attention with weight 1 and a virtual left bit of zero. It initializes the first site to its observed bit and all other sites to zero log odds. Each input symbol selects one independently initialized gain. Multiplying the predecessor state by that gain gives the current logit difference, and tanh bounds the state passed to the next iteration. The gains learn which symbol preserves the sign and which flips it. This is the smallest successful configuration tested and uses an explicit scalar state, a fixed head, and an architecture that preserves zero log odds. [Five-seed screen](../artifacts/window-round2-register.json)
+
+## Diagnoses
+
+| Hypothesis | Result |
+|---|---|
+| Absolute positions | Plain NoPE with a singleton first query has an accuracy ceiling of 83.68% at length 32 and 83.51% at length 64, even with full receptive field. The singleton acts like left-padding with the first bit, which leaves some opposite-parity prefixes indistinguishable. With mixed training and normalization, replacing sinusoids with a first-token marker raised seed 2's length-64, pass-128 accuracy from 52.40% to 100%. |
+| Stream drift | At length 64, post-injection drove centered RMS state norm from 33.05 at pass 1 to 3,066.96 at pass 128, with a pass-128 step norm of 23.90. Replacing the old stream by the fresh input plus the corrections limited the norm to 13.09 at pass 128. Normalizing the post-injection stream limited it to 2.83. The bounded variants had final step norms below `3e−15` in this matched seed. |
+| Training distribution | Enumeration verified the full mixed distribution with `T` uniform on 4–12 and `K` uniform on `T−1…2T`. Its exact deep floor is `(384975233676617 / 1653814216454400) × ln(2)`. The matched fixed-length, fixed-depth stock run with a marker reached within 0.008% of its floor, then scored 81.95% at length 64, pass 128. The mixed run reached 100%. The gain register also succeeded in all five seeds with fixed `T=K=8`. |
+| Seed reliability | At 582 parameters with the boundary marker and mixed training, seed 2 improved from 53.71% at length 64 with post-injection to 96.49% with fresh-input corrections and 100% with normalization, using `K=T` throughout. Seed 1 stalled near 52.20% with all three. The 582-parameter baseline and the smallest successful stock variant, with 270 parameters at `D=4, F=16`, each met both targets in one of five seeds. The structured two-gain register succeeded in every seed. |
+
+[Exhaustive floor](../artifacts/window-round2-floor.json) · [Stock ablations](../artifacts/window-round2-diagnosis.json) · [Position and distribution ablation](../artifacts/window-round2-distribution.json) · [Centered stream norms](../artifacts/window-round2-stream.json)
+
+The learned stock attention in the successful 582-parameter seed averaged 0.621 predecessor weight at length 64, pass 128. Its weights ranged from 0.123 to 0.9996, with about 25% of nonboundary queries at or above 0.95. The final centered RMS step was `1.08e−15`. The stock probe stores its accuracy cone and backward covectors. [Stock probe](../artifacts/window-round2-stock-probe.json) · [Normalization screen](../artifacts/window-round2-stock-normalized.json) · [Narrow stock seeds 3–5](../artifacts/window-round2-stock-narrow.json)
+
+## Diagnostics and controls
+
+- The register was exact throughout the available cone, used probability 0.5 everywhere beyond it, and reached a fixed point at pass 64 on length 64. Centered RMS step size fell from about 0.125 at pass 63 to zero at pass 64 and stayed at zero through pass 128. The probe exports the full `64 × 128` accuracy matrix and the terminal covector. The covector travels exactly one site per pass, with norms 1, `1.05e−6` and `4.33e−13` over its first three sites. [Probe](../artifacts/window-round2-probe.json)
+- The one-pass control reached 0.497609–0.497659 nats against its exact `(89539/124740) × ln(2) = 0.497544536`-nat floor. The 24-block untied control, using the first `K` blocks for each batch, shares the tied model's 0.161350952-nat floor. Its best loss was 0.164146406, or 1.73% above that floor. Its strongest long rollout reached 88.92% at length 32 and 69.26% at length 64 at pass 24. [Controls](../artifacts/window-round2-controls.json)
+- The ReLU registers with 17 and 33 parameters scored 100% on the long rollouts in all five seeds. Every ReLU run missed the 1% loss threshold. The smallest successful gain model uses an explicit invariant for the zero-odds state. [Five-seed screen](../artifacts/window-round2-register.json)
+- With autonomous feedback on Rule 60, the two-gain model matched Lucas' theorem in all five seeds at every pass through 96, four times the largest training pass count. That holds for 256 length-64 words and the full length-97 single-impulse pattern. Mixed held-out loss ranged from 0.000232 to 0.000612 nats against a zero floor. [Rule 60](../artifacts/window-round2-rule60.json)
+
+[Full notes and reproduction commands](../notes/window.md)

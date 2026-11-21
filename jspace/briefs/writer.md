@@ -5,8 +5,9 @@ and every figure for it in `jspace/figures/NN-slug/`. The book explains the math
 Anthropic's paper *Verbalizable Representations Form a Global Workspace in Language Models*
 (Gurnee, Sofroniew, Lindsey et al., Transformer Circuits Thread, July 2026;
 https://transformer-circuits.pub/2026/workspace/index.html — read its Introduction, Methods, "The
-J-space", "Structure Supports Function" and the appendix "Formalization of the J-space"; the text
-is also at `jspace/briefs/paper.txt`) to the reader of PicoGPT, by computing every object in it on
+J-space", "Structure Supports Function" and the appendix "Formalization of the J-space"; the
+authors were also given a local plain-text copy, `jspace/briefs/paper.txt`, which is not in the
+repository: read the paper at its URL) to the reader of PicoGPT, by computing every object in it on
 the two models we own completely. It is a **supplement** to PicoGPT: same reader, same voice,
 same design system, same pipeline, its own PDF (`jspace/PoisedToSpeak.pdf`). It is not part of
 the main book and must not touch it.

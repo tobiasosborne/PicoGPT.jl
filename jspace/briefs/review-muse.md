@@ -1,5 +1,10 @@
 # Review of *Poised to speak* (`jspace/`)
 
+> **Note added when this review was published.** `paper.txt`, cited below with line numbers, was a
+> local plain-text copy of the paper made for the agents; it is not in the repository. Read the
+> paper at [transformer-circuits.pub/2026/workspace](https://transformer-circuits.pub/2026/workspace/index.html);
+> the section names cited below locate the passages there.
+
 Reviewer: Muse Code (muse-wonder-full-1.0), acting as review sub-agent.
 Date of the PDF reviewed: proof of 2026-11-06, 81 pages.
 

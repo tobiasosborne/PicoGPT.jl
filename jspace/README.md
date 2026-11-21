@@ -7,6 +7,9 @@ models of PicoGPT: the specimen (1007 parameters) and the Tiny Shakespeare model
 the main book or its PDF; it is a second **edition** built by the same pipeline, with the same
 design system (`../DESIGN.md`) and the same conventions (`../BRIEF.md` §7).
 
+Read it: [`PoisedToSpeak.pdf`](PoisedToSpeak.pdf) (83 pages). The repository's [README](../README.md#companion-poised-to-speak)
+introduces it beside the main book.
+
 ```
 edition.js            outline, title, front matter, data hooks (what makes this an edition)
 book/chapters/        the prose, pandoc markdown, one file per chapter

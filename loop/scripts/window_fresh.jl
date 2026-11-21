@@ -1,6 +1,7 @@
 # From the repository root: julia --project -O1 -t 4 loop/scripts/window_fresh.jl [lag_bias [seed ...]]
 include(joinpath(@__DIR__, "window_round3.jl"))
-using SHA, TOML
+using SHA: sha256
+using TOML
 
 const FRESH_CONFIG = joinpath(@__DIR__, "window_fresh.toml")
 

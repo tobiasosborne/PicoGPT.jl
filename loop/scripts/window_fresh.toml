@@ -1,0 +1,76 @@
+# Frozen recipe from Round 3's anchor-boundary-start.
+#
+# Seeds 1001–1005 were minibatch RNG keys in the earlier screens. Use the
+# next checked block below for the parameter keys and preserve Round 3's
+# separate Xoshiro stream for data, seeded with the parameter key plus 1000.
+seed_first = 20001
+seed_last = 20030
+
+[shape]
+V = 2
+D = 4
+H = 1
+F = 16
+L = 1
+T = 12
+
+[model]
+# Use the stock 270 trainable scalars, with projected Q/K/V from LN1(X),
+# scaled dot-product attention over self and predecessor (self only at
+# site 1), and a fixed predecessor logit bias. Reuse the block on each pass.
+window = 2
+lag_bias = 4.0
+tied = true
+# Add [1, -1, 1, -1] to the first token embedding in each word. Initialize
+# the recurrent stream from this marked embedding at site 1, with zeros
+# elsewhere. Keep the marked embeddings as an immutable source.
+position = "boundary"
+start = "boundary"
+# The first residual is source + projected attention. Then apply the LN2
+# and ReLU MLP with its usual residual, followed by feature LayerNorm
+# with fixed unit gains and zero offsets. Apply the stock readout each pass.
+injection = "anchor_normalized"
+# Float64 stock PicoGPT init: zero-mean normal weights with standard
+# deviations 1 (E), 1/sqrt(D) (Wq, Wk, Wv, W1), 1/sqrt(2LD) (Wo),
+# 1/sqrt(2LF) (W2), and 1/D (Wout). LayerNorm gains start at one, offsets
+# and biases at zero. Call init with Xoshiro(seed), in stock draw order.
+
+[training]
+steps = 1250
+batch = 8
+rng_offset = 1000
+# Uniform T per batch, then uniform K from T-1 to 2T inclusive, then
+# iid fair token IDs 1 and 2. No curriculum, teacher phase or polish.
+T_min = 4
+T_max = 12
+K_min_offset = -1
+K_max_multiplier = 2
+# Mean binary cross-entropy over all positions, words and passes. Use
+# hard prefix parity inside t <= k+1 and the exact fair-label expectation
+# outside the cone. Keep AdamW moments for the entire unroll schedule.
+supervision = "deep"
+conditional = true
+warmup = 20
+peak_rate = 0.02
+final_rate = 0.002
+beta1 = 0.9
+beta2 = 0.95
+epsilon = 1e-8
+matrix_decay = 0.01
+clip = 1.0
+
+[evaluation]
+# Exhaustive ordinary hard-label CE with equal weight over lengths, then
+# horizons given length, then passes and sites within each rollout.
+exhaustive_chunk = 128
+max_relative_loss_gap = 0.01
+# The exact mixed floor is (384975233676617/1653814216454400) * ln(2).
+# Draw both sets from one otherwise unused Xoshiro key in ascending length
+# order. Use the same words at both horizons and across all runs and biases.
+word_seed = 642901
+lengths = [32, 64]
+words_per_length = 256
+horizon_multipliers = [1, 2]
+required_accuracy = 1.0
+front_accuracy = 0.99
+interval_level = 0.95

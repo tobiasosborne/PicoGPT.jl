@@ -37,8 +37,8 @@ const warn = (msg) => {
 
 // ── chapter list and the cross-reference index ───────────────────────────────
 
-/** Files present in book/chapters, merged with the planned outline. */
-export function listChapters() {
+/** Merge chapter files with the outline. Absent reference-only chapters appear only in the index. */
+export function listChapters({ includeReferenceOnly = false } = {}) {
 	const files = fs.existsSync(CHAPTERS) ? fs.readdirSync(CHAPTERS).filter((f) => /^\d\d-[a-z0-9-]+\.md$/.test(f)) : [];
 	const present = new Map();
 	for (const f of files) {
@@ -48,7 +48,8 @@ export function listChapters() {
 		const id = h1?.[2]?.match(/#([\w-]+)/)?.[1] ?? `ch-${slug}`;
 		present.set(+nn, { num: +nn, slug, file: f, path: path.join(CHAPTERS, f), title: h1 ? h1[1].trim() : slug, id, exists: true });
 	}
-	const out = OUTLINE.map((o) => ({ ...o, ...(present.get(o.num) ?? { exists: false, id: `ch-${o.slug}` }) }));
+	const out = OUTLINE.filter((o) => includeReferenceOnly || !o.referenceOnly || present.has(o.num))
+		.map((o) => ({ ...o, ...(present.get(o.num) ?? { exists: false, id: `ch-${o.slug}` }) }));
 	for (const [num, c] of present) if (!OUTLINE.some((o) => o.num === num)) out.push({ gist: '', ...c });
 	return out.sort((a, b) => a.num - b.num);
 }
@@ -83,7 +84,7 @@ export function bookIndex() {
 	if (indexCache.key === key) return indexCache;
 	const data = { figures: {}, sections: {}, exercises: {}, chapters: {}, where: {}, bynum: {} };
 	// planned chapters resolve to "Chapter n" (unlinked) until their file exists
-	for (const c of listChapters()) if (!c.exists) data.chapters[c.id] = { num: c.unnumbered ? '' : String(c.num), slug: c.slug, planned: true, title: c.title };
+	for (const c of listChapters({ includeReferenceOnly: true })) if (!c.exists) data.chapters[c.id] = { num: c.unnumbered ? '' : String(c.num), slug: c.slug, planned: true, title: c.title };
 	for (const c of chapters) {
 		const label = c.unnumbered ? '' : String(c.num);
 		const prefix = c.unnumbered ? 'E' : String(c.num); // figure/section numbering prefix

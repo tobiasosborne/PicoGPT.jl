@@ -4,13 +4,14 @@
 	// <html data-print-ready="1">, paginates with Paged.js, prints. See DESIGN.md §8.
 	import { onMount, setContext } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { BOOK } from '#lib/outline.js';
+	import { BOOK, FRONT } from '#lib/outline.js';
 	import { makeSpecimen } from '#lib/model/specimen.js';
 	import { fmt } from '#figures/primitives/scales.js';
 	import ChapterOpening from '#lib/shell/ChapterOpening.svelte';
 	import ChapterBody from '#lib/shell/ChapterBody.svelte';
 	import ThetaField from '#lib/shell/ThetaField.svelte';
 	import Contents from '#lib/shell/Contents.svelte';
+	import ContentsList from '#lib/shell/ContentsList.svelte';
 
 	let { data } = $props();
 	const specimen = $derived(makeSpecimen(data.specimen));
@@ -60,19 +61,25 @@
 			<h1 class="pp-title">{BOOK.title}</h1>
 			<p class="pp-subtitle">{BOOK.subtitle}</p>
 		</header>
-		<ThetaField {specimen} />
+		{#if FRONT.theta}<ThetaField {specimen} />{/if}
 		<p class="pp-author">{BOOK.author}</p>
 	</section>
 
 	<!-- iv. colophon (verso) -->
 	<section class="pp pp--colophon">
 		<dl class="pp-facts">
+			{#if FRONT.facts}
 			<div><dt>The specimen</dt><dd>a transformer with {specimen.paramCount} parameters: <i>V</i> = {cfg.V}, <i>D</i> = {cfg.D}, <i>H</i> = {cfg.H}, <i>L</i> = {cfg.L}, <i>T</i> = {cfg.T}</dd></div>
 			<div><dt>trained on</dt><dd>“{specimen.corpus}”</dd></div>
 			{#if Number.isFinite(loss0)}<div><dt>its loss</dt><dd>{fmt(loss0, 3)} → {fmt(lossN, 3)} nats in {specimen.provenance.steps ?? specimen.loss.length} steps{#if specimen.provenance.floor != null}; the text’s own ambiguity allows no less than {fmt(specimen.provenance.floor, 3)}{/if}</dd></div>{/if}
 			{#if specimen.provenance.greedy}<div><dt>asked to continue “to be or”</dt><dd>“{specimen.provenance.greedy}”</dd></div>{/if}
+			{/if}
 		</dl>
-		<p>Every number in every figure comes from the specimen, {specimen.provenance.kind === 'artifact' ? 'as exported by the Julia code to artifacts/specimen.json' : 'trained by the JavaScript engine (provisional: the Julia export was not present when this proof was made)'}. The code is at {BOOK.repo.replace('https://', '')}.</p>
+		{#if FRONT.provenance}
+			<p>{@html FRONT.provenance}</p>
+		{:else}
+			<p>Every number in every figure comes from the specimen, {specimen.provenance.kind === 'artifact' ? 'as exported by the Julia code to artifacts/specimen.json' : 'trained by the JavaScript engine (provisional: the Julia export was not present when this proof was made)'}. The code is at {BOOK.repo.replace('https://', '')}.</p>
+		{/if}
 		<p>Two spot inks carry one meaning each throughout the book: <span class="ink-value">value ink</span> for quantities computed going forward, parameters and activations; <span class="ink-covector">covector ink</span> for adjoints x̄ pulled back from the loss. Printed in one colour, value marks are solid and covector marks are barred or hatched.</p>
 		<p>Set in Literata, with mathematics in XCharter Math, labels in Archivo and code in JuliaMono, all under the SIL Open Font License. Typeset from the same HTML as the web edition, by Paged.js in Chromium.</p>
 		<p class="pp-built">Proof of {data.built}.</p>
@@ -103,10 +110,12 @@
 		</ol>
 	</section>
 
-	<section class="pp pp--map">
-		<h2 class="pp-h">A map of the model</h2>
-		<Contents chapters={data.contents} hash />
-	</section>
+	{#if FRONT.map}
+		<section class="pp pp--map">
+			<h2 class="pp-h">A map of the model</h2>
+			<Contents chapters={data.contents} hash />
+		</section>
+	{/if}
 
 	{#each data.chapters as ch (ch.meta.slug)}
 		<article class="chapter print-chapter" class:print-chapter--frontis={ch.trace} id="ch-{ch.meta.slug}" data-chapter={ch.meta.slug}>

@@ -1,0 +1,14 @@
+specimen: every existing key, list length and tensor shape preserved.
+specimen: Jacobians, blocks/per-window matrices, singular values and vectors have the requested 4.5 scale (within export precision).
+specimen: structure statistics and CKA are unchanged at exported precision.
+specimen: self unchanged; future uses BT denominator (3.5 times the former strict-pair mean).
+specimen: labelled literal probabilities exactly reproduce the previous export.
+specimen: primary J/logit top-1 agreement is unchanged.
+specimen: cone distances, activation norms, span fractions and random controls unchanged at exported precision.
+specimen: reconstructed ablate probabilities differ by at most 0.
+specimen: reconstructed swap probabilities differ by at most 0.
+shakespeare: every existing key, list length and tensor shape preserved.
+shakespeare: Jacobians, blocks/per-window matrices, singular values and vectors have the requested 128.5 scale (within export precision).
+shakespeare: structure statistics and CKA are unchanged at exported precision.
+shakespeare: labelled literal metrics exactly reproduce the previous export.
+shakespeare: J-space table/curves and prompt swap are unchanged at exported precision.

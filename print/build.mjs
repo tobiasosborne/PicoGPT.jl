@@ -7,6 +7,8 @@
 //
 // Flags: --skip-build  --proof  --strict (warnings fail the build)  --tolerant (leave out figures
 //        that do not compile, with a warning)  --out=FILE  --keep-open
+//        --edition=<folder>  another edition (its <folder>/edition.js names the chapters, output and
+//        work directories; see web/src/lib/editions/book.js); the default is the main book
 //
 // Pipeline (one renderer, DESIGN.md §8):
 //   1. Stage web/ into print/.work/site (so a concurrent `npm run dev`/`build` in web/ is
@@ -24,20 +26,25 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { PDFDocument, PDFName, PDFString, PDFNumber, PDFArray, PDFNull, PDFHexString } from 'pdf-lib';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const WEB = path.join(ROOT, 'web');
-const WORK = process.env.PRINT_WORK ? path.resolve(process.env.PRINT_WORK) : path.join(HERE, '.work');   // PRINT_WORK: a separate work dir, so two builds can run at once
-const STAGE = path.join(WORK, 'site');
-const PROOF = path.join(HERE, 'proof');
 
 const args = process.argv.slice(2);
 const flag = (f) => args.includes(`--${f}`);
 const opt = (k, d) => args.find((a) => a.startsWith(`--${k}=`))?.split('=').slice(1).join('=') ?? d;
-const OUT = path.resolve(opt('out', path.join(HERE, 'PicoGPT.pdf')));
+// the edition: the main book, or a folder at the repository root with an edition.js
+const EDITION = opt('edition', process.env.BOOK_EDITION ?? 'book');
+const EDITION_FILE = EDITION === 'book' ? path.join(WEB, 'src', 'lib', 'editions', 'book.js') : path.join(ROOT, EDITION, 'edition.js');
+const edition = await import(pathToFileURL(EDITION_FILE).href);
+const WORK = process.env.PRINT_WORK ? path.resolve(process.env.PRINT_WORK) : path.join(ROOT, edition.PRINT.work);   // PRINT_WORK: a separate work dir, so two builds can run at once
+const STAGE = path.join(WORK, 'site');
+const PROOF = path.join(ROOT, edition.PRINT.proof);
+const OUT = path.resolve(opt('out', path.join(ROOT, edition.PRINT.out)));
 const STRICT = flag('strict');
 
 const t0 = Date.now();
@@ -68,7 +75,7 @@ function buildSite() {
 	for (let attempt = 0; ; attempt++) {
 		const r = spawnSync(process.execPath, [vite, 'build', '--logLevel', 'warn'], {
 			cwd: STAGE,
-			env: { ...process.env, BOOK_ROOT: ROOT, BASE_PATH: '', NODE_ENV: 'production' },
+			env: { ...process.env, BOOK_ROOT: ROOT, BOOK_EDITION: EDITION, BASE_PATH: '', NODE_ENV: 'production' },
 			encoding: 'utf8',
 			maxBuffer: 256 << 20
 		});
@@ -230,7 +237,7 @@ async function finish(raw, result) {
 	const when = process.env.SOURCE_DATE_EPOCH ? new Date(+process.env.SOURCE_DATE_EPOCH * 1000) : new Date(result.built + 'T12:00:00Z');
 	pdf.setTitle(`${result.meta.title}: ${result.meta.subtitle}`, { showInWindowTitleBar: true });
 	pdf.setAuthor(result.meta.author);
-	pdf.setSubject('A transformer built from scratch in Julia, every number shown. Print edition.');
+	pdf.setSubject(edition.BOOK.subject ?? `${edition.BOOK.subtitle}. Print edition.`);
 	pdf.setKeywords(['transformer', 'GPT', 'attention', 'backpropagation', 'Julia', 'machine learning']);
 	pdf.setCreator('PicoGPT print/build.mjs — SvelteKit HTML, Paged.js 0.4.3, headless Chromium');
 	pdf.setProducer('Chromium (Skia/PDF) + pdf-lib');
@@ -327,7 +334,7 @@ fs.writeFileSync(path.join(WORK, 'report.json'), JSON.stringify({ pages: res.res
 log(`wrote ${path.relative(process.cwd(), OUT) || OUT}: ${res.result.pages} pages, ${kb} kB; fonts: ${families.join(', ')}`);
 if (flag('proof')) proof(res.result.pages);
 if (warnings.length) {
-	console.warn(`\n\x1b[33m${warnings.length} warning(s)\x1b[0m (full list: print/.work/report.json)`);
+	console.warn(`\n\x1b[33m${warnings.length} warning(s)\x1b[0m (full list: ${path.relative(ROOT, path.join(WORK, 'report.json'))})`);
 	if (STRICT) die('--strict: warnings are errors.');
 }
 console.log(`\x1b[32m✓ ${OUT}\x1b[0m`);

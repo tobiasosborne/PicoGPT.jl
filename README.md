@@ -30,6 +30,10 @@ browser. Press ▶ in Chapter 8 and you can watch it learn: the loss falls to th
 text's own ambiguity allows, which is exactly (2 ln 2 + 3 ln 3)/80 nats, and the output turns
 from `to␣be␣orbtbtnebtnn` into `to␣be␣or␣not␣to␣be`.
 
+A short companion book, [*Poised to speak*](#companion-poised-to-speak), uses the specimen
+and the book's Shakespeare model to work through a recent interpretability paper: the
+Jacobian lens and the J-space.
+
 ## Three names, two inks
 
 > *Any respectable object has at least three names.*
@@ -172,6 +176,54 @@ cd web && npm install && npm run dev                     # needs pandoc ≥ 3 on
 The prose is in `book/chapters/*.md`, one source for both web and print. The visual system is
 described in [`DESIGN.md`](DESIGN.md) and the binding specification in [`BRIEF.md`](BRIEF.md).
 The verified mathematics is in [`book/notes/derivations.md`](book/notes/derivations.md).
+
+## Companion: *Poised to speak*
+
+<p align="center">
+  <a href="https://github.com/tobiasosborne/PicoGPT.jl/raw/master/jspace/PoisedToSpeak.pdf">
+    <img src="media/readme/jspace-spread.webp" alt="A spread from Chapter 4 of Poised to speak, The J-space. Figure 4.1: the cone of two lens vectors and the nearest point of it, exactly. On the left, the plane spanned by two lens vectors seen from above, their cone hatched in covector ink, and a column of the specimen projected onto it; on the right, all 21 pairs of characters as small cone glyphs with their J-coordinates." width="100%">
+  </a>
+</p>
+
+**[Download PoisedToSpeak.pdf](https://github.com/tobiasosborne/PicoGPT.jl/raw/master/jspace/PoisedToSpeak.pdf)** (83 pages, eight chapters). A supplement, not part of the book above.
+
+In 2026 a group at Anthropic published *Verbalizable Representations Form a Global Workspace in
+Language Models* (Gurnee, Sofroniew, Lindsey et al.,
+[transformer-circuits.pub/2026/workspace](https://transformer-circuits.pub/2026/workspace/index.html)).
+It reads what a language model is poised to say, at every depth, by replacing the rest of the
+model with one matrix: its derivative, averaged over many contexts. *Poised to speak* computes
+that matrix, and everything the paper builds on it, on the two models this repository owns
+completely: the specimen, and the Tiny Shakespeare model with 810,049 parameters. The averaged
+Jacobian is computed with the book's own pullbacks; the lens vectors turn out to be covectors;
+the nearest point of the J-space is found exactly on the specimen, by enumerating every
+subset, and greedily on the Shakespeare model, always against random directions; steering, swapping and the broadcast tests are run, and where the small models do not do what the paper's
+large ones do, the book says so.
+
+| | | |
+|---|---|---|
+| 0 | Prologue | What the paper claims, in plain words; what we can compute and what we cannot |
+| 1 | Reading the stream early | The logit lens, and why it fails early |
+| 2 | The averaged Jacobian | The derivative of the rest of the model, averaged; computed by pullbacks |
+| 3 | The Jacobian lens | Replacing the rest of the model by its averaged derivative |
+| 4 | The J-space | Sparse nonnegative combinations of lens vectors: a union of cones, not a subspace |
+| 5 | Reading and writing | Probes, steering, and swapping one character for another with a pseudoinverse |
+| 6 | Is it a workspace? | A band of depths, a limited capacity, and broadcast, tested on a small model |
+| | Epilogue | What the paper does that we could not, and a dictionary of jargon |
+
+It is built by the same pipeline as the book, as a second *edition*, with the same design
+system. Everything lives in [`jspace/`](jspace/): the prose, the figures, the analysis in
+`jspace/src/JLens.jl` (433 tests) and the exported data every figure reads, in
+`jspace/artifacts/`. The supplement is not on the book's website; its web edition runs locally.
+
+```sh
+julia --project -t auto jspace/test/runtests.jl                      # the analysis tests
+julia --project -t auto jspace/scripts/export_specimen_jlens.jl       # the data (seconds)
+cd web && BOOK_EDITION=jspace npm run dev                             # the web edition at :5173
+node print/build.mjs --edition=jspace                                 # → jspace/PoisedToSpeak.pdf
+```
+
+How an edition works, and the Shakespeare export, are described in
+[`jspace/README.md`](jspace/README.md).
 
 ## Acknowledgements
 

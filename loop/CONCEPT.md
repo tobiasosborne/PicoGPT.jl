@@ -22,21 +22,27 @@ the loss of a model that is exactly right inside the cone and exactly undecided 
 outside it. The specimen is trained to it, and the reader watches it get there.
 
 **How small.** Two numbers, if the routing is fixed: s_t ← tanh(g(x_t)·s_{t−1}), with one gain
-per word, is the transfer matrix of an Ising chain; it trains in about a second in 5 of 5 seeds,
-reaches the floor to 0.1 %, and is exact at length 64 with 128 passes. As a *transformer* (learned
+per word (for the decoded sign, keep or flip, this is the transfer matrix of a zero-field Ising
+chain; the real-valued map tanh(g s) is an analogy, not the Ising recursion m ↦ tanh(βJ) m). It
+trains in 1–2 s in 5 of 5 seeds, reaches the floor to within 0.07–0.18 %, is exact at length 64
+with 128 passes, and provably settles to a fixed point by pass T. As a *transformer* (learned
 attention over the window, both LayerNorms, a ReLU MLP, embedding and readout): **270 parameters**
-(V = 2, D = 4, H = 1, F = 16), trained from PicoGPT's ordinary initialisation in 6.5–9.9 s of
-Julia, **4 of 5 seeds** reach the mixed-length floor 0.161350952 nats to within 1 % (best seed
+(V = 2, D = 4, H = 1, F = 16), the smallest qualifying transformer we tested, trained from
+PicoGPT's ordinary initialisation in 6.5–9.9 s of Julia updates, **4 of 5 seeds** reach the mixed-length floor 0.161350952 nats to within 1 % (best seed
 0.0033 %), and every one of those four is 100 % right at lengths 32 and 64 with K = T and K = 2T
-passes, although it never saw a word beyond length 12 or more than 24 passes.
+passes, although it never saw a word beyond length 12 or more than 24 passes. (Caveat from the
+final review: the recipe was chosen on these same five seeds and the same test words, so 4/5 is
+the screen's rate; a fresh-seed rate is not yet measured.)
 
 **Is it worth building.** Yes, with one stated cost. The evidence supports every criterion of the
-quest: the loop is load-bearing (an information floor no one-pass model of any width can beat,
-0.4975 nats against the looped 0.1614), visible (the cone, the fixed point at pass T, the covector
-cone going back), specimen-sized (270), anchored (two exact floors, Lucas' theorem for the
-companion), and it shows what looping buys (5× the trained length, 5× the trained passes, the same
-270 parameters). The cost: the plain PicoGPT block, looped, does **not** learn this reliably; besides the loop itself, four
-small changes, each a line or two and each forced by a measured failure, are needed (§6). Those
+quest: the loop is load-bearing (with the same two-token window, no one-pass model of any width can beat
+the information floor 0.4975 nats, against the looped 0.1614; with global attention the
+obstruction is only asymptotic, by Kozachinskiy–Steifer–Wałęga), visible (the cone, a fixed point
+of the stream by pass 128, the covector cone going back), specimen-sized (270), anchored (two exact
+floors, Lucas' theorem for the companion), and it shows what looping buys (5⅓× the trained length
+and passes, with the same 270 parameters). The cost: the plain PicoGPT block, looped, does **not** learn this reliably; besides the loop itself, four
+small changes, each a line or two of the model's definition and each answering a measured
+failure, are needed (§6); the screen supports the combined recipe, not the necessity of each. Those
 failures are not an embarrassment to hide; they are half the book's content.
 
 ## 2. The recommended specimen and its evidence
@@ -48,12 +54,12 @@ failures are not an embarrassment to hide; they are half the book's content.
 | parameters | 270 = 2VD + V + 2D + 4D² + 2DF + 9D + F | stock `nparams` |
 | training | lengths 4–12, passes K ∈ T−1…2T per batch, deep supervision, AdamW (BRIEF §13 constants), 1,250 updates, batch 8 | |
 | exact floor (training mix) | (384975233676617/1653814216454400) ln 2 = 0.161350952 nats | enumeration; audited |
-| reached | 0.161356316 (seed 3, +0.0033 %); seeds 2, 4, 5: +0.017, +0.25, +0.17 %; seed 1 fails (+20 %) | `window-round3-anchor-boundary-start.json` |
+| reached | 0.161356316 (seed 3, +0.0033 %); seeds 2, 4, 5: +0.017, +0.25, +0.17 %; seed 1 fails (+20 %); all five replayed by the final reviewer | `window-round3-anchor-boundary-start.json` |
 | extrapolation | 100 % at T = 32 and 64, with K = T and K = 2T (4 seeds) | same |
-| fixed point | centred RMS step 9·10⁻¹⁶ at length 64, pass 128 | same |
+| fixed point | centred RMS step 0.0053 into pass 64, 9·10⁻¹⁶ into pass 128, at length 64 (stationary by 128; the pass-T proof holds only for the 2-gain cell) | same |
 | attention | learned predecessor weight 0.967–1.000 (mean 0.989) at pass 128 | same |
-| one-pass control | floor (89539/124740) ln 2 = 0.497544536 nats on the same mix, any width; ceilings 53.1 % / 51.6 % at T = 32 / 64 | audited |
-| untied control (L = K separate blocks) | same floor as the loop, but K× the block parameters, and nothing beyond its depth: 69 % at T = 64 (2-gain cell version) | `window-round2-controls.json` |
+| one-pass control | floor (89539/124740) ln 2 = 0.497544536 nats on the same mix, any width *with the same two-token access*; accuracy ceiling ½ + 1/T (53.1 % / 51.6 % at T = 32 / 64) | audited |
+| untied control (L = K separate blocks) | same floor as the loop, but K× the block parameters, and nothing beyond its depth: best of five 48-parameter gain stacks 69.26 % at T = 64, pass 24 | `window-round2-controls.json` |
 | time | 6.5–9.9 s of optimiser updates in Julia | |
 | figure data | θ, curve, floor, a T = 16 trace per pass (stream, attention, probabilities, terminal covector) | `loop/artifacts/window-specimen.json` |
 
@@ -83,8 +89,8 @@ know which horizon is asked has CE infimum (7/16) ln 2 and accuracy ceiling 25/3
 
 - **Stock loop, stock recipe.** Fits the trained length, never extrapolates (round 1).
 - **Additive input injection** X_{k+1} = B(X_k) + X₀. The stream grows like k: centred RMS 33 at pass
-  1, 3,067 at pass 128 on length 64. The injected input swamps the state. Fixed by normalising the
-  stream each pass (2.8 at pass 128).
+  1, 3,067 at pass 128 on length 64 (582-parameter ablation, seed 1). Normalising the stream each
+  pass holds it at ≈ 2.83.
 - **Sinusoidal positions.** The learned rule depends on absolute position; positions > 8 unseen.
   Without any position signal there is an exact ceiling of 83.5 % at T = 64 (the first word,
   attending only to itself, looks like a left-padded copy); with a marker on the first word, solved.
@@ -96,8 +102,9 @@ know which horizon is asked has CE infimum (7/16) ln 2 and accuracy ceiling 25/3
   table; or a 446-parameter previous-token head for 64 bits needing scores ×1024), for pointer
   doubling (27,980 params) and chasing (16,398). They prove existence, not trainability; the
   hand-built reference does not survive fine-tuning.
-- **The gradient light cone in Float64** is exact on a 16-word trace but underflows on long runs
-  (gone by pass 13 on 64 neutral words): a vanishing-gradient exhibit, not a bug.
+- **The gradient light cone in Float64**, in the 2-gain cell, is exact on a 16-word trace but the
+  pre-tanh covector underflows on long runs (gone by pass 13 on 64 neutral words): a
+  vanishing-gradient exhibit, not a bug. It is not a bound on the transformer's training gradient.
 
 ## 5. Chapter arc (one-sentence claims, in the manner of BRIEF §8)
 
@@ -106,13 +113,13 @@ know which horizon is asked has CE infimum (7/16) ln 2 and accuracy ceiling 25/3
    travelled.
 1. **Negation.** Prefix parity is the task in which every word matters to every later answer;
    a single pass of attention cannot do it at growing length (average sensitivity, Kozachinskiy–
-   Steifer–Wałęga 2026), and the one-pass floor 0.4975 nats is exact.
-2. **Two numbers that loop.** s_t = tanh(g(x_t) s_{t−1}) is the transfer matrix of an Ising chain;
-   two gains learn "keep" and "flip" in a second, and the state reaches a fixed point at pass T.
+   Steifer–Wałęga 2026, asymptotic only), and with a window the one-pass floor 0.4975 nats is exact.
+2. **Two numbers that loop.** s_t = tanh(g(x_t) s_{t−1}) carries the sign of an Ising chain's
+   transfer matrix (keep or flip); two gains learn "keep" and "flip" in a second, and the state reaches a fixed point at pass T.
 3. **The light cone.** With a window of two, pass k sees k + 1 words; outside the cone the
    posterior is exactly ½, which gives the exact floor ℓ* and the shape the reader watches fill in.
-4. **The block in the loop.** The PicoGPT block replaces the two gains; each of four changes (window,
-   fresh input, normalised stream, a first-word start) is forced by a failure we measure.
+4. **The block in the loop.** The PicoGPT block replaces the two gains; four changes (window,
+   fresh input, normalised stream, a first-word start) each answer a failure we measure.
 5. **Pulling back through a loop.** θ̄ is a sum over passes of the same transposed map; the covector
    travels back one word per pass; in the plain residual loop LayerNorm's symmetry pins an eigenvalue
    at 1, so the fixed-point formula (1 − Jᵀ)⁻¹ needs the normalised loop or a quotient.
@@ -140,9 +147,15 @@ The working specimen differs from a stock one-block PicoGPT in five places (from
 5. **Start and boundary**: the stream starts from the first word's embedding only, with a fixed
    (+1, −1, …) marker on it; no positional code (2–3 lines in `embed`).
 
-The pullback mirrors it: the pass loop runs backwards and the block cotangents are summed into one
-θ̄ (about 6 lines). In all, **about 15 lines forward and 6 back**, against `src/` as it stands; zero
-new parameters. A JavaScript twin is the same diff applied to `web/src/specimen`.
+Stated as a change to the model's *definition*, this is the nine-line forward sketch in
+`loop/notes/window.md` (Round 3), plus the window in the mask. As *implementation* it is larger,
+because every forward line needs its pullback (final review, `loop/notes/review-concept.md` §5):
+the fused two-key attention and mixing takes 29 lines forward and 26 back (stock attention + mix:
+21 + 15), and the loop's reversal 36 lines with its options (stock: 10). It adds each pass's
+readout adjoint, pulls back through the fixed LayerNorm, sums the shared block, readout and
+fresh-input cotangents into one θ̄, and adds the initial-state cotangent at the first word only.
+So: **about ten lines of mathematics, about a hundred lines of Julia with pullbacks**, zero new
+parameters. A JavaScript twin repeats that diff in `web/src/specimen` (not yet written or timed).
 
 ## 7. Three names for the new objects
 
@@ -153,7 +166,7 @@ new parameters. A JavaScript twin is the same diff applied to `web/src/specimen`
 | re-adding X₀ every pass | a source term, a forcing | "input injection" |
 | the support {t−k, …, t} of the dependence after k passes | a light cone; a Lieb–Robinson bound | "receptive field" |
 | a mask with band width 2 | nearest-neighbour coupling | "sliding-window attention" |
-| s_t = a_t s_{t−1}, a_t = ±1 | the transfer matrix of an Ising chain | "state tracking" |
+| s_t = a_t s_{t−1}, a_t = ±1 (the decoded sign) | the transfer matrix of a zero-field Ising chain, on signs | "state tracking" |
 | X* = G(X*) | a steady state, an equilibrium | "fixed point", "DEQ" |
 | a loss at every pass | — | "deep supervision" |
 | Σ_k of the same transposed map, in reverse time | the adjoint equation in time | "backpropagation through time" |
@@ -163,7 +176,9 @@ new parameters. A JavaScript twin is the same diff applied to `web/src/specimen`
 
 ## 8. The figures that would carry the book
 
-Each from `loop/artifacts/*.json`, to `DESIGN.md` (two inks, every mark a number).
+To `DESIGN.md` (two inks, every mark a number). Figures 3 and 6 can be drawn from saved data; 1, 2, 4
+and 5 need new exports (five 64 × 128 probability grids, exhaustive curves for all seeds, gain
+trajectories, decoded impulse cells), which are cheap reruns of existing scripts.
 
 1. **The cone** (the book's central plate). Position (1…64, left to right) × pass (1…128, top to
    bottom), one cell per (t, k): a value-ink square whose area is |p − ½|·2 for the predicted
@@ -198,6 +213,9 @@ My choice: **Not Not To Be**, subtitle *the tiniest looped transformer, pass by 
 - **Four changes to the block.** The specimen is a looped *transformer*, but not the stock block
   looped. A purist will object; the book's answer is chapter 4 (every change is forced by a measured
   failure). Whether a cleaner set of changes exists is open.
+- **Fresh-seed reliability (the largest risk).** The recipe was selected on the same five seeds
+  and test words it is reported on. Freeze it and evaluate fresh seeds on independent long words
+  before promising live training.
 - **Reliability.** 4 of 5 seeds, not 5 of 5. In the browser, a failed seed is either an exhibit
   (chapter 6) or a reason to ship a chosen seed for the live run. Wider blocks (922 params) are 4/5
   too; we did not find 5/5 for the transformer form.
@@ -221,12 +239,12 @@ path is perhaps 150), tests with gradchecks, the exact floors audited. Remaining
 - **Code (Sol):** fold the specimen path into a clean `loop/src/` of book quality (≈ 2 days of agent
   time), a JS twin conformant to 10⁻¹² in `web/src/specimen` style (≈ 1–2 days), an export script.
 - **Mathematics (Astra):** a `derivations.md` for the book's claims in chapter order; audit (≈ 1 day).
-- **Prose (Gemini Neon / Muse):** 9 chapters of the first book's length (≈ 15–20k words), with
-  reviews (≈ 3–4 days of agent time).
+- **Prose (Gemini Neon / Muse):** 9 chapters; the first book's chapters total about 29k words
+  including markup, so a budget of 20–30k words, with reviews (≈ 3–4 days of agent time).
 - **Figures (Opus):** 7 figures and ~8 traces to `DESIGN.md`, an `edition.js` as for `jspace/`
   (≈ 4–5 days).
 - **Print:** the edition pipeline already exists (`BOOK_EDITION`, `--edition`).
 
-About two weeks of orchestrated agent work, the size of the J-space supplement or a little larger,
+As a target, not a measurement: about two weeks of orchestrated agent work, the size of the J-space supplement or a little larger,
 quota permitting; the main risk is the transformer form's 4/5 reliability, which should be revisited
 first.

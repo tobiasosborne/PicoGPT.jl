@@ -30,9 +30,13 @@ attention over the window, both LayerNorms, a ReLU MLP, embedding and readout): 
 (V = 2, D = 4, H = 1, F = 16), the smallest qualifying transformer we tested, trained from
 PicoGPT's ordinary initialisation in 6.5–9.9 s of Julia updates, **4 of 5 seeds** reach the mixed-length floor 0.161350952 nats to within 1 % (best seed
 0.0033 %), and every one of those four is 100 % right at lengths 32 and 64 with K = T and K = 2T
-passes, although it never saw a word beyond length 12 or more than 24 passes. (Caveat from the
-final review: the recipe was chosen on these same five seeds and the same test words, so 4/5 is
-the screen's rate; a fresh-seed rate is not yet measured.)
+passes, although it never saw a word beyond length 12 or more than 24 passes. That 4/5 was the selection screen's own rate. **Measured on 30 fresh seeds with the recipe frozen
+first** (commit `9d526ef`; unseen initialisation seeds, unseen test words): **25/30 = 83 %**
+(95 % Clopper–Pearson 65–94 %), about 10 s per seed. With the fixed predecessor bias removed
+(window kept), 20/30 = 67 % (47–83 %), and 27/30 still extrapolate exactly; most failures there are
+exact rollouts whose predictions at the arriving front are not confident enough for the 1 % loss
+criterion. The attention learns the routing itself (predecessor weight 0.64–0.94 per seed in the
+qualifiers); the bias buys confidence, not the computation. (`loop/notes/window.md`, Fresh seeds.)
 
 **Is it worth building.** Yes, with one stated cost. The evidence supports every criterion of the
 quest: the loop is load-bearing (with the same two-token window, no one-pass model of any width can beat
@@ -213,14 +217,16 @@ My choice: **Not Not To Be**, subtitle *the tiniest looped transformer, pass by 
 - **Four changes to the block.** The specimen is a looped *transformer*, but not the stock block
   looped. A purist will object; the book's answer is chapter 4 (every change is forced by a measured
   failure). Whether a cleaner set of changes exists is open.
-- **Fresh-seed reliability (the largest risk).** The recipe was selected on the same five seeds
-  and test words it is reported on. Freeze it and evaluate fresh seeds on independent long words
-  before promising live training.
-- **Reliability.** 4 of 5 seeds, not 5 of 5. In the browser, a failed seed is either an exhibit
-  (chapter 6) or a reason to ship a chosen seed for the live run. Wider blocks (922 params) are 4/5
-  too; we did not find 5/5 for the transformer form.
-- **The fixed predecessor bias (+4)** nudges the head towards the predecessor; attention still learns
-  (weights 0.97–1.00), but the bias must be explained as a prior, not hidden.
+- **Reliability (measured).** On 30 fresh seeds the frozen recipe succeeds in 25 (83 %, interval
+  65–94 %); about one live run in six fails. Of the five failures at +4: two recover errors by pass
+  128 but miss at pass 64, one settles on a wrong fixed point near the boundary, one keeps drifting
+  and loses its front, one is exact but under-confident at the front. In the browser a failed seed
+  is either an exhibit (chapter 6) or a reason to ship a chosen seed for the live run. We did not
+  find a 5/5 transformer form.
+- **The fixed predecessor bias (+4)** nudges the head towards the predecessor and must be explained as
+  a prior. Without it (fresh seeds) the rate falls from 83 % to 67 %, but the routing is still
+  learned and 27/30 extrapolate exactly; the bias could be dropped at the price of reliability
+  (+2 gives 70 %).
 - **The window removes the question of what attention attends to.** The more interesting story of
   full causal attention (does a looped model learn the linear front or log-depth doubling?) remains
   untrained at this size; doubling exists (27,980 hand-built parameters).
@@ -246,5 +252,5 @@ path is perhaps 150), tests with gradchecks, the exact floors audited. Remaining
 - **Print:** the edition pipeline already exists (`BOOK_EDITION`, `--edition`).
 
 As a target, not a measurement: about two weeks of orchestrated agent work, the size of the J-space supplement or a little larger,
-quota permitting; the main risk is the transformer form's 4/5 reliability, which should be revisited
-first.
+quota permitting; the main risk is the transformer form's measured 83 % fresh-seed reliability (67 % without the
+predecessor bias), which a further round could try to raise.

@@ -285,3 +285,153 @@ julia --project -O1 loop/test/window.jl
 ~~~
 
 The window tests cover finite differences for the BOS input embedding, both anchored residual variants, the boundary start, and the warmup pullback. They also check the trace shape, causal support, and the two Rule 60 bounds. [Window tests](../test/window.jl)
+
+## Fresh seeds
+
+Commit `9d526ef` froze the 270-parameter Round 3 recipe and runner before training.
+The proposed keys 1001–1030 included 1001–1005, which prior screens had used for minibatch RNGs.
+The script and artifact audit gave unused initialization keys 20001–20030 and corresponding minibatch keys 21001–21030.
+The held-out words came from Xoshiro(642901), drawing 256 iid binary words at length 32 and then 256 at length 64.
+Each word set was shared across seeds, lag biases, and the two horizons at its length. The attention window remained two tokens in every run.
+
+A seed qualified if its exhaustive hard-label mixed loss was within 1% of 0.161350951729293 nats and every word-site label was correct in all four rollouts.
+The 95% intervals are two-sided Clopper–Pearson intervals over seeds for the fixed held-out words.
+Elapsed times cover sampling batches and 1,250 updates under four Julia threads and one BLAS thread.
+The runner measures exhaustive validation and long rollouts outside the timed loop.
+
+| Lag bias | Qualified | Within 1% of floor | Exact on all four rollouts | 95% Clopper–Pearson interval | Updates, median (range) |
+|---:|---:|---:|---:|---:|---:|
+| +4 | 25/30 (83.3%) | 27/30 | 26/30 | 65.3%–94.4% | 10.17 s (7.17–12.33 s) |
+| 0 | 20/30 (66.7%) | 20/30 | 27/30 | 47.2%–82.7% | 9.92 s (7.98–12.78 s) |
+| +2 | 21/30 (70.0%) | 22/30 | 25/30 | 50.6%–85.3% | 10.50 s (8.14–12.21 s) |
+
+### Failure diagnostics
+
+The loss gap is exhaustive mixed cross-entropy minus the exact mixed floor.
+As in Round 3, the front is the last site in the contiguous prefix with at least 99% accuracy.
+Last fronts use passes 64 and 128 at lengths 32 and 64, respectively.
+The centered RMS step is measured into pass 128 at length 64. An inaccurate rollout with a near-zero terminal step suggests a wrong fixed point.
+First-arrival accuracy and mean probability of the true label average sites 2–12 at length 64, each at the first pass `k = site−1` where prefix parity is determined by the receptive field.
+
+| Bias | Seed | Excess CE (nats) | T32 accuracy (32 / 64 passes) | T64 accuracy (64 / 128 passes) | Last front (T32 / T64) | Centered step | First arrival (accuracy / true-label probability) | Diagnosis |
+|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| +4 | 20004 | 0.000234 (0.15%) | 100% / 100% | 99.9573% / 100% | 32 / 64 | 2.23e-14 | 100.0% / 99.9% | Delayed front. Seven wrong labels at length 64 and pass 64 were corrected by pass 128. |
+| +4 | 20010 | 0.000145 (0.09%) | 100% / 100% | 99.9939% / 100% | 32 / 64 | 1.34e-06 | 100.0% / 100.0% | Transient error. One wrong label at length 64 and pass 64 was corrected by pass 128. |
+| +4 | 20012 | 0.451013 (279.52%) | 55.7983% / 55.7617% | 51.8188% / 51.8188% | 2 / 2 | 4.65e-16 | 64.7% / 61.2% | Wrong fixed point near the boundary. The front never passed site 3. |
+| +4 | 20023 | 0.131137 (81.27%) | 78.0396% / 74.3774% | 74.9023% / 72.6135% | 0 / 0 | 0.357 | 84.2% / 79.8% | Drifting stream. The front fell from 2 to 0 and accuracy kept falling. |
+| +4 | 20027 | 0.030776 (19.07%) | 100% / 100% | 100% / 100% | 32 / 64 | 2.69e-16 | 91.8% / 81.0% | Exact endpoints with weak predictions at first arrival. |
+| 0 | 20005 | 0.252950 (156.77%) | 64.8438% / 65.1123% | 58.1177% / 58.1909% | 2 / 1 | 0.611 | 72.4% / 67.0% | Stalled near the boundary with ongoing stream motion. The front never passed site 2. |
+| 0 | 20010 | 0.279353 (173.13%) | 57.7393% / 58.2153% | 55.3772% / 55.4077% | 3 / 3 | 3.66 | 50.1% / 50.0% | Stalled near the boundary with ongoing stream motion. The front never passed site 3. |
+| 0 | 20014 | 0.031164 (19.31%) | 100% / 100% | 100% / 100% | 32 / 64 | 3.58e-15 | 78.4% / 74.0% | Exact endpoints with weak predictions at first arrival. |
+| 0 | 20016 | 0.029205 (18.10%) | 100% / 100% | 100% / 100% | 32 / 64 | 8.52e-16 | 90.0% / 78.2% | Exact endpoints with weak predictions at first arrival. |
+| 0 | 20017 | 0.030725 (19.04%) | 100% / 100% | 100% / 100% | 32 / 64 | 0.0342 | 79.7% / 76.6% | Exact endpoints with weak predictions at first arrival. The stream was still moving at pass 128. |
+| 0 | 20018 | 0.029346 (18.19%) | 100% / 100% | 100% / 100% | 32 / 64 | 7.42e-16 | 86.0% / 77.3% | Exact endpoints with weak predictions at first arrival. |
+| 0 | 20022 | 0.030571 (18.95%) | 100% / 100% | 100% / 100% | 32 / 64 | 9.81e-16 | 78.8% / 74.0% | Exact endpoints with weak predictions at first arrival. |
+| 0 | 20023 | 0.333884 (206.93%) | 56.0913% / 56.0913% | 52.3438% / 52.3438% | 2 / 2 | 0.226 | 59.6% / 54.8% | Stalled near the boundary with ongoing stream motion. The front never passed site 2. |
+| 0 | 20027 | 0.011428 (7.08%) | 100% / 100% | 100% / 100% | 32 / 64 | 6.31e-15 | 91.7% / 89.6% | Exact endpoints with weak predictions at first arrival. |
+| 0 | 20028 | 0.031228 (19.35%) | 100% / 100% | 100% / 100% | 32 / 64 | 6.4e-16 | 81.7% / 76.9% | Exact endpoints with weak predictions at first arrival. |
+| +2 | 20004 | 0.168519 (104.44%) | 59.2407% / 59.2407% | 54.8645% / 54.8645% | 3 / 3 | 2.38e-12 | 71.6% / 67.8% | Wrong fixed point near the boundary. The front never passed site 3. |
+| +2 | 20012 | 0.037752 (23.40%) | 89.9414% / 99.3408% | 81.7200% / 97.8882% | 27 / 50 | 0.0303 | 90.2% / 81.6% | Delayed front. It advanced from site 26 at pass 64 to site 50 at pass 128. |
+| +2 | 20013 | 0.000026 (0.02%) | 100% / 100% | 100% / 99.2371% | 32 / 17 | 0.119 | 100.0% / 100.0% | Drifting stream. Accuracy was exact at pass 64 and the front fell from site 64 to site 17 by pass 128. |
+| +2 | 20016 | 0.029600 (18.35%) | 100% / 100% | 100% / 100% | 32 / 64 | 0.103 | 90.5% / 79.9% | Exact endpoints with weak predictions at first arrival. The stream was still moving at pass 128. |
+| +2 | 20017 | 0.120235 (74.52%) | 61.4380% / 61.4380% | 55.1697% / 55.1697% | 4 / 4 | 2.15e-16 | 78.7% / 73.4% | Wrong fixed point near the boundary. The front never passed site 4. |
+| +2 | 20018 | 0.028880 (17.90%) | 100% / 100% | 100% / 100% | 32 / 64 | 0.154 | 93.6% / 78.2% | Exact endpoints with weak predictions at first arrival. The stream was still moving at pass 128. |
+| +2 | 20022 | 0.011079 (6.87%) | 100% / 100% | 100% / 100% | 32 / 64 | 4.69e-16 | 93.3% / 94.9% | Exact endpoints with weak predictions at first arrival. |
+| +2 | 20025 | 0.014266 (8.84%) | 94.7754% / 99.2798% | 88.3362% / 98.9990% | 14 / 25 | 0.827 | 95.1% / 92.6% | Front stalled around site 25 while the stream kept moving. Overall accuracy improved with more passes. |
+| +2 | 20027 | 0.030809 (19.09%) | 100% / 100% | 100% / 100% | 32 / 64 | 4.42e-14 | 84.6% / 77.6% | Exact endpoints with weak predictions at first arrival. |
+
+### Timed updates per seed
+
+| Seed | +4 (s) | 0 (s) | +2 (s) |
+|---:|---:|---:|---:|
+| 20001 | 10.23 | 10.21 | 9.43 |
+| 20002 | 11.74 | 12.78 | 12.21 |
+| 20003 | 11.80 | 9.85 | 10.97 |
+| 20004 | 11.05 | 10.88 | 10.94 |
+| 20005 | 10.65 | 9.45 | 10.35 |
+| 20006 | 9.76 | 11.69 | 10.69 |
+| 20007 | 9.42 | 9.70 | 10.12 |
+| 20008 | 7.17 | 7.98 | 8.51 |
+| 20009 | 10.37 | 10.39 | 8.86 |
+| 20010 | 9.32 | 9.54 | 9.99 |
+| 20011 | 8.49 | 9.13 | 10.64 |
+| 20012 | 9.24 | 11.03 | 9.09 |
+| 20013 | 10.92 | 8.80 | 9.37 |
+| 20014 | 8.78 | 9.74 | 12.09 |
+| 20015 | 9.81 | 9.17 | 11.00 |
+| 20016 | 9.11 | 9.00 | 8.14 |
+| 20017 | 11.87 | 9.98 | 11.31 |
+| 20018 | 9.82 | 9.34 | 10.23 |
+| 20019 | 11.14 | 12.17 | 9.72 |
+| 20020 | 8.69 | 9.49 | 10.69 |
+| 20021 | 10.90 | 12.52 | 10.05 |
+| 20022 | 10.11 | 12.65 | 9.73 |
+| 20023 | 10.08 | 9.38 | 8.93 |
+| 20024 | 9.13 | 11.25 | 11.84 |
+| 20025 | 12.33 | 11.92 | 11.55 |
+| 20026 | 11.05 | 12.30 | 11.55 |
+| 20027 | 11.80 | 11.56 | 10.90 |
+| 20028 | 9.89 | 9.41 | 10.72 |
+| 20029 | 10.37 | 9.40 | 9.56 |
+| 20030 | 11.79 | 12.66 | 10.91 |
+
+### Learned predecessor attention at zero bias
+
+Each row summarizes the learned predecessor softmax weight over all 256 length-64 words at pass 128 and sites 2–64, where a predecessor exists.
+
+#### Qualified seeds
+
+| Seed | Mean | Min | Max |
+|---:|---:|---:|---:|
+| 20001 | 0.7219562921 | 0.1997692745 | 1 |
+| 20002 | 0.833086608 | 0.05218381861 | 1 |
+| 20003 | 0.9422039251 | 0.4016727283 | 1 |
+| 20004 | 0.7583623382 | 0.4819925366 | 0.9999509041 |
+| 20006 | 0.6444724722 | 0.006776544117 | 0.9999999999 |
+| 20007 | 0.7852105439 | 0.2468404205 | 0.9999999992 |
+| 20008 | 0.7313453414 | 2.34736343e-05 | 1 |
+| 20009 | 0.6922947643 | 0.008601994104 | 0.9999999913 |
+| 20011 | 0.8687439732 | 0.1555872599 | 1 |
+| 20012 | 0.7092146215 | 0.02640015291 | 1 |
+| 20013 | 0.6869834221 | 0.09578548349 | 1 |
+| 20015 | 0.7316351925 | 0.1612340811 | 0.9999999998 |
+| 20019 | 0.8223314019 | 0.01932984065 | 0.9999999891 |
+| 20020 | 0.7477222955 | 0.06817253993 | 0.9999996476 |
+| 20021 | 0.8239723728 | 0.3851776316 | 0.999999749 |
+| 20024 | 0.8900345425 | 0.5000000006 | 1 |
+| 20025 | 0.7325995759 | 0.4945962315 | 0.9996042015 |
+| 20026 | 0.7641543039 | 0.07316984827 | 1 |
+| 20029 | 0.7400393205 | 0.2284408437 | 1 |
+| 20030 | 0.7856399913 | 0.1897360497 | 1 |
+
+#### Failing seeds
+
+| Seed | Mean | Min | Max |
+|---:|---:|---:|---:|
+| 20005 | 0.5502738073 | 0.004307361246 | 1 |
+| 20010 | 0.5074587966 | 4.975641319e-11 | 0.9888267967 |
+| 20014 | 0.7756358385 | 0.3801764867 | 0.9999999939 |
+| 20016 | 0.8683641679 | 0.3476041477 | 1 |
+| 20017 | 0.6783697031 | 0.02048403438 | 0.9999999998 |
+| 20018 | 0.8303150047 | 0.0356040171 | 1 |
+| 20022 | 0.7985240651 | 0.1379251001 | 1 |
+| 20023 | 0.4373259323 | 3.451125793e-21 | 0.9999999947 |
+| 20027 | 0.8440978173 | 0.3504994796 | 0.9999999996 |
+| 20028 | 0.7824725579 | 0.3402852941 | 0.9999998401 |
+
+### Fresh-seed reproduction
+
+The first +4 invocation stopped at the untimed warm-up because SHA and PicoGPT both exported `update!`.
+Commit `8190e19` narrowed the SHA import to `sha256` before the successful training runs.
+Use Julia 1.13.3 and run these commands from the repository root.
+
+~~~sh
+julia --project -O1 -t 4 loop/scripts/window_fresh.jl 4
+julia --project -O1 -t 4 -e '
+    include("loop/scripts/window_fresh.jl")
+    fresh_main(["0"])
+    fresh_main(["2"])
+'
+~~~
+
+[Frozen configuration](../scripts/window_fresh.toml) · [Runner](../scripts/window_fresh.jl) · [+4 artifact](../artifacts/window-fresh-bias-4.json) · [0 artifact](../artifacts/window-fresh-bias-0.json) · [+2 artifact](../artifacts/window-fresh-bias-2.json)

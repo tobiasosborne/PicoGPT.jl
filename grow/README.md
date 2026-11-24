@@ -125,6 +125,29 @@ used.
 | A world with actions | `grow/doors/` | prototype | The directory world: `Ada → red door`, refined to `Ada → oak`, `oak → red door`. Does a child with one more pass reuse the parent's lookup? |
 | Prior art | `grow/notes/prior-art.md` | reading | Verify the citations above and find what already exists on each axis. |
 
+## Growth need not be exact
+
+Added on 24 Nov 2026 after the first results, at the owner's prompting. In evolution a change
+does not have to leave the organism unchanged; it has to leave it viable, and selection does the
+rest. The same holds here. A lift is good when the child at birth is *close* to the parent and
+training closes the gap quickly; a coarse world is good when it is *nearly* closed. Exactness is
+the special case with gap zero. It remains useful as a test of the bookkeeping and as a reference
+point, but it is not a requirement, and the first results say it can even be a poor place to
+start:
+
+- Exact duplication of width is a symmetry that training never leaves (`grow/lifts`); breaking it
+  with noise, which gives up exactness, is what brings the child level with scratch
+  (`grow/hierarchy`).
+- A gate that is exactly closed has zero gradient on the end-only objective (proved for the
+  looped specimen).
+- No coarse-graining of real text is exactly closed (`grow/lumpable`), and no truncation is
+  exactly lossless below full rank, yet fifty training steps recover a cut to about rank 5
+  (`grow/truncate`).
+
+So measure, do not demand: the loss at birth above the parent's, the work to recover, and for a
+world its defect in nats. The questions become quantitative: how large a gap at birth can training
+absorb cheaply, and which approximate lifts leave the child best placed to learn?
+
 ## Status (24 Nov 2026, 15:20 UTC)
 
 All nine ideas are taken; each has its own branch `grow/<name>` on GitHub (`grow/lifts`,

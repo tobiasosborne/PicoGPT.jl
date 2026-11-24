@@ -12,7 +12,7 @@ Work stopped early at the owner's deadline; what was not done is listed at the e
 | `truncate.jl` | the cut model with a hand-written pullback, the statistics C and M, the rules, retraining, the cut model written in r coordinates, the intertwiner defect |
 | `test.jl` | 136 checks, all passing (about 1.5 min alone) |
 | `specimen.jl` → `specimen.log`, `specimen.tsv`, `spectra.tsv`, `defects.tsv` | steps 1–3 on D = 4, 8, 16 (about 4 min on a loaded machine) |
-| `shakespeare.jl` → `shakespeare.log`, `shakespeare.tsv` | step 4, on the 810,049-parameter checkpoint |
+| `shakespeare.jl` → `shakespeare.log`, `shakespeare.tsv` | step 4, on the 810,049-parameter checkpoint (6.6 min on a loaded machine) |
 
 **The cut.** The stream is visited at K = 2L + 1 sites (after the embedding, after each attention
 write, after each MLP write). At every site k the stream is replaced by
@@ -161,7 +161,48 @@ and not in the strong sense with this R. No rule is clearly best on the internal
 
 ### Shakespeare (810,049 parameters, D = 128, L = 4)
 
-Run in progress when this was written; see `shakespeare.log` if it exists.
+The checkpoint `best.bin` (step 5000) read from the author's main checkout, not retrained from
+scratch. C and M from 16 training windows (M by 6 Gaussian probes per metric, a Hutchinson
+estimate, not exact); losses on 24 validation windows of 256 characters. Full model 1.5447,
+uniform guessing 4.174. The run took 6.6 min on a machine shared with other agents, longer
+than the README's limit.
+
+Spectra, relative to the largest, at ranks 1, 2, 4, 8, 16, 32, 64, 96, 127, 128:
+
+    C              1  .67  .31  .15  .088 .046 .020 .0098 .0040 .0038
+    M/logit        1  .71  .045 .029 .019 .013 .0075 .0047 .0022 2e-10
+    hankel/logit   1  .58  .097 .054 .037 .025 .013 .0082 .0049 2e-6
+
+Two large values, then a long flat tail: a factor 20 between rank 4 and rank 127, and again one
+exact zero (the direction 1).
+
+Validation loss of the cut model, no retraining:
+
+| r | pca | jac/logit | jac/fisher | balanced/logit | balanced/fisher | random |
+|---|---|---|---|---|---|---|
+| 8 | 5.34 | 5.25 | 5.31 | 4.75 | 4.94 | 6.11 |
+| 16 | 5.16 | 4.63 | 4.93 | 4.50 | 4.51 | 6.03 |
+| 32 | 4.18 | 3.96 | 4.37 | 3.60 | 3.65 | 5.49 |
+| 48 | 3.51 | 3.49 | 3.65 | 2.86 | 2.95 | 5.15 |
+| 64 | 2.87 | 2.94 | 3.02 | 2.28 | 2.31 | 4.96 |
+| 96 | 1.87 | 2.09 | 2.09 | 1.72 | 1.73 | 3.93 |
+| 112 | 1.636 | 1.716 | 1.713 | 1.599 | 1.597 | 3.53 |
+| 127 | 1.549 | 1.5447 | 1.5447 | 1.5447 | 1.5447 | 1.620 |
+
+After 30 AdamW steps (batch 16, η = 3e-4, cut fixed), validation loss before → after:
+
+| r | pca | balanced/fisher | random |
+|---|---|---|---|
+| 32 | 4.18 → 2.51 | 3.65 → 2.30 | 5.49 → 3.13 |
+| 64 | 2.87 → 2.08 | 2.31 → 1.92 | 4.96 → 2.72 |
+
+The same picture at 800 times the size. The balanced rule beats PCA at every rank, and the
+loss above the full model is roughly halved (r = 64: 0.74 against 1.32; r = 96: 0.17 against
+0.33; r = 112: 0.054 against 0.091); the two metrics agree. The loss does not fall fast: half
+the stream costs 0.74 nats, a quarter is near uniform guessing, and staying within 0.05 needs
+r ≈ 112 of 127. Thirty steps recover much of it and keep the order of the rules (r = 64:
+1.92, 2.08, 2.72), but 30 steps is far too few to say what rank this model needs after
+retraining, and the intertwiner was not measured here.
 
 ## Verified, and how
 
@@ -198,4 +239,4 @@ uncut model from 0.0004 to 0.0012 above the floor, so it is a little too hot the
 
 ## Verdict
 
-**Needs more**: a relevant spectrum exists and White's rule (balanced, output-weighted) beats PCA by 2 to 40 times, but the spectrum falls slowly, a cut is lossless only next to full rank, the cut model leaves the family through LayerNorm, and the internal intertwiner fails (10 to 50 % per half-block); what survives is a good starting point for a short retraining, whose required rank (about 5) does not grow with the parent's width.
+**Needs more**: a relevant spectrum exists and White's rule (balanced, output-weighted) beats PCA by 2 to 40 times, but the spectrum falls slowly, a cut is lossless only next to full rank, the cut model leaves the family through LayerNorm, and the internal intertwiner fails (10 to 50 % per half-block); what survives is a good starting point for a short retraining, whose required rank on the specimen's world (about 5) does not grow with the parent's width; the Shakespeare model shows the same ordering of rules and the same slow fall.

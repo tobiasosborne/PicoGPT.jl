@@ -1,0 +1,20 @@
+D, H, F = (24, 1, 48)
+parameters: 6195   chance on fine: 1/4 = 0.25 (loss ln 4 = 1.386) with doors known, perfect 1.0 (loss 0)
+seed 4 scratch-2pass          steps→90%: missing  →99%: missing  final acc 0.304  gate 1.473  work→99%: missing (with parent missing)
+seed 4 parent-coarse: 1275 steps, acc 1.000 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.219 | ∂ℓ/∂g FD +1.86662 analytic +1.86662 | |∇ of the other weights| at birth (all through pass 1) 9.613 | zero-shot g=1 fine acc 0.232
+seed 4 child-of-coarse        steps→90%: missing  →99%: missing  final acc 0.479  gate -0.744  work→99%: missing (with parent missing)
+seed 4 parent-hops: 975 steps, acc 1.000 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.000 | ∂ℓ/∂g FD -1.30021 analytic -1.30021 | |∇ of the other weights| at birth (all through pass 1) 19.720 | zero-shot g=1 fine acc 0.081
+   parent-hops pass-1 readout on fine queries names a key: 1.000
+seed 4 child-of-hops          steps→90%: 1000  →99%: 1525  final acc 0.995  gate 1.127  work→99%: 195200 (with parent 257600)
+seed 5 scratch-2pass          steps→90%: missing  →99%: missing  final acc 0.340  gate 1.195  work→99%: missing (with parent missing)
+seed 5 parent-coarse: 4000 steps, acc 0.885 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.207 | ∂ℓ/∂g FD +0.29841 analytic +0.29841 | |∇ of the other weights| at birth (all through pass 1) 14.813 | zero-shot g=1 fine acc 0.204
+seed 5 child-of-coarse        steps→90%: missing  →99%: missing  final acc 0.363  gate -0.288  work→99%: missing (with parent missing)
+seed 5 parent-hops: 2250 steps, acc 1.000 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.000 | ∂ℓ/∂g FD +7.32477 analytic +7.32477 | |∇ of the other weights| at birth (all through pass 1) 71.925 | zero-shot g=1 fine acc 0.001
+   parent-hops pass-1 readout on fine queries names a key: 1.000
+seed 5 child-of-hops          steps→90%: missing  →99%: missing  final acc 0.459  gate -0.681  work→99%: missing (with parent missing)
+seed 6 scratch-2pass          steps→90%: 3325  →99%: 3925  final acc 0.994  gate 2.569  work→99%: 502400 (with parent 502400)
+seed 6 parent-coarse: 50 steps, acc 1.000 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.270 | ∂ℓ/∂g FD +0.10910 analytic +0.10910 | |∇ of the other weights| at birth (all through pass 1) 1.370 | zero-shot g=1 fine acc 0.267
+seed 6 child-of-coarse        steps→90%: 225  →99%: 325  final acc 1.000  gate -0.731  work→99%: 41600 (with parent 44800)
+seed 6 parent-hops: 4000 steps, acc 0.947 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.000 | ∂ℓ/∂g FD -15.87592 analytic -15.87592 | |∇ of the other weights| at birth (all through pass 1) 84.143 | zero-shot g=1 fine acc 0.117
+   parent-hops pass-1 readout on fine queries names a key: 1.000
+seed 6 child-of-hops          steps→90%: missing  →99%: missing  final acc 0.490  gate 0.083  work→99%: missing (with parent missing)

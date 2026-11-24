@@ -1,0 +1,51 @@
+== steps to accuracy
+seed arm                         →40% →45% →50% →90% →99%  steps  final   best
+1 scratch-2pass                     925   1025   1400      -      -   2500  0.546  0.548
+1 scratch-1pass                       -      -      -      -      -   2500  0.270  0.315
+1 child-of-coarse                   250    275    400      -      -   2500  0.497  0.526
+1 child-of-coarse-gate-only           -      -      -      -      -    300  0.240  0.273
+1 child-of-hops                    1650   2150      -      -      -   2500  0.452  0.476
+1 child-of-hops-gate-only             -      -      -      -      -    300  0.000  0.000
+2 scratch-2pass                     500    625   1700      -      -   8000  0.604  0.623
+2 child-of-coarse                   375    950   1675      -      -   8000  0.770  0.790
+2 child-of-hops                     275    300    325    500    550    550  0.999  0.999
+3 scratch-2pass                    1375   2025   5050      -      -   8000  0.504  0.544
+3 child-of-coarse                   150    150    175    500    600    625  1.000  1.000
+3 child-of-hops                     175    250    425      -      -   8000  0.763  0.774
+4 scratch-2pass                       -      -      -      -      -   4000  0.304  0.348
+4 child-of-coarse                   475    700   2275      -      -   4000  0.479  0.512
+4 child-of-hops                     225    225    275   1000   1525   1525  0.995  0.995
+5 scratch-2pass                       -      -      -      -      -   4000  0.340  0.356
+5 child-of-coarse                     -      -      -      -      -   4000  0.363  0.382
+5 child-of-hops                     100    250    450      -      -   4000  0.459  0.526
+6 scratch-2pass                     975   1300   1650   3325   3925   4000  0.994  0.994
+6 child-of-coarse                    50     75    100    225    325    350  1.000  1.000
+6 child-of-hops                     875    900    950      -      -   4000  0.490  0.535
+7 scratch-2pass                    2625   3700   3900      -      -   4000  0.512  0.521
+7 child-of-coarse                   125    150    175    525    675    675  0.995  0.995
+7 child-of-hops                     900   1025   1150   3550   3725   3725  0.997  0.997
+8 scratch-2pass                     650   1050   1350      -      -   4000  0.715  0.742
+8 child-of-coarse                   250   1500   1550      -      -   4000  0.506  0.517
+8 child-of-hops                     400    475    500    825    875    875  1.000  1.000
+9 scratch-2pass                    1025   1850      -      -      -   4000  0.477  0.497
+9 child-of-coarse                   175    200    325      -      -   4000  0.516  0.538
+9 child-of-hops                    1400   2725   3550      -      -   4000  0.558  0.558
+== parents and gate gradient at birth (arms child-of-coarse, child-of-hops)
+seed 1 child-of-coarse  parent steps   400 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +1.223347 pullback +1.223347 | zero-shot g=1 0.257 | final acc 0.497 gate -0.623
+seed 1 child-of-hops    parent steps  2500 acc 0.893 | birth max|dZ| 0.0 | dl/dg FD +22.552606 pullback +22.552607 | zero-shot g=1 0.072 | final acc 0.452 gate +0.671
+seed 2 child-of-coarse  parent steps   500 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +0.133368 pullback +0.133368 | zero-shot g=1 0.246 | final acc 0.770 gate -0.743
+seed 2 child-of-hops    parent steps   450 acc 0.996 | birth max|dZ| 0.0 | dl/dg FD +1.355438 pullback +1.355438 | zero-shot g=1 0.041 | final acc 0.999 gate -0.497
+seed 3 child-of-coarse  parent steps    75 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD -0.040766 pullback -0.040766 | zero-shot g=1 0.225 | final acc 1.000 gate -0.639
+seed 3 child-of-hops    parent steps   400 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD -3.605023 pullback -3.605023 | zero-shot g=1 0.092 | final acc 0.763 gate +1.138
+seed 4 child-of-coarse  parent steps  1275 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +1.866618 pullback +1.866618 | zero-shot g=1 0.232 | final acc 0.479 gate -0.744
+seed 4 child-of-hops    parent steps   975 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD -1.300212 pullback -1.300212 | zero-shot g=1 0.081 | final acc 0.995 gate +1.127
+seed 5 child-of-coarse  parent steps  4000 acc 0.885 | birth max|dZ| 0.0 | dl/dg FD +0.298411 pullback +0.298411 | zero-shot g=1 0.204 | final acc 0.363 gate -0.288
+seed 5 child-of-hops    parent steps  2250 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +7.324775 pullback +7.324775 | zero-shot g=1 0.001 | final acc 0.459 gate -0.681
+seed 6 child-of-coarse  parent steps    50 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +0.109097 pullback +0.109097 | zero-shot g=1 0.267 | final acc 1.000 gate -0.731
+seed 6 child-of-hops    parent steps  4000 acc 0.947 | birth max|dZ| 0.0 | dl/dg FD -15.875925 pullback -15.875924 | zero-shot g=1 0.117 | final acc 0.490 gate +0.083
+seed 7 child-of-coarse  parent steps   100 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +0.357377 pullback +0.357377 | zero-shot g=1 0.211 | final acc 0.995 gate -0.777
+seed 7 child-of-hops    parent steps  2525 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +1.562873 pullback +1.562873 | zero-shot g=1 0.011 | final acc 0.997 gate +2.122
+seed 8 child-of-coarse  parent steps  2550 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD -1.481371 pullback -1.481371 | zero-shot g=1 0.236 | final acc 0.506 gate +0.874
+seed 8 child-of-hops    parent steps   225 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +2.035402 pullback +2.035402 | zero-shot g=1 0.000 | final acc 1.000 gate -0.828
+seed 9 child-of-coarse  parent steps   200 acc 1.000 | birth max|dZ| 0.0 | dl/dg FD +1.014427 pullback +1.014427 | zero-shot g=1 0.212 | final acc 0.516 gate -0.825
+seed 9 child-of-hops    parent steps  4000 acc 0.873 | birth max|dZ| 0.0 | dl/dg FD +0.598891 pullback +0.598891 | zero-shot g=1 0.042 | final acc 0.558 gate -0.061

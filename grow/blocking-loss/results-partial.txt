@@ -1,0 +1,19 @@
+checks: cheap replacement vs score averaging 3.2e-16 | copy vs PicoGPT loss 0.0e+00, gradient 0.0e+00 | blocked gradient vs finite differences (rel) 2.2e-08
+model V=59 D=32 H=4 L=2 T=32 F=64, 20987 parameters; trained 76 s on 54000 characters; held out 6000
+baseline held-out loss: all positions 1.9213, positions 17-32 1.8932
+baseline loss by position (= a truly shorter context of that length):
+  t=1: 2.546  t=2: 2.128  t=3: 2.061  t=4: 1.843  t=6: 1.880  t=8: 1.895  t=12: 1.846  t=16: 1.858  t=24: 1.768  t=32: 1.946  
+
+held-out loss at positions 17-32 (full attention 1.8932). 'sources' = mean number of sources per query there (full: 24.5).
+b   r    sources | blk-contig  drop-same drop-match
+2   2      13.50 |     1.9976     2.2357     1.9008
+4   2       8.75 |     1.9992     2.1126     1.9161
+8   2       7.88 |     1.9728     2.0259     1.9340
+2   4      14.50 |     1.9126     1.9994     1.8993
+4   4      10.25 |     1.9219     1.9692     1.9089
+8   4       9.62 |     1.9157     1.9390     1.9136
+
+plain window of the m most recent sources in every layer:
+  m=1: 2.7837  m=2: 2.3573  m=4: 2.0173  m=8: 1.9203  m=12: 1.9020  m=16: 1.8971  m=24: 1.8936  
+
+fine-tuning 250 steps (η = 1e-3) from the trained model, with the modified attention in place; loss at positions 17-32:

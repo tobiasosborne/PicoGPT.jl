@@ -180,3 +180,65 @@ end
     a = [2. 1; 0. 3.]
     @test objective(a*q/a, [a*x for x in us], [a'\g/a for g in gs]) ≈ objective(q,us,gs)
 end
+
+@testset "Two positions through a PicoGPT attention block" begin
+    c = PG.Config(V=3, D=4, H=2, T=2, F=5, L=1)
+    p = PG.carve(PG.init(c; rng=MersenneTwister(87)), c)
+    X, _ = PG.embed(reshape([2, 1], :, 1), p.E)
+    function suffix(x)
+        y, _ = PG.block(x, p.blocks[1], c.H, c.T)
+        xf, _ = PG.layernorm(y, p.γf, p.βf)
+        p.Wout*xf .+ p.bout
+    end
+    # Remove the first stream coordinate in both sources, with strength t.
+    directions = [zeros(size(X)) for _ in 1:c.T]
+    for j in eachindex(directions)
+        directions[j][1,j] = -X[1,j]
+    end
+    h = 1e-4
+    dz(v) = (suffix(X+h*v)-suffix(X-h*v))/(2h)
+    dzs = dz.(directions)
+    v = sum(directions)
+    @test dz(v) ≈ sum(dzs) rtol=2e-7
+    @test iszero(dzs[2][:,1])
+    p0 = PG.softmax(suffix(X); dims=1)
+    score(d) = mean(dot(a, (Diagonal(prob)-prob*prob')*a) for (a,prob) in zip(eachcol(d),eachcol(p0)))
+    kl(t) = sum(p0 .* log.(p0 ./ PG.softmax(suffix(X+t*v); dims=1)))/c.T
+    coupled = score(sum(dzs))
+    independent = sum(score, dzs)
+    @test (kl(h)+kl(-h))/h^2 ≈ coupled rtol=2e-5 atol=1e-7
+    @test abs(coupled-independent) > 1e-7
+end
+
+@testset "Two-site isometries and discarded norm" begin
+    rng = MersenneTwister(31)
+    left = Matrix(qr(randn(rng,4,2)).Q)
+    right = Matrix(qr(randn(rng,5,3)).Q)
+    A = kron(right,left)
+    H0 = randn(rng,20,20)
+    H = Symmetric(H0+H0')
+    eff = eigen(Symmetric(A'*H*A))
+    s = eff.vectors[:,1]
+    @test A'*A ≈ I
+    @test dot(A*s, H*(A*s)) ≈ eff.values[1]
+    u, vals, v = svd(reshape(s,2,3))
+    residual = reshape(s,2,3) - vals[1]*u[:,1]*v[:,1]'
+    @test norm(A*vec(residual))^2 ≈ vals[2]^2
+end
+
+@testset "Gauges inside heads and MLP units" begin
+    rng = MersenneTwister(48)
+    D, H, T = 4, 2, 3
+    q, k, v = (randn(rng,D,T) for _ in 1:3)
+    wo = randn(rng,D,D)
+    # G exchanges the heads and changes bases inside each head.
+    g = [0. 0 2 1; 0 0 0 1; 1 -1 0 0; 1 1 0 0]
+    f(q,k,v,w) = w * first(PG.mix(first(PG.attention(q,k,H,T)),v))
+    @test f(g*q,g'\k .+ randn(rng,D),g*v,wo/g) ≈ f(q,k,v,wo)
+    u = randn(rng,D,T)
+    perm = Matrix{Float64}(I,D,D)[[2,4,1,3],:]
+    scale = Diagonal([2., 3., 0.2, 0.4])
+    out = randn(rng,3,D)
+    b = perm*scale
+    @test (out/b)*max.(b*u,0) ≈ out*max.(u,0)
+end

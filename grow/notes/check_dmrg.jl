@@ -67,3 +67,32 @@ end
         @test 0 < sum(probs .* log.(K .* probs))/K <= tau
     end
 end
+
+@testset "Exact product and minimal coupled split" begin
+    w = [3/8, 1/8, 1/2]
+    bern(a) = 1/(1+exp(-a))
+    for a in [-2., 0., 1.], u in [-1., 0., 0.7]
+        q = [bern(a)*bern(u), bern(a)*(1-bern(u)), 1-bern(a)]
+        coarse = -dot([1/2, 1/2], log.([bern(a), 1-bern(a)]))
+        fine = -dot(w[1:2], log.([bern(u), 1-bern(u)]))
+        @test sum(q[1:2]) ≈ bern(a)
+        @test -dot(w, log.(q)) ≈ coarse+fine
+    end
+    child(a,u) = PG.softmax([a+u-log(2), a-u-log(2), 0])
+    for a in [-2., 0., 1.]
+        @test sum(child(a,0)[1:2]) ≈ bern(a)
+    end
+    joint_u = log(3)/2
+    @test child(-log(cosh(joint_u)), joint_u) ≈ w
+    loss(u) = -dot(w, log.(child(0,u)))
+    h = 1e-5
+    frozen_u = log(5/3)
+    for u in [-1., 0., frozen_u, 2.]
+        @test (loss(u+h)-loss(u-h))/(2h) ≈ tanh(u/2)-1/4 atol=3e-11
+    end
+    @test child(0, frozen_u) ≈ [25, 9, 30]/64
+    gap = loss(frozen_u) + dot(w, log.(w))
+    @test gap ≈ sum(w .* log.(w ./ child(0, frozen_u))) atol=4e-16
+    @test gap > 0
+    println("Frozen excess (nats): ", gap)
+end

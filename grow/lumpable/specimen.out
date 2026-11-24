@@ -1,0 +1,50 @@
+N = 80 samples, V = 7, 877 partitions in all
+fine floor 0.058526640339053, exact (2ln2+3ln3)/80 = 0.058526640339053
+chain rule F − D + S = fine floor: max abs error over all partitions 6.94e-18
+
+2 classes: 63 partitions, 0 closed (defect < 1e-12); median defect 0.17983, max 0.22986
+   rank  defect     class floor  split      partition
+      1  0.149418   0.173287     0.034657   ␣benrt|o
+      2  0.154004   0.177873     0.034657   ␣enort|b
+      3  0.159982   0.201180     0.017329   ␣en|bort
+      4  0.159982   0.201180     0.017329   ␣o|benrt
+      5  0.159982   0.201180     0.017329   ␣bt|enor
+      6  0.159982   0.201180     0.017329   ␣nt|beor
+      7  0.159982   0.201180     0.017329   ␣be|nort
+      8  0.159982   0.201180     0.017329   ␣bn|eort
+     63  0.229859   0.229859     0.058527   ␣benor|t
+
+3 classes: 301 partitions, 0 closed (defect < 1e-12); median defect 0.12871, max 0.20794
+   rank  defect     class floor  split      partition
+      1  0.093184   0.151711     0.000000   ␣b|enr|ot
+      2  0.093184   0.151711     0.000000   ␣b|ent|or
+      3  0.093184   0.151711     0.000000   ␣b|eo|nrt
+      4  0.093184   0.151711     0.000000   ␣n|ber|ot
+      5  0.093184   0.151711     0.000000   ␣n|bet|or
+      6  0.093184   0.151711     0.000000   ␣n|brt|eo
+      7  0.097431   0.155958     0.000000   ␣b|enrt|o
+      8  0.097431   0.155958     0.000000   ␣b|en|ort
+     50  0.110513   0.151711     0.017329   ␣|bnrt|eo   <- vowel|consonant|space
+    301  0.207944   0.207944     0.058527   ␣bnor|e|t
+   vowel|consonant|space: rank 50 of 301 by defect; 32 partitions have strictly smaller defect
+
+4 classes: 350 partitions, 0 closed (defect < 1e-12); median defect 0.08664, max 0.15294
+   rank  defect     class floor  split      partition
+      1  0.058527   0.117053     0.000000   ␣|ber|nt|o
+      2  0.058527   0.117053     0.000000   ␣|bet|nr|o
+      3  0.058527   0.117053     0.000000   ␣|be|nrt|o
+      4  0.058527   0.117053     0.000000   ␣|be|nr|ot
+      5  0.058527   0.117053     0.000000   ␣|be|nt|or
+      6  0.058527   0.117053     0.000000   ␣|brt|en|o
+      7  0.058527   0.117053     0.000000   ␣|br|ent|o
+      8  0.058527   0.117053     0.000000   ␣|br|en|ot
+    350  0.152938   0.170267     0.041198   ␣bno|e|r|t
+
+smallest defect at each number of classes (fine floor 0.058527):
+   k=1    1 partitions  min defect 0.000000  (class floor 0.000000, split 0.058527)  ␣benort
+   k=2   63 partitions  min defect 0.149418  (class floor 0.173287, split 0.034657)  ␣benrt|o
+   k=3  301 partitions  min defect 0.093184  (class floor 0.151711, split 0.000000)  ␣b|enr|ot
+   k=4  350 partitions  min defect 0.058527  (class floor 0.117053, split 0.000000)  ␣|ber|nt|o
+   k=5  140 partitions  min defect 0.034657  (class floor 0.093184, split 0.000000)  ␣|be|nr|o|t
+   k=6   21 partitions  min defect 0.017329  (class floor 0.075855, split 0.000000)  ␣|b|er|n|o|t
+   k=7    1 partitions  min defect 0.000000  (class floor 0.058527, split 0.000000)  ␣|b|e|n|o|r|t

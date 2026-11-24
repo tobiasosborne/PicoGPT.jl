@@ -1,0 +1,12 @@
+== tower up to 3 passes on length 4, cap 20000 steps per run or stage, lr 0.01 ==
+regime seed  [per stage: steps(reached) birth_loss/floor final_loss/floor]  total_work=passes×positions×steps  all_reached
+staged  1  k=1: 167(y) 4.63 1.010 | k=2: 195(y) 3.87 1.010 | k=3: 4708(y) 9.00 1.010 |  58000  true
+scratch 1  k=3: 20000(n) 1.558 |  240000  false
+staged  2  k=1: 160(y) 2.41 1.009 | k=2: 118(y) 4.72 1.009 | k=3: 20000(n) 3.00 1.558 |  241028  false
+scratch 2  k=3: 6501(y) 1.010 |  78012  true
+staged  3  k=1: 104(y) 4.00 1.010 | k=2: 324(y) 4.94 1.009 | k=3: 20000(n) 4.18 2.066 |  242152  false
+scratch 3  k=3: 20000(n) 1.690 |  240000  false
+staged  4  k=1: 110(y) 3.65 1.010 | k=2: 192(y) 3.20 1.010 | k=3: 20000(n) 2.65 1.423 |  241372  false
+scratch 4  k=3: 20000(n) 1.515 |  240000  false
+staged  5  k=1: 100(y) 2.99 1.009 | k=2: 20000(n) 3.73 1.762 | k=3: 20000(n) 17.13 1.663 |  360200  false
+scratch 5  k=3: 3225(y) 1.010 |  38700  true

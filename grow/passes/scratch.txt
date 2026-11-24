@@ -1,0 +1,26 @@
+parameters 270; gradient check (T=4, 3 passes, all parameters): worst relative error 1.99e-07 (|g| = 1.038)
+exact floors (nats per position), k passes on length k+1: k=1: 0.23869  k=2: 0.25406  k=3: 0.27429  k=4: 0.28159  k=5: 0.28832  k=6: 0.29234  k=7: 0.29569
+
+== scratch: 7 passes on length 8 from random weights (cap 4000 steps) ==
+seed  steps  reached  final_loss  floor
+   1   4000  false  0.63682  0.29569
+   2   4000  false  0.70656  0.29569
+   3   4000  false  0.63746  0.29569
+   4   4000  false  0.60030  0.29569
+   5   4000  false  0.67267  0.29569
+
+== total work to reach 1.01 × floor ==
+regime  seed  reached  steps  work=passes×positions×steps  work×sequences
+scratch    1  false    4000        224000        57344000
+scratch    2  false    4000        224000        57344000
+scratch    3  false    4000        224000        57344000
+scratch    4  false    4000        224000        57344000
+scratch    5  false    4000        224000        57344000
+scratch failed 5 of 5; median over successes: work NaN, work×sequences NaN
+
+== the final model run with k passes on length k+1: loss/floor (k ≤ 6 reverse map; k ≥ 8 never trained) ==
+scratch 1  k=1: 1.720 k=2: 2.141 k=3: 2.082 k=4: 2.122 k=5: 2.125 k=6: 2.140 k=7: 2.154 k=8: 2.168 k=9: 2.180
+scratch 2  k=1: 6.941 k=2: 2.898 k=3: 2.755 k=4: 2.590 k=5: 2.484 k=6: 2.428 k=7: 2.389 k=8: 2.364 k=9: 2.344
+scratch 3  k=1: 8.658 k=2: 3.589 k=3: 2.547 k=4: 2.281 k=5: 2.175 k=6: 2.148 k=7: 2.156 k=8: 2.188 k=9: 2.232
+scratch 4  k=1: 5.832 k=2: 2.112 k=3: 3.010 k=4: 1.939 k=5: 1.989 k=6: 2.008 k=7: 2.030 k=8: 2.057 k=9: 2.069
+scratch 5  k=1: 2.183 k=2: 2.474 k=3: 2.385 k=4: 2.359 k=5: 2.313 k=6: 2.288 k=7: 2.275 k=8: 2.273 k=9: 2.276

@@ -171,17 +171,29 @@ local refinement. A first test: the synthetic tower of `grow/hierarchy`, with a 
 is expensive to learn, where each class is split when its own class-level loss comes within a few
 per cent of its floor; compare work against the fixed schedule and against scratch.
 
-## Status (24 Nov 2026, 15:20 UTC)
+## Status (24 Nov 2026, 15:50 UTC): first round finished
 
-All nine ideas are taken; each has its own branch `grow/<name>` on GitHub (`grow/lifts`,
-`grow/tower`, `grow/truncate`, `grow/notes-definition`, `grow/notes-blocking`, `grow/notes-dmrg`,
-`grow/context`, `grow/doors`, `grow/notes-prior-art`). A branch that is missing has not pushed a
-result yet. If you arrive here in a new session, read the finished results first (`git fetch
-origin`, then `git show origin/grow/<name>:grow/...`) and propose a follow-up in a new folder
-`grow/<new-idea>/` instead of repeating one.
+Thirteen ideas ran, each on its own branch `origin/grow/<name>` with a `RESULT.md` (`git fetch
+origin`, then `git show origin/grow/<name>:grow/<folder>/RESULT.md`). Nothing is merged. Read
+the results before starting anything; a new idea goes in a new folder `grow/<new-idea>/`.
 
-Finished so far: **attention under blocking** (`origin/grow/notes-blocking`, verdict *needs
-more*). A block of positions is replaced exactly by the pair (Σ e^{score}, Σ e^{score}·value);
-merges are associative, also at the causal boundary. One ordinary key per block is exact only
-when the projected keys coincide, and then needs a bias log |B|. On the trained specimen the
-low-order expansion is useless (within-block score range 12.9).
+| Branch | Verdict | The one thing to take away |
+|---|---|---|
+| `grow/notes-definition` | promising | Exact at birth: vocabulary split, MLP width, gated passes, identity blocks, context on old prefixes. Refuted: more heads at fixed D; width by duplication with the stock position code. Closed coarse world = predictive sufficiency (strong lumpability for Markov chains). |
+| `grow/notes-blocking` | needs more | A block of positions is replaced exactly by (Σ e^score, Σ e^score·value); one ordinary key per block is exact only if the keys coincide. |
+| `grow/notes-dmrg` | needs more | White's rule has a local counterpart (weighted PCA) only when covariance and sensitivity separate; no exact two-site update; a frozen parent can leave a gap that one inherited bias closes. |
+| `grow/notes-prior-art` | reading | Lifts exist as function-preserving expansion (Net2Net, Gesmundo and Maile, LEMON); not found: the paired map back, a tower of worlds with the model lifted along it. Abstract-level verification only. |
+| `grow/lifts` | needs more | All exact lifts implemented and tested to 1e-15. Duplicated width is a symmetry training never leaves. Growing width on the specimen costs 1.0 to 2.4 times scratch. |
+| `grow/tower` | needs more | Vocabulary lift exact; on the specimen text staging costs 3.4 times scratch because the coarse text is the harder one. |
+| `grow/hierarchy` | needs more, leaning negative | The lifted child beats scratch only when a class's children are interchangeable as inputs; a defect makes the parent expensive. |
+| `grow/lumpable` | needs more | No coarse-graining of the specimen text or of Shakespeare is closed; a Brown-style tower adds about ln 2 of new structure per doubling. |
+| `grow/truncate` | needs more | Spectrum falls slowly; cuts need retraining; about rank 5 suffices at D=8 and D=16 after 50 steps; the internal intertwiner fails. |
+| `grow/blocking-loss` | needs more | Blocked context loses to a plain window on Shakespeare at T=32 and wins where evidence is spread over the whole context. |
+| `grow/passes` | inconclusive | Model rewritten without gate or start mark; neither staged nor scratch trained. Redo on the looped specimen behind a gate. |
+| `grow/doors` | needs more | One more pass behind a zero gate: children learn the two-hop world in 7 of 18 runs, scratch in 1 of 9; the parent's lookup is not handed over in query form. |
+| `grow/context` | promising | T=8 then T=32 reaches the floor in about 1.7M tokens; scratch at T=32 sits on a plateau to 5M (two seeds, one world). The T=8 model fails beyond position 8 untrained: the absolute position code. |
+
+Where staging paid (context, doors) the child had to find something scratch gets stuck before
+finding. Where it did not (width, vocabulary) the coarse stage was no cheaper than the fine one.
+Untested: approximate lifts, growth gated by competence, local refinement (the two sections
+above).

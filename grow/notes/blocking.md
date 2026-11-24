@@ -41,9 +41,9 @@ $$
 $$
 For proof tilt the uniform law by $e^{tY}$ for $0\le t\le1$. The second derivative of the log-partition function along this path is $\operatorname{Var}_tY\le W^2/4$ (bound the second moment about the range midpoint). Integrating with weight $1-t$ gives the score bound. The first derivative of $E_t v$ is $\operatorname{Cov}_t(v,Y)$, bounded in norm by $D_v W/4$ by applying Cauchy–Schwarz to each unit projection. Its second derivative is $E_t[(v-E_t v)(Y-E_t Y)^2]$, of norm at most $D_v\operatorname{Var}_tY$. Integration gives the other two inequalities.
 
-**Proved (error in the head output).** Let $W_*$ be the maximum block width $W$ in the visible row, and $D$ here denote the diameter of *all visible values* (in this bound only). With first-order scores and values, the Euclidean read error is at most
+**Proved (error in the head output).** Let $W_*$ be the maximum block width $W$ in the visible row, and let $D_{v,\mathrm{row}}$ be the diameter of all visible values. With first-order scores and values, the Euclidean read error is at most
 $$
-D W_*^2/32+\max_B D_{v,B} W_B^2/8 .
+D_{v,\mathrm{row}} W_*^2/32+\max_B D_{v,B} W_B^2/8 .
 $$
 Hold exact conditional values fixed while interpolating from approximate to exact scores. The read derivative is their covariance with the block score errors. The conditional values lie in the original convex hull and the errors range over an interval of length at most $W_*^2/8$. The same projection bound gives the first term. At the approximate probabilities, replacing the values costs at most the worst block value error. Using frozen mean values replaces the second term by $\max_B D_{v,B}W_B/4$.
 
@@ -72,3 +72,19 @@ Apply the law separately to $Z_B/m$ and $N_B/m$ and use positivity of the limit 
 **Proved (kernel features).** Given a separable approximation $e^{x^\top k}\approx\phi(x)^\top\psi(k)$, substitute it in both sums. The block summaries become $\sum_j\psi(k_j)$ and $\sum_j v_j\psi(k_j)^\top$, which add exactly for the chosen kernel. The ratio incurs the kernel approximation error. Performer constructs positive random features for this softmax kernel. [Choromanski et al., *Rethinking Attention with Performers*](https://arxiv.org/abs/2009.14794)
 
 **Proved (source moments).** Factor $e^{x^\top\mu}$ from $Z_B,N_B$ and expand $e^{x^\top(k-\mu)}$. The degree-$n$ coefficients are centred source moments with charges $1$ and $v_j$, divided by $n!$. These two moment expansions illustrate the multipole idea directly. There is even a Gaussian-kernel form $e^{x^\top k}=e^{\|x\|^2/2}e^{-\|x-k\|^2/2}e^{\|k\|^2/2}$. The common target factor cancels in the read. Greengard and Strain group sources for the Gaussian transform using local expansions. Contiguity in sequence position gives no upper bound on source spread in key space, as adjacent keys can be arbitrarily far apart in the head model. [Greengard and Strain, *The Fast Gauss Transform*](https://doi.org/10.1137/0912004)
+
+## Numerical check
+
+**Checked numerically (Julia, Float64).** The [script](blocking/check.jl) runs from the repository root with `OPENBLAS_NUM_THREADS=1 julia -t1 --project grow/notes/blocking/check.jl`. It groups contiguous triples, intersects each with each query's causal prefix, and compares the resulting head output with PicoGPT's own attention and mix. RMS means $\sqrt{\operatorname{mean}_i\|r_i^{(n)}-r_i\|_2^2}$ over all head rows, before the output projection. Each order truncates *both* score and value at that degree. The width shown is the largest within-block score range in the sample.
+
+| Sample | Head rows | Max exact read error | RMS, degree one | RMS, degree two | Max width |
+|---|---:|---:|---:|---:|---:|
+| Random, $\sigma=0.125$ | 768 | $7.81\times10^{-16}$ | 0.00589 | 0.00102 | 0.958 |
+| Random, $\sigma=0.25$ | 768 | $6.96\times10^{-16}$ | 0.0228 | 0.00796 | 1.92 |
+| Random, $\sigma=0.5$ | 768 | $9.09\times10^{-16}$ | 0.0851 | 0.0598 | 3.83 |
+| Random, $\sigma=1$ | 768 | $9.22\times10^{-16}$ | 0.296 | 0.537 | 7.66 |
+| Trained specimen | 160 | $7.92\times10^{-16}$ | 1.35 | 3.15 | 12.9 |
+
+**Checked numerically (sampling and interpretation).** Each random sample uses the same 64 draws at $d=4$, $T=12$, with independent standard Gaussian query, value, block centre and key perturbation coordinates. The key equals the block centre plus $\sigma$ times its perturbation. The trained run uses both heads and every training-window prefix of the saved step-200 specimen. The script asserts the first-order bounds for every row and checks the Taylor coefficients by centred finite differences. Degree two improved the read in RMS at the three smallest random spreads. It increased the error at the largest random spread and on the trained specimen. The specimen comparison uses head-output units and measures no language-model loss.
+
+**Conjectured (open).** Choosing which source blocks to compress from their projected spread over the queries that actually visit them could make a low-order truncation useful in a trained model. The remaining test is whether the head errors and downstream loss stay small at a meaningful reduction in stored or evaluated keys.

@@ -3,14 +3,23 @@
 include("world.jl")
 using PicoGPT, Random, Printf
 const T = 8
+const NOISE = parse(Float64, get(ENV, "NOISE", "0"))
 cfg(V) = Config(; V, D = 8, H = 2, L = 1, T, F = 32)
 
 "Lift: child embedding = class embedding; child logit = class logit (+ a within-class logit that is 0)."
-function lift(θ3)
+function lift(θ3; noise = 0.0, rng = nothing)
     c3, c6 = cfg(3), cfg(6)
     θ6 = zeros(nparams(c6)); p3 = carve(θ3, c3); p6 = carve(θ6, c6)
     for v in 1:6
-        p6.E[:, v] = p3.E[:, cls(v)]; p6.Wout[v, :] = p3.Wout[cls(v), :]; p6.bout[v] = p3.bout[cls(v)]
+        p6.E[:, v] = p3.E[:, cls(v)]
+    end
+    if noise > 0                                  # optional, NOT exact: split the two children by ±n
+        for c in 1:3
+            n = noise .* randn(rng, size(p3.E, 1)); p6.E[:, 2c-1] .+= n; p6.E[:, 2c] .-= n
+        end
+    end
+    for v in 1:6
+        p6.Wout[v, :] = p3.Wout[cls(v), :]; p6.bout[v] = p3.bout[cls(v)]
     end
     for (a, b) in zip(leaves(p6.blocks), leaves(p3.blocks)); a .= b; end
     p6.γf .= p3.γf; p6.βf .= p3.βf
@@ -51,7 +60,7 @@ function run(; ε, κ, δ, seed, maxsteps = 1500, B = 32, tol = 0.01)
     s3, _ = train!(θ3, c3, coarse, Xc, Yc, cfloor, tol * e.coarse; rng, maxsteps, B)
     par = evalloss(θ3, Xc, Yc, c3)
     # lift, and the test at birth
-    θ6 = lift(θ3)
+    θ6 = lift(θ3; noise = NOISE, rng)
     p3 = probs(θ3, Xc, c3); p6 = probs(θ6, Xt, c6)
     marg = maximum(abs, [p6[2c-1, n] + p6[2c, n] - p3[c, n] for c in 1:3, n in axes(p3, 2)])
     birth = evalloss(θ6, Xt, Yt, c6)
@@ -70,10 +79,10 @@ med(x) = (y = sort(filter(!isnan, x)); isempty(y) ? NaN : length(y) < length(x) 
 
 function main()
     nseeds = length(ARGS) ≥ 1 ? parse(Int, ARGS[1]) : 5
-    settings = length(ARGS) ≥ 2 ? [(1.0, 1.0, 0.0)] :
+    settings = length(ARGS) ≥ 2 ? [(0.0, 1.0, 0.0), (1.0, 1.0, 0.0), (1.0, 2.0, 0.0), (1.0, 1.0, 0.5), (1.0, 1.0, 2.0)] :
         [(0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 0.0), (1.0, 2.0, 0.0), (1.0, 1.0, 0.25), (1.0, 1.0, 0.5),
          (1.0, 1.0, 1.0), (1.0, 1.0, 2.0), (0.0, 1.0, 1.0), (0.0, 1.0, 2.0)]
-    out = open(length(ARGS) ≥ 2 ? "quick.tsv" : "results.tsv", "w")
+    out = open(length(ARGS) ≥ 2 ? "results_noise$(NOISE).tsv" : "results.tsv", "w")
     println(out, "eps\tkappa\tdelta\tseed\tdefect\tsplit\tfine\tcoarse\tsteps_parent\tsteps_child\tsteps_scratch\tW_parent\tW_child\tW_scratch\tbirth_loss\tparent_loss\tbirth_gap\tmarg_err\tbirth_excess")
     for (ε, κ, δ) in settings
         rs = [run(; ε, κ, δ, seed) for seed in 1:nseeds]

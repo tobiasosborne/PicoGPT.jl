@@ -17,3 +17,17 @@ plain window of the m most recent sources in every layer:
   m=1: 2.7837  m=2: 2.3573  m=4: 2.0173  m=8: 1.9203  m=12: 1.9020  m=16: 1.8971  m=24: 1.8936  
 
 fine-tuning 250 steps (η = 1e-3) from the trained model, with the modified attention in place; loss at positions 17-32:
+  control, full attention, same extra steps: 1.8753
+b   r    sources | block before  block after |  drop before   drop after
+4   4      10.25 |       1.9219       1.8849 |       1.9089       1.8785
+8   2       7.88 |       1.9728       1.9219 |       1.9340       1.8910
+
+blocks chosen by smallest spread (Ward), same number of sources per query as the contiguous blocks:
+b   r    sources | blk-contig   blk-keys blk-key+val
+2   2      13.50 |     1.9976     1.9835     2.0165
+4   2       8.75 |     1.9992     2.0807     2.1050
+8   2       7.88 |     1.9728     2.1210     2.1328
+2   4      14.50 |     1.9126     1.9102     1.9144
+4   4      10.25 |     1.9219     1.9260     1.9273
+8   4       9.62 |     1.9157     1.9316     1.9320
+total 167 s

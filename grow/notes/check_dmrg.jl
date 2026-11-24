@@ -115,3 +115,68 @@ end
     @test staged ≈ joint
     @test sum(ce.(staged,q)) < sum(ce.(first_step,q))
 end
+
+@testset "Global stream change with fixed positional code" begin
+    rng = MersenneTwister(17)
+    c = PG.Config(V=3, D=4, H=2, T=2, F=5, L=1)
+    theta = randn(rng, PG.nparams(c))
+    p = PG.carve(theta,c)
+    newtheta = copy(theta)
+    s = PG.carve(newtheta,c)
+    P = PG.positions(c.D,c.T)
+    delta = P[:,2]-P[:,1]
+    direction = nullspace(hcat(ones(c.D),delta)')[:,1]
+    O = I - 2direction*direction'
+    A = O + ones(c.D)*direction'
+    @test O'*O ≈ I
+    @test A*delta ≈ delta
+    @test norm(A'*A-I) > 1
+    s.E .= A*p.E .+ (A-I)*P[:,1]
+    function change_reader!(newW,newb,W,b,gamma,beta)
+        newW .= W*Diagonal(gamma)*O'
+        newb .= b+W*beta
+    end
+    for (orig, new) in zip(p.blocks,s.blocks)
+        for (weight,bias) in [(:Wq,:bq),(:Wk,:bk),(:Wv,:bv)]
+            change_reader!(new[weight], new[bias], orig[weight], orig[bias], orig.γ1, orig.β1)
+        end
+        change_reader!(new.W1,new.b1,orig.W1,orig.b1,orig.γ2,orig.β2)
+        new.γ1 .= new.γ2 .= 1
+        new.β1 .= new.β2 .= 0
+        new.Wo .= A*orig.Wo
+        new.bo .= A*orig.bo
+        new.W2 .= A*orig.W2
+        new.b2 .= A*orig.b2
+    end
+    change_reader!(s.Wout,s.bout,p.Wout,p.bout,p.γf,p.βf)
+    s.γf .= 1
+    s.βf .= 0
+    tokens = [1 2 3; 2 3 1]
+    origtrace, newtrace = [], []
+    Z, _ = PG.gpt(theta, tokens, c; trace=origtrace)
+    Znew, _ = PG.gpt(newtheta, tokens, c; trace=newtrace)
+    @test newtrace[1].X0 ≈ A*origtrace[1].X0
+    @test newtrace[2].Xmid ≈ A*origtrace[2].Xmid
+    @test newtrace[2].Xout ≈ A*origtrace[2].Xout
+    @test Znew ≈ Z
+    s.E .+= randn(rng, 1, c.V)
+    s.blocks[1].Wo .+= randn(rng, 1, c.D)
+    @test first(PG.gpt(newtheta, tokens, c)) ≈ Z
+end
+
+@testset "Joint moment, oblique normal equation and coordinate invariance" begin
+    us = [[1., -2.], [2., 1.], [-1., 1.]]
+    gs = [[2. 1; 1 3], [1. 0; 0 2], [3. -1; -1 2]]
+    objective(q, xs, metrics) = mean(dot((I-q)*x, g*((I-q)*x)) for (x,g) in zip(xs,metrics))
+    # Plane e1. K has one coefficient and its normal equation is scalar.
+    k = sum(g[1,2]*x[2]^2 for (x,g) in zip(us,gs))/sum(g[1,1]*x[2]^2 for (x,g) in zip(us,gs))
+    proj(a) = [1. a; 0. 0.]
+    q = proj(k)
+    h = 1e-5
+    @test abs((objective(proj(k+h),us,gs)-objective(proj(k-h),us,gs))/(2h)) < 1e-9
+    K = mean(kron(x*x', g) for (x,g) in zip(us,gs))
+    residual = vec(I-q)
+    @test dot(residual,K*residual) ≈ objective(q,us,gs)
+    a = [2. 1; 0. 3.]
+    @test objective(a*q/a, [a*x for x in us], [a'\g/a for g in gs]) ≈ objective(q,us,gs)
+end

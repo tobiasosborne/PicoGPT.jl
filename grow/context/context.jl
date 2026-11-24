@@ -70,17 +70,20 @@ excess(θ, T = Tmax) = perpos(θ, xe[1:T, :], ye[1:T, :], cfg(T)) .- fl[1:T]
 println("nparams = ", nparams(cfg(8)), " (same for every T: ", nparams(cfg(32)) == nparams(cfg(8)), ")")
 @printf("floors: t<3 %.4f, 3≤t<12 %.4f, t≥12 %.4f nats\n", fl[1], fl[3], fl[12])
 
-STEPS = parse(Int, get(ENV, "STEPS", "3000"))
+STEPS = parse(Int, get(ENV, "STEPS", "2000"))
+SEED = parse(Int, get(ENV, "SEED", "0"))                      # second seed: SEED=1 S32=5000 SKIP16=1
+S32 = parse(Int, get(ENV, "S32", string(STEPS)))               # steps for the scratch T=32 run
 models = Dict{Int,Vector{Float64}}()
 logs = Dict{Int,Any}()
 for T in (8, 16, 32)
-    θ = init(cfg(T); rng = MersenneTwister(10))               # same start for all three
+    steps = T == 32 ? S32 : (T == 16 && haskey(ENV, "SKIP16")) ? 10 : STEPS
+    θ = init(cfg(T); rng = MersenneTwister(10 + SEED))               # same start for all three
     logs[T] = Tuple{Int,Float64}[]
     t0 = time()
-    train!(θ, AdamW(θ), data, T, STEPS, MersenneTwister(20 + T);
+    train!(θ, AdamW(θ), data, T, steps, MersenneTwister(20 + T + 1000SEED);
            every = 100, evalf = θ -> sum(excess(θ)) / Tmax, log = logs[T])
     models[T] = θ
-    @printf("trained T=%d  %d steps  %.0f s  tokens %d\n", T, STEPS, time() - t0, STEPS * 32 * T)
+    @printf("trained T=%d  %d steps  %.0f s  tokens %d\n", T, steps, time() - t0, steps * 32 * T)
 end
 
 # 1. the lift T → 2T is the identity on θ; predictions at positions 1..T do not change
@@ -113,7 +116,7 @@ end
 # 3. staging: continue the T=8 model at T=32 and count tokens
 if get(ENV, "STAGE", "1") == "1"
     θ = copy(models[8]); lg = Tuple{Int,Float64}[]
-    train!(θ, AdamW(θ), data, 32, STEPS, MersenneTwister(99); every = 100,
+    train!(θ, AdamW(θ), data, 32, STEPS, MersenneTwister(99 + SEED); every = 100,
            evalf = θ -> sum(excess(θ)) / Tmax, log = lg, work0 = STEPS * 32 * 8)
     println("\nmean excess at T=32 against tokens processed (thousands)")
     println("scratch32: ", join(["$(w ÷ 1000)k:$(round(e, digits = 3))" for (w, e) in logs[32][1:3:end]], "  "))

@@ -148,6 +148,29 @@ So measure, do not demand: the loss at birth above the parent's, the work to rec
 world its defect in nats. The questions become quantitative: how large a gap at birth can training
 absorb cheaply, and which approximate lifts leave the child best placed to learn?
 
+## Access is earned (the rolling-ball picture)
+
+The owner's image, 24 Nov 2026: a ball that rolls through one world and picks up what is small
+enough to stick; as it grows, things that were obstacles become things it can pick up, and the
+view zooms out. Read as a design for the training environment:
+
+- **One world, a moving cutoff.** The levels of the tower are not separate environments. The fine
+  world is there from the start; the model sees it through a coarse-graining that relaxes.
+- **Competence sets the reach.** A degree of freedom (a class split, a stream dimension, a pass, a
+  context position) opens when the model has earned it, not on a schedule. Candidate signals: the
+  loss on what it already sees is near its floor or has stopped falling; or the model pushes
+  against a nearly closed gate (a large gradient on it), the analogue of bumping into something
+  still too big.
+- **Growth is local.** The ball picks up single objects, not whole layers. Split the classes the
+  model already predicts well and leave the others; lengthen the context where the full context is
+  already used; add a pass for the inputs on which the last pass still changed the answer.
+- **It is approximate.** Things stick imperfectly and can be knocked off: see the section above.
+
+All experiments so far used global lifts on a fixed schedule. Untested: gating by competence, and
+local refinement. A first test: the synthetic tower of `grow/hierarchy`, with a coarse level that
+is expensive to learn, where each class is split when its own class-level loss comes within a few
+per cent of its floor; compare work against the fixed schedule and against scratch.
+
 ## Status (24 Nov 2026, 15:20 UTC)
 
 All nine ideas are taken; each has its own branch `grow/<name>` on GitHub (`grow/lifts`,

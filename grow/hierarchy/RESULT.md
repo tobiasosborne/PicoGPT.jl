@@ -78,7 +78,7 @@ Work = parameters × tokens × steps. Five seeds; medians.
 | 1 | 1 | 0.25 | 0.022 | 35 | 140 | 70 | 2.00 | 2.62 |
 | 1 | 1 | 0.5 | 0.080 | 165 | 115 | 100 | 1.15 | 3.32 |
 | 1 | 1 | 1 | 0.254 | 685 | 145 | 95 | 1.53 | 8.10 |
-| 1 | 1 | 2 | 0.515 | 1155 | 240 | 125 | 1.71 | 9.72 |
+| 1 | 1 | 2 | 0.515 | 1155 | 240 | 140 | 1.71 | 9.72 |
 | 0 | 1 | 1 | 0.264 | 660 | 155 | 90 | 1.72 | 8.73 |
 | 0 | 1 | 2 | 0.541 | 790 | 130 | 90 | 1.44 | 9.71 |
 
@@ -95,7 +95,7 @@ What this says:
 3. **The defect prices the parent, not the child.** Parent steps go 30 → 35 → 165 → 685 → 1155 as
    the defect goes 0 → 0.02 → 0.08 → 0.25 → 0.52, because the coarse world stops being Markov and
    its floor needs inference over the hidden child, while the fine world stays first-order Markov
-   and stays easy (scratch 70–125 steps). Whole-lineage work over scratch therefore grows
+   and stays easy (scratch 70–140 steps). Whole-lineage work over scratch therefore grows
    monotonically with the defect at fixed ε = κ = 1 from δ = 0.25 on: 2.6, 3.3, 8.1, 9.7. In this
    sense the advantage of staging does shrink as the defect grows, but it was already gone
    at defect zero. A non-closed coarse world is *harder* than the fine world it came from.

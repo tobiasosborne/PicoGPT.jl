@@ -1,0 +1,42 @@
+# When does a transformer have a DMRG truncation rule?
+
+**Proved, scope.** Fix a trained predictor, a law of histories and a location in its forward pass. The closest counterpart of White's discarded weight is the quadratic change in the predictor's distribution when a linear bottleneck is inserted there. A single eigendecomposition solves this problem under a separability condition. For the actual attention model the general answer is a weighted subspace fit. Neither answer by itself constructs a narrower PicoGPT. Below, **proved** includes definitions followed by their consequences, **checked numerically** refers to the accompanying Julia script, and **conjectured** labels extrapolations. Width is $D$, head width is $d=D/H$, and $r$ is the retained dimension.
+
+## 1. What replaces the reduced density matrix?
+
+**Proved (reference problem).** Write the normalized superblock wavefunction as a coefficient matrix $\Psi$ in orthonormal left and right bases. For a rank-$r$ orthogonal block projector $Q$, the squared error is $\|(I-Q)\Psi\|_F^2=1-\operatorname{tr}(Q\Psi\Psi^\dagger)$. Maximizing the retained trace keeps the top eigenspace of $\rho=\Psi\Psi^\dagger$. Indeed the diagonal entries of $Q$ in the eigenbasis lie in $[0,1]$ and sum to $r$. Ties across the cut make the minimizer nonunique. The discarded eigenvalue sum is the squared error before renormalizing the state. [White, 1992](https://doi.org/10.1103/PhysRevLett.69.2863)
+
+**Proved (single-column intervention).** Take one column $x$ of the residual stream. Put $u=x-m$ and replace $x$ by $x-t(I-Q)u$. At $t=1$ the affine bottleneck encodes $r$ coordinates and decodes back into $D$; $Q^2=Q$, $\operatorname{rank}Q=r$. Set $m=0$ for a linear map, or fix $m=\mathbb E x$ to preserve the ordinary mean. Write $C=\mathbb E uu^\top$ (a covariance only in the latter case). Other inputs to the suffix stay at their observed values. For a scored output with logits $z$, put
+$$
+p=\operatorname{softmax}(z),\quad S(p)=\operatorname{diag}(p)-pp^\top,\quad
+J=\partial z/\partial x,\quad G=J^\top S(p)J .
+$$
+Take the mean of these pullbacks if several outputs are scored. $S$ is the covariance of a categorical one-hot draw, hence $G$ is positive semidefinite. With $\delta z=z_t-z$, teacher-to-student KL is exactly $\log\sum_a p_a e^{\delta z_a}-p^\top\delta z$. Its first derivative at zero vanishes and its Hessian there is $S$. Substituting $\delta z=-tJ(I-Q)u+o(t)$ gives expected KL $=t^2\mathcal E(Q)/2+o(t^2)$, where
+$$
+\mathcal E(Q)=\mathbb E[u^\top (I-Q)^\top G(I-Q)u].
+$$
+Assume differentiability on the data and a finite empirical distribution, or sufficient domination to average the remainder. The KL expansion also gives the expected supervised excess log loss if the teacher equals the true conditional law. Otherwise supervised loss generally has a linear term $(p-p_{\rm true})^\top\delta z$ and, for nonlinear logits, an additional second-derivative term. Stationarity in the trained parameters need not cancel a new stream intervention.
+
+**Proved (general projector).** In column-major vectorization the objective is a quadratic form in $\operatorname{vec}(I-Q)$ with coefficient $\mathcal K=\mathbb E[uu^\top\otimes G]$. This fourth-order moment specifies the optimum. An explicit variational construction is to take an orthonormal frame $B$ for a candidate retained plane and $V_\perp$ for its complement. Every projector onto that plane has the form $Q=BB^\top+BK V_\perp^\top$. Set $s=V_\perp^\top u$. For this plane solve the linear normal equations
+$$
+\mathbb E[B^\top G B\,Kss^\top]=\mathbb E[B^\top G V_\perp\,ss^\top].
+$$
+They follow by least squares on $G^{1/2}(V_\perp-BK)s$; use any minimizer if the system is singular. Minimize its residual sum over the planes to obtain the optimal projector whenever attained (or take the infimum). If Euclidean orthogonality is required, set $K=0$ throughout. That search attains its minimum by compactness. A free rank-$r$ encoder/decoder product need not be idempotent, so dropping the projector constraint changes the general problem.
+
+**Proved (failure of marginal averaging).** In two dimensions take $u=\pm e_i$ with independent fair sign and uniform $i$. Given $i$, set $G=e_i e_i^\top$ in world A and $G=e_{3-i}e_{3-i}^\top$ in world B. Both have $C=\mathbb EG=I/2$. For rank one the first objective is $\tfrac12\sum_i(1-Q_{ii})^2$, minimized at equal diagonal entries since $\operatorname{tr}Q=1$. The second is $\tfrac12(Q_{12}^2+Q_{21}^2)$, minimized by a coordinate projector. These minimizer sets are disjoint even allowing oblique projectors. Each metric can arise from a fair binary output with log-odds derivative $2e_i$ or $2e_{3-i}$. Thus even knowing *both* marginals exactly cannot select a universally optimal plane.
+
+**Proved (spectral case).** Suppose $\mathcal K=C\otimes M$ with $M\succ0$; a constant $G=M$ suffices, as does independence of $G$ and $uu^\top$ with $M=\mathbb EG$. For any retained plane, the best reconstruction of each $u$ is its $M$-orthogonal projection onto that plane. In coordinates $y=M^{1/2}u$ the problem becomes Euclidean PCA on $\mathbb E yy^\top=M^{1/2}CM^{1/2}$. If $U_r$ contains its top orthonormal eigenvectors, one optimal solution and its discarded weight are
+$$
+Q_* = M^{-1/2} U_r U_r^\top M^{1/2},\qquad
+\mathcal E(Q_*)=\sum_{j>r}\lambda_j(M^{1/2}CM^{1/2}).
+$$
+The trace argument above proves optimality. $Q_*$ is generally oblique in stream coordinates. For singular constant $M$ work on $\operatorname{ran}M$ using its restricted inverse; components along $\ker M$ are free in the output norm. If $r$ exceeds the observable dimension, complete the retained space in the kernel. With $M$ proportional to the identity one recovers ordinary PCA. For commuting $C,M$, keep common axes with the largest *products* of their eigenvalues; PCA agrees if the selected axes agree. For an imposed Euclidean projector and noncommuting metrics the displayed oblique solution generally is inadmissible.
+
+**Proved (width across a context).** Replacing all columns by the same bottleneck gives the quadratic coefficient
+$$
+\mathbb E\frac1T\sum_i\left\|S(p_i)^{1/2}
+\sum_{j\le i}J_{ij}(I-Q)u_j\right\|^2,\qquad J_{ij}=\partial z_i/\partial x_j
+$$
+for one sequence with all positions scored. This follows by the chain rule before squaring. The single-column quadratic omits cross terms between different sources. One can fit the same plane and encoder with the coupled residual in this formula. Averaging independent column scores is exact when the cross terms vanish. A bottleneck applied at multiple layers likewise has interfering first-order perturbations. Finite deletion can change attention probabilities, cross ReLU kinks and change LayerNorm statistics. The local coefficient controls the limit $t\to0$; extending it to $t=1$ needs a remainder bound along the path. A width-$r$ architecture must also implement its own LayerNorm, residual maps, head partition and positional code. A projector at one interface proves no such closure.
+
+**Proved (LayerNorm).** Put $C_0=I-\mathbf1\mathbf1^\top/D$, $c=C_0x$, $\sigma^2=\|c\|^2/D+\epsilon$. The differential of the normalization before its gain and bias is $C_0/\sigma-cc^\top/(D\sigma^3)$, obtained by differentiating $c/\sigma$. It kills $\mathbf1$, maps $c$ to $\epsilon c/\sigma^3$, and scales directions perpendicular to both by $1/\sigma$. Left-multiply by $\operatorname{diag}\gamma$ for the affine LayerNorm. PicoGPT uses positive $\epsilon$, so the radial direction generally survives. The skip paths carry a per-token shift along $\mathbf1$ unchanged through normalized branches; the final LayerNorm removes it. Thus the entire suffix is exactly blind to such shifts, even across attention, and its Fisher is singular. The radial response of a single normalization gives no common radial null direction for a residual stack. These identities follow directly from [the block](../../src/block.jl) and [the readout](../../src/model.jl).

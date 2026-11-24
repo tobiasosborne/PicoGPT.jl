@@ -46,3 +46,21 @@ $$
 D W_*^2/32+\max_B D_{v,B} W_B^2/8 .
 $$
 Hold exact conditional values fixed while interpolating from approximate to exact scores. The read derivative is their covariance with the block score errors. The conditional values lie in the original convex hull and the errors range over an interval of length at most $W_*^2/8$. The same projection bound gives the first term. At the approximate probabilities, replacing the values costs at most the worst block value error. Using frozen mean values replaces the second term by $\max_B D_{v,B}W_B/4$.
+
+## Repeated blocking and causality
+
+**Proved (flow).** For a parent $P$ with disjoint children, $(Z_P,N_P)=\sum_{B\subset P}(Z_B,N_B)$, where the sum runs over its immediate children. Thus every tree over the same leaves gives the same answer. Equivalently carry the counting measure $\sum_j\delta_{k_j}$ and its value-weighted companion $\sum_j v_j\delta_{k_j}$; the pair above consists of their Laplace transforms. This representation can grow with the number of distinct keys. With $\rho_B=|B|/|P|$, the first two key couplings obey
+$$
+\mu_P=\sum_B\rho_B\mu_B,\qquad
+C_P=\sum_B\rho_B\left[C_B+(\mu_B-\mu_P)(\mu_B-\mu_P)^\top\right].
+$$
+Expand $k-\mu_P=(k-\mu_B)+(\mu_B-\mu_P)$ under each child law to prove the recursion. Even point-mass children generate a variance when their means differ. More generally raw key moments and moments weighted by one value add before normalisation. Keeping these up to degree $n$ therefore gives exactly the parent's Taylor coefficients through degree $n$ after any number of merges.
+
+**Proved (fixed profiles and scaling).** Divide the pair by block size. Merging identical normalised pairs fixes their profile at every query, while an equal-arity merge of $b$ such children adds $\log b$ to the score. Every empirical profile can be replicated, so blocking alone selects no universal one. For nested blocks of $m$ i.i.d. key/value pairs, at each fixed $x$ satisfying $E[(1+\|v\|)e^{x^\top k}]<\infty$, the strong law gives almost surely
+$$
+s_B(x)=\log m+\log E e^{x^\top k}+o(1),\qquad
+v_B(x)\longrightarrow \frac{E[v e^{x^\top k}]}{E e^{x^\top k}} .
+$$
+Apply the law separately to $Z_B/m$ and $N_B/m$ and use positivity of the limit denominator. The limiting profile retains the population cumulants wherever the generator exists near zero. A Gaussian limit for sums of independent keys concerns a different operation, since blocking here mixes their empirical measures.
+
+**Proved (mask).** At row $i$ use $B_i=B\cap\{1,\ldots,i\}$. An empty intersection has zero mass and numerator and can be skipped; a partial block needs its own prefix count, moments or exact pair. For contiguous blocks only the current block can be partial. A prefix decomposes into completed subtrees and visible leaves, so the addition rule implements the mask at every level. Using an entire diagonal block would give unseen positions positive weight. At a query on the last site of a block, all visible blocks are complete. Keeping only those queries preserves the corresponding head reads on the original keys and values. Coarsening the queries or propagating this equality through further transformer layers would require additional identities.

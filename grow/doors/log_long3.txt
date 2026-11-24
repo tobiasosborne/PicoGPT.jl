@@ -1,0 +1,8 @@
+D, H, F = (24, 1, 48)
+parameters: 6195   chance on fine: 1/4 = 0.25 (loss ln 4 = 1.386) with doors known, perfect 1.0 (loss 0)
+seed 3 scratch-2pass          steps→90%: missing  →99%: missing  final acc 0.504  gate 1.264  work→99%: missing (with parent missing)
+seed 3 parent-coarse: 75 steps, acc 1.000 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.237 | ∂ℓ/∂g FD -0.04077 analytic -0.04077 | |∇ of the other weights| at birth (all through pass 1) 2.201 | zero-shot g=1 fine acc 0.225
+seed 3 child-of-coarse        steps→90%: 500  →99%: 600  final acc 1.000  gate -0.639  work→99%: 76800 (with parent 81600)
+seed 3 parent-hops: 400 steps, acc 1.000 | birth max|ΔZ| 0.0e+00 | fine acc at birth 0.000 | ∂ℓ/∂g FD -3.60502 analytic -3.60502 | |∇ of the other weights| at birth (all through pass 1) 17.561 | zero-shot g=1 fine acc 0.092
+   parent-hops pass-1 readout on fine queries names a key: 1.000
+seed 3 child-of-hops          steps→90%: missing  →99%: missing  final acc 0.763  gate 1.138  work→99%: missing (with parent missing)

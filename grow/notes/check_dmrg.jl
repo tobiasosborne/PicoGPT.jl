@@ -39,3 +39,31 @@ BLAS.set_num_threads(1)
     kl(t) = sum(p .* log.(p ./ PG.softmax(z(x+t*v))))
     @test (kl(h)+kl(-h))/h^2 ≈ dot(J*v, (Diagonal(p)-p*p')*J*v) rtol=2e-7
 end
+
+@testset "Information per refinement and exact readout rank" begin
+    for (coarse, fine) in [(2,3), (3,6)]
+        # Uniform fine histories/futures; prediction from the coarse prefix.
+        mass = 2.0^(-fine)
+        coarse_mass = 2.0^(-coarse)
+        gain = sum(mass * log(coarse_mass/mass) for _ in 1:2^fine)
+        @test gain ≈ (fine-coarse)*log(2)
+    end
+    tau = 0.125
+    for K in [4, 8, 16]
+        c = PG.Config(V=K, D=K, H=1, T=1, L=0)
+        theta = zeros(PG.nparams(c))
+        par = PG.carve(theta, c)
+        unit = Matrix{Float64}(I, K, K)
+        par.E .= unit .- PG.positions(K, 1)
+        par.γf .= 1
+        sigma = sqrt((K-1)/K^2 + 1e-5)
+        par.Wout .= (tau*sigma)*unit
+        Z, _ = PG.gpt(theta, reshape(1:K, 1, :), c)
+        probs = PG.softmax(Z; dims=1)
+        @test probs ≈ PG.softmax(tau*unit; dims=1)
+        B = I - ones(K, K)/K
+        @test B*log.(probs)*B ≈ tau*B
+        @test rank(B*Z*B) == K-1
+        @test 0 < sum(probs .* log.(K .* probs))/K <= tau
+    end
+end

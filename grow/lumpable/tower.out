@@ -1,0 +1,88 @@
+corpus: 1115394 characters, V = 65
+
+================ run defect_k2: history = 2 previous character(s), criterion defect; 11556 distinct 3-grams, N = 1115392 (8.2 s)
+fine floor H(Y | H) = 1.907550 nats
+checks over all 65 levels: fast vs dictionary max abs diff 2.15e-13; chain rule F − D + S = fine floor max abs error 2.66e-14
+
+classes  class floor  defect     split      (defect / class floor)
+   65    1.907550     -0.000000   0.000000   -0.000
+   32    1.924784     0.041803   0.024570   0.022
+   16    1.879754     0.222569   0.250364   0.118
+    8    1.293870     0.277099   0.890779   0.214
+    4    0.478886     0.130874   1.559537   0.273
+    2    0.177952     0.043188   1.772786   0.243
+    1    0.000000     -0.000000   1.907550   0.000
+
+per level, coarse → fine (F_fine = F_coarse − rel.defect + rel.split; ΔS = split increment given the fine history; ln(fine/coarse) is only a reference scale):
+  coarse → fine   F_coarse   F_fine     rel.defect  rel.split   ΔS         ln ratio   check
+    1 →   2      0.000000   0.177952   0.000000    0.177952    0.134763   0.6931     0.0e+00
+    2 →   4      0.177952   0.478886   0.006219    0.307154    0.213249   0.6931     1.6e-15
+    4 →   8      0.478886   1.293870   0.045921    0.860905    0.668758   0.6931     6.7e-15
+    8 →  16      1.293870   1.879754   0.137822    0.723706    0.640414   0.6931     2.2e-14
+   16 →  32      1.879754   1.924784   0.186231    0.231260    0.225795   0.6931     4.0e-14
+   32 →  65      1.924784   1.907550   0.041803    0.024570    0.024570   0.7087     3.9e-14
+
+the classes:
+  32:  !$&3QSZq  |  .?JPWX  |  -RVY  |  Ujpz  |  ;KO  |  Ccx  |  EFf  |  'G  |  ,B  |  :H  |  Av  |  Db  |  Lg  |  Mm  |  Nk  |  Tw  |  \n  |     |  I  |  a  |  d  |  e  |  h  |  i  |  l  |  n  |  o  |  r  |  s  |  t  |  u  |  y
+  16:  !$&.3?JPQSTWXZqw  |  ,:;BDHKOb  |  EFMUfjmpz  |  \n-CRVYcx  |  'GLg  |  AIv  |  Nhk  |  dsy  |  iu  |  lr  |     |  a  |  e  |  n  |  o  |  t
+  8:  'EFGLMNUdefghjklmnprstyz  |  !$&.3?JPQSTWXZqw  |  ,:;BDHKOb  |  \n-CRVYcx  |  AIv  |  aiu  |     |  o
+  4:  \n '-CEFGLMNRUVYacdefghijklmnoprstuxyz  |  !$&.3?JPQSTWXZqw  |  ,:;BDHKOb  |  AIv
+  2:  \n ',-:;ABCDEFGHIKLMNORUVYabcdefghijklmnoprstuvxyz  |  !$&.3?JPQSTWXZqw
+
+================ run defect_k1: history = 1 previous character(s), criterion defect; 1403 distinct 2-grams, N = 1115393 (1.5 s)
+fine floor H(Y | H) = 2.452565 nats
+checks over all 65 levels: fast vs dictionary max abs diff 2.66e-14; chain rule F − D + S = fine floor max abs error 1.15e-14
+
+classes  class floor  defect     split      (defect / class floor)
+   65    2.452565     0.000000   -0.000000   0.000
+   32    2.353909     0.026358   0.125014   0.011
+   16    1.933981     0.072266   0.590850   0.037
+    8    1.253621     0.069647   1.268591   0.056
+    4    0.376174     0.060418   2.136809   0.161
+    2    0.171014     0.024606   2.306157   0.144
+    1    0.000000     0.000000   2.452565   0.000
+
+per level, coarse → fine (F_fine = F_coarse − rel.defect + rel.split; ΔS = split increment given the fine history; ln(fine/coarse) is only a reference scale):
+  coarse → fine   F_coarse   F_fine     rel.defect  rel.split   ΔS         ln ratio   check
+    1 →   2      0.000000   0.171014   0.000000    0.171014    0.146408   0.6931     0.0e+00
+    2 →   4      0.171014   0.376174   0.002184    0.207345    0.169348   0.6931     1.7e-15
+    4 →   8      0.376174   1.253621   0.031997    0.909444    0.868218   0.6931     3.3e-15
+    8 →  16      1.253621   1.933981   0.037240    0.717600    0.677741   0.6931     5.1e-15
+   16 →  32      1.933981   2.353909   0.052904    0.472832    0.465836   0.6931     1.3e-14
+   32 →  65      2.353909   2.452565   0.026358    0.125014    0.125014   0.7087     1.2e-14
+
+the classes:
+  32:  DFGJNQRSY  |  CHKLMVXZ  |  &AEOU  |  !,3;  |  BPjq  |  .:?  |  $l  |  '-  |  TW  |  bp  |  sx  |  vz  |  \n  |     |  I  |  a  |  c  |  d  |  e  |  f  |  g  |  h  |  i  |  k  |  m  |  n  |  o  |  r  |  t  |  u  |  w  |  y
+  16:  BCDFGHJKLMNPQRSVXYZjq  |  $fglow  |  &AEOU  |  dekry  |  !,3;  |  hmvz  |  '-n  |  .:?  |  aiu  |  bcp  |  TW  |  sx  |  \n  |     |  I  |  t
+  8:  BCDFGHJKLMNPQRSTVWXYZjq  |  $abcfghilmopuvwz  |  '-deknrsxy  |  &AEIOU  |  !,3;  |  .:?  |   t  |  \n
+  4:  &ABCDEFGHIJKLMNOPQRSTUVWXYZjq  |   $'-abcdefghiklmnoprstuvwxyz  |  !,.3:;?  |  \n
+  2:  \n $&'-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz  |  !,.3:;?
+
+================ run brown_k1: history = 1 previous character(s), criterion brown; 1403 distinct 2-grams, N = 1115393 (0.7 s)
+fine floor H(Y | H) = 2.452565 nats
+checks over all 65 levels: fast vs dictionary max abs diff 2.66e-14; chain rule F − D + S = fine floor max abs error 8.44e-15
+
+classes  class floor  defect     split      (defect / class floor)
+   65    2.452565     0.000000   -0.000000   0.000
+   32    2.344462     0.029316   0.137419   0.013
+   16    2.005876     0.099476   0.546165   0.050
+    8    1.374608     0.148670   1.226628   0.108
+    4    0.841440     0.106280   1.717406   0.126
+    2    0.300245     0.037758   2.190078   0.126
+    1    0.000000     0.000000   2.452565   0.000
+
+per level, coarse → fine (F_fine = F_coarse − rel.defect + rel.split; ΔS = split increment given the fine history; ln(fine/coarse) is only a reference scale):
+  coarse → fine   F_coarse   F_fine     rel.defect  rel.split   ΔS         ln ratio   check
+    1 →   2      0.000000   0.300245   0.000000    0.300245    0.262487   0.6931     0.0e+00
+    2 →   4      0.300245   0.841440   0.001808    0.543003    0.472672   0.6931     1.7e-15
+    4 →   8      0.841440   1.374608   0.035036    0.568204    0.490778   0.6931     1.8e-15
+    8 →  16      1.374608   2.005876   0.085525    0.716793    0.680462   0.6931     5.3e-15
+   16 →  32      2.005876   2.344462   0.076084    0.414670    0.408746   0.6931     1.2e-14
+   32 →  65      2.344462   2.452565   0.029316    0.137419    0.137419   0.7087     8.4e-15
+
+the classes:
+  32:  BCHJKLMPQVXZ  |  3DFGSY  |  !,.;?  |  AEOU  |  bjpq  |  $l  |  &I  |  '-  |  NR  |  TW  |  rx  |  vz  |  \n  |     |  :  |  a  |  c  |  d  |  e  |  f  |  g  |  h  |  i  |  k  |  m  |  n  |  o  |  s  |  t  |  u  |  w  |  y
+  16:  3BCDFGHJKLMNPQRSTVWXYZ  |  $klrvxz  |  bfjmpqw  |  !,.:;?  |  &AEIOU  |  '-ai  |  cgt  |  dy  |  \n  |     |  e  |  h  |  n  |  o  |  s  |  u
+  8:  &3ABCDEFGHIJKLMNOPQRSTUVWXYZ  |  bcdfgjmpqstwy  |  $klnrvxz  |  '-aeiou  |  !,.:;?  |  \n  |     |  h
+  4:  \n&3ABCDEFGHIJKLMNOPQRSTUVWXYZ  |  $bcdfghjklmnpqrstvwxyz  |   '-aeiou  |  !,.:;?
+  2:  \n!&,.3:;?ABCDEFGHIJKLMNOPQRSTUVWXYZ  |   $'-abcdefghijklmnopqrstuvwxyz

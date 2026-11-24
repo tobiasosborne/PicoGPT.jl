@@ -115,9 +115,12 @@ end
 
 # 3. staging: continue the T=8 model at T=32 and count tokens
 if get(ENV, "STAGE", "1") == "1"
-    θ = copy(models[8]); lg = Tuple{Int,Float64}[]
+    # CONTROL=1: the same continuation (fresh AdamW, warm-up) but from the scratch T=32 model
+    SRC = haskey(ENV, "CONTROL") ? 32 : 8
+    println("\ncontinuation at T=32 starts from the T=$SRC model")
+    θ = copy(models[SRC]); lg = Tuple{Int,Float64}[]
     train!(θ, AdamW(θ), data, 32, STEPS, MersenneTwister(99 + SEED); every = 100,
-           evalf = θ -> sum(excess(θ)) / Tmax, log = lg, work0 = STEPS * 32 * 8)
+           evalf = θ -> sum(excess(θ)) / Tmax, log = lg, work0 = (SRC == 8 ? STEPS : S32) * 32 * SRC)
     println("\nmean excess at T=32 against tokens processed (thousands)")
     println("scratch32: ", join(["$(w ÷ 1000)k:$(round(e, digits = 3))" for (w, e) in logs[32][1:3:end]], "  "))
     println("staged 8→32 (work includes the T=8 stage): ", join(["$(w ÷ 1000)k:$(round(e, digits = 3))" for (w, e) in lg[1:3:end]], "  "))

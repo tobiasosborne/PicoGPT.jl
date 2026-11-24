@@ -75,7 +75,23 @@ Seed 0, mean excess over the 32 positions:
 Staged reaches excess ≤ 0.02 after 1,740k tokens in total (512k at T=8 + 1,228k at T=32).
 Scratch T=32 is still at 0.72 after 2,048k: it has the lag-3 rule and not the lag-12 rule.
 
-SEED1_PLACEHOLDER
+Seed 1 (`output_seed1.txt`), scratch T=32 given 5,000 steps: the same picture. T=8 model run
+long: excess 0.009 / 0.416 / 1.580 / 2.169 on t = 1..8 / 9..11 / 12..16 / 17..32; sliding
+window −0.026 / 1.026 / 1.035 beyond 8.
+
+| tokens (thousands) | 1024 | 1536 | 1843 | 2560 | 3788 | 5017 |
+|---|---|---|---|---|---|---|
+| scratch T=32 | 0.839 | – | 0.71 | 0.692 | 0.684 | **0.684** |
+| staged (512k at T=8, then T=32) | – | 0.021 | 0.001 | – | – | – |
+
+Staged: excess ≤ 0.02 after 1,638k tokens in total. Scratch T=32 sits on a flat plateau at
+0.68 (= 21/32 × 1.04, the whole lag-12 information) from 2.3M to 5.0M tokens; it never left
+it in the budget, so no finite cost ratio can be given: at least 3× on this seed, and growing.
+
+Control (`output_control.txt`, `CONTROL=1 SEED=1 SKIP16=1`): the staged run restarts AdamW and
+its warm-up, so the scratch T=32 model was continued in the same way (fresh AdamW, 2,000 more
+steps). It stays on the plateau (0.681; t ≥ 12 excess 1.03). The gain is not an optimiser
+restart. In that file the line labelled "staged" is this control.
 
 ## Verified, and how
 
@@ -86,11 +102,12 @@ SEED1_PLACEHOLDER
 
 ## Open
 
-- Two seeds, one world, one model size. The staging gain shows as a plateau that scratch has
-  not left; how long scratch needs, and whether the gain survives a learning-rate sweep, is
-  not established here.
-- Why staging helps: not analysed. A guess: once the lag-3 head is sharp, the remaining loss
-  gradient is all about b; from scratch both must form at once. Untested.
+- Two seeds, one world, one model size, one learning rate. Scratch is stuck on a plateau, not
+  slow; whether a larger model, a learning-rate sweep or a schedule frees it is not established,
+  and that decides whether the gain is general or a property of this small model.
+- Why staging helps: not analysed. Note the T=8 parent arrives at T=32 with a *large* loss at
+  the new positions (2.2 nats excess), unlike the scratch model on its plateau; the strong
+  gradient at new positions, not the inherited skill, may be what finds lag 12. Untested.
 - Work is counted in tokens. Attention costs T² per window, which favours the T=8 stage further.
 - A relative or rotary position code would probably make the lag-3 rule inherited at new
   positions (the failure at t = 9..11 is about absolute positions). Not tried.

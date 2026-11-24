@@ -106,18 +106,18 @@ in thousands. 8 seeds; every run reached the target. Median [min, max].
 
 | Arm | parent updates | child updates | work / 1000 | wall, ms |
 |---|---|---|---|---|
-| scratch, D = 8, PicoGPT's code (the specimen) | – | 124 [109, 135] | 124 [110, 136] | 106 |
-| scratch, D = 8, duplicated code | – | 121 [102, 142] | 122 [103, 143] | 72 |
-| parent D = 4 alone, never lifted | 386 | – | 122 [100, 177] | 255 |
-| grown, asymmetric readers | 50 | 109 [98, 179] | 126 [114, 196] | 133 |
-| grown, asymmetric readers | 100 | 118 [71, 255] | 150 [103, 288] | 150 |
-| grown, asymmetric readers | 200 | 128 [87, 162] | 192 [151, 226] | 236 |
-| grown, plain duplication | 50 | 166 [117, 263] | 183 [134, 281] | 163 |
-| grown, plain duplication | 100 | 174 [127, 287] | 206 [159, 321] | 208 |
-| grown, plain duplication | 200 | 164 [125, 242] | 229 [189, 307] | 270 |
-| grown, parent frozen, only the 692 new directions trained | 50 | 278 [162, 346] | 295 (208 counting 692) | 3131 |
-| grown, parent frozen | 100 | 222 [147, 328] | 255 (185) | 2476 |
-| grown, parent frozen | 200 | 124 [80, 267] | 188 (149) | 1870 |
+| scratch, D = 8, PicoGPT's code (the specimen) | – | 124 [109, 135] | 124 [110, 136] | 79 |
+| scratch, D = 8, duplicated code | – | 121 [102, 142] | 122 [103, 143] | 58 |
+| parent D = 4 alone, never lifted | 386 | – | 122 [100, 177] | 167 |
+| grown, asymmetric readers | 50 | 109 [98, 179] | 126 [114, 196] | 104 |
+| grown, asymmetric readers | 100 | 118 [71, 255] | 150 [103, 288] | 134 |
+| grown, asymmetric readers | 200 | 128 [87, 162] | 192 [151, 226] | 214 |
+| grown, plain duplication | 50 | 166 [117, 263] | 183 [134, 281] | 128 |
+| grown, plain duplication | 100 | 174 [127, 287] | 206 [159, 321] | 224 |
+| grown, plain duplication | 200 | 164 [125, 242] | 229 [189, 307] | 265 |
+| grown, parent frozen, only the 692 new directions trained | 50 | 278 [162, 346] | 295 (208 counting 692) | 650 |
+| grown, parent frozen | 100 | 222 [147, 328] | 255 (185) | 390 |
+| grown, parent frozen | 200 | 124 [80, 267] | 188 (149) | 268 |
 
 What this says:
 
@@ -132,8 +132,10 @@ What this says:
   orthogonal complement of the lift's image), the target was still reached in 24 of 24 runs, in 80
   to 346 child updates: slower than training everything, except after the longest parent run.
   Its wall time is an artefact of multiplying by a dense 1007 × 692 basis at every update.
-- Wall time follows the number of updates, not the parameter count (an update costs about 0.6 to
-  1 ms at either width), so by the clock every grown arm loses to scratch.
+- Wall time follows the number of updates, not the parameter count (an update costs about 0.4 to
+  0.7 ms at either width), so by the clock every grown arm loses to scratch. The update counts
+  reproduce exactly between runs; the wall times moved by up to 1.5 times between two runs (more
+  for the frozen arm, when the machine was shared), so read them as rough.
 - The duplicated positional code trains as fast as PicoGPT's own (121 against 124 updates).
 
 ### The same from a parent that cannot reach the floor, D 2 → 8
@@ -161,7 +163,7 @@ in all 8 seeds after 3000 updates. Same protocol, 8 seeds.
 Here the lift is doing real work (the child reaches a floor its parent cannot), but it is still
 no cheaper: the child alone needs more updates after the lift (142 to 148) than a fresh model needs
 in total (124 to 127). One plain-duplication run stalled at 0.0754 for 3000 updates. Freezing the
-parent's 113 directions costs about 1.4 times the child updates of training everything.
+parent's 113 directions costs 1.3 to 1.6 times the child updates of training everything.
 
 ## 3. The symmetric and the new directions
 

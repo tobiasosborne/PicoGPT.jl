@@ -1,15 +1,14 @@
-floor 0.058527, target 0.059112; η = 0.02, 8 seeds, cap 3000 updates per phase (1000 with the parent frozen); p = 315 → 1007
+parent D = 4: floor 0.058527, target 0.059112; η = 0.02, 8 seeds, cap 3000 updates per phase (1000 with the parent frozen); p = 315 → 1007
 arm                            n1  reached  parent updates    child updates     work/1000 med [min,max] wall ms (med)  birth gap
-scratch D8, PicoGPT code        0    8/8    0                 124 [109, 135]       124 [ 110,   136]        106        0e+00
-scratch D8, duplicated code     0    8/8    0                 121 [102, 142]       122 [ 103,   143]         72        0e+00
-parent D4 alone                 0    8/8    386               0 [0, 0]             122 [ 100,   177]        255        0e+00
-grown, plain duplication       50    8/8    50                166 [117, 263]       183 [ 134,   281]        163        2e-16
-grown, asymmetric readers      50    8/8    50                109 [98, 179]        126 [ 114,   196]        133        2e-16
-grown, parent frozen           50    8/8    50                278 [162, 346]       295 [ 179,   364]       3131        2e-16
-grown, plain duplication      100    8/8    100               174 [127, 287]       206 [ 159,   321]        208        2e-16
-grown, asymmetric readers     100    8/8    100               118 [71, 255]        150 [ 103,   288]        150        2e-16
-grown, parent frozen          100    8/8    100               222 [147, 328]       255 [ 180,   362]       2476        2e-16
-grown, plain duplication      200    8/8    200               164 [125, 242]       229 [ 189,   307]        270        4e-16
-grown, asymmetric readers     200    8/8    200               128 [87, 162]        192 [ 151,   226]        236        8e-17
-grown, parent frozen          200    8/8    200               124 [80, 267]        188 [ 144,   332]       1870        8e-17
-exit 0
+scratch D8, PicoGPT code        0    8/8    0                 124 [109, 135]       124 [ 110,   136]         79        0e+00
+scratch D8, duplicated code     0    8/8    0                 121 [102, 142]       122 [ 103,   143]         58        0e+00
+parent alone                    0    8/8    386               0 [0, 0]             122 [ 100,   177]        167        0e+00
+grown, plain duplication       50    8/8    50                166 [117, 263]       183 [ 134,   281]        128        2e-16
+grown, asymmetric readers      50    8/8    50                109 [98, 179]        126 [ 114,   196]        104        2e-16
+grown, parent frozen           50    8/8    50                278 [162, 346]       295 [ 179,   364]        650        2e-16
+grown, plain duplication      100    8/8    100               174 [127, 287]       206 [ 159,   321]        224        2e-16
+grown, asymmetric readers     100    8/8    100               118 [71, 255]        150 [ 103,   288]        134        2e-16
+grown, parent frozen          100    8/8    100               222 [147, 328]       255 [ 180,   362]        390        2e-16
+grown, plain duplication      200    8/8    200               164 [125, 242]       229 [ 189,   307]        265        4e-16
+grown, asymmetric readers     200    8/8    200               128 [87, 162]        192 [ 151,   226]        214        8e-17
+grown, parent frozen          200    8/8    200               124 [80, 267]        188 [ 144,   332]        268        8e-17

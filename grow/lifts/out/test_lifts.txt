@@ -1,0 +1,33 @@
+finite differences: nll 1.7e-08, mse 3.4e-09 (relative)
+width ×2, heads same, asym 0.0  (p 559 → 1335)             max |Δlogit| = 9.44e-16
+width ×2, heads same, asym 1.0  (p 559 → 1335)             max |Δlogit| = 7.77e-16
+width ×2, heads more, asym 0.0  (p 559 → 1335)             max |Δlogit| = 8.88e-16
+width ×2, heads more, asym 1.0  (p 559 → 1335)             max |Δlogit| = 1.33e-15
+width ×2, heads fresh, asym 0.0  (p 559 → 1335)            max |Δlogit| = 9.99e-16
+width ×2, heads fresh, asym 1.0  (p 559 → 1335)            max |Δlogit| = 7.77e-16
+width ×3, heads same, asym 0.0  (p 559 → 2367)             max |Δlogit| = 2.11e-15
+width ×3, heads same, asym 1.0  (p 559 → 2367)             max |Δlogit| = 2.39e-15
+width ×3, heads more, asym 0.0  (p 559 → 2367)             max |Δlogit| = 1.22e-15
+width ×3, heads more, asym 1.0  (p 559 → 2367)             max |Δlogit| = 1.22e-15
+width ×3, heads fresh, asym 0.0  (p 559 → 2367)            max |Δlogit| = 1.33e-15
+width ×3, heads fresh, asym 1.0  (p 559 → 2367)            max |Δlogit| = 1.67e-15
+  … with PicoGPT's positions(2D, T) instead of U·P         max |Δlogit| = 1.45e+00
+  … without the k^(−1/2) in the scores                     max |Δlogit| = 2.67e-01
+  … zero-padding the embedding instead of duplicating      max |Δlogit| = 9.74e-01
+heads 2 → 4 at D = 4, generic parent (not exact)           max |Δlogit| = 9.50e-01
+   discarded fraction of each score form: 0.266 0.373 0.292 0.557
+heads 2 → 4 at D = 4, rank-1 score forms                   max |Δlogit| = 9.99e-16
+MLP 16 → 32, fresh                                         max |Δlogit| = 0.00e+00
+MLP 16 → 32, dup                                           max |Δlogit| = 4.44e-16
+MLP 16 → 32, dead                                          max |Δlogit| = 0.00e+00
+depth 2 → 3, new block at 1                                max |Δlogit| = 0.00e+00
+depth 2 → 3, new block at 2                                max |Δlogit| = 0.00e+00
+depth 2 → 3, new block at 3                                max |Δlogit| = 0.00e+00
+context 8 → 16, sequences of length 8                      max |Δlogit| = 0.00e+00
+context 8 → 16, first 8 positions of length-16 sequences   max |Δlogit| = 0.00e+00
+vocabulary 7 → 9, token 3 split in three: z′ − (z∘π + log q) max |Δlogit| = 4.44e-16
+   coarse-grained probabilities Σ_b p′ − p                 max |Δlogit| = 1.67e-16
+   loss′ − (parent's loss + mean −log q)                   max |Δlogit| = 1.67e-16
+all five composed (p 559 → 2768)                           max |Δlogit| = 8.33e-16
+Test Summary: | Pass  Total     Time
+lifts         |   34     34  1m50.6s

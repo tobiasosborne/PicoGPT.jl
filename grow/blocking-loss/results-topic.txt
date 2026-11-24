@@ -1,0 +1,37 @@
+checks: cheap replacement vs score averaging 3.2e-16 | copy vs PicoGPT loss 0.0e+00, gradient 0.0e+00 | blocked gradient vs finite differences (rel) 2.2e-08
+world: topic
+model V=16 D=32 H=4 L=2 T=32 F=64, 18192 parameters; trained 60 s on 54000 tokens; held out 6000
+baseline held-out loss: all positions 1.9478, positions 17-32 1.9166
+baseline loss by position (= a truly shorter context of that length):
+  t=1: 2.343  t=2: 2.097  t=3: 2.073  t=4: 1.984  t=6: 1.957  t=8: 1.968  t=12: 1.871  t=16: 1.914  t=24: 1.912  t=32: 1.863  
+
+held-out loss at positions 17-32 (full attention 1.9166). 'sources' = mean number of sources per query there (full: 24.5).
+b   r    sources | blk-contig  drop-same drop-match
+2   2      13.50 |     1.9285     2.2149     1.9212
+4   2       8.75 |     1.9393     2.1356     1.9447
+8   2       7.88 |     1.9412     2.0492     1.9671
+2   4      14.50 |     1.9259     2.0518     1.9195
+4   4      10.25 |     1.9318     2.0134     1.9309
+8   4       9.62 |     1.9321     1.9777     1.9404
+
+paired difference blk-contig − drop-match over 597 held-out windows (mean ± standard error; windows overlap, so the error is optimistic):
+  b=2 r=2: +0.0073 ± 0.0021   b=4 r=2: -0.0055 ± 0.0028   b=8 r=2: -0.0259 ± 0.0031   b=2 r=4: +0.0064 ± 0.0016   b=4 r=4: +0.0010 ± 0.0019   b=8 r=4: -0.0082 ± 0.0021   
+
+plain window of the m most recent sources in every layer:
+  m=1: 2.5207  m=2: 2.2933  m=4: 2.0790  m=8: 1.9458  m=12: 1.9212  m=16: 1.9167  m=24: 1.9164  
+
+fine-tuning 250 steps (η = 1e-3) from the trained model, with the modified attention in place; loss at positions 17-32:
+  control, full attention, same extra steps: 1.9176
+b   r    sources | block before  block after |  drop before   drop after
+4   4      10.25 |       1.9318       1.9220 |       1.9309       1.9224
+8   2       7.88 |       1.9412       1.9240 |       1.9671       1.9377
+
+blocks chosen by smallest spread (Ward), same number of sources per query as the contiguous blocks:
+b   r    sources | blk-contig   blk-keys blk-key+val
+2   2      13.50 |     1.9285     1.9167     1.9166
+4   2       8.75 |     1.9393     1.9195     1.9190
+8   2       7.88 |     1.9412     1.9225     1.9218
+2   4      14.50 |     1.9259     1.9168     1.9169
+4   4      10.25 |     1.9318     1.9187     1.9192
+8   4       9.62 |     1.9321     1.9207     1.9207
+total 144 s

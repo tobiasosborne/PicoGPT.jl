@@ -193,11 +193,28 @@ end
 
 # ---------------------------------------------------------------- data, training, evaluation
 const HERE = @__DIR__
-text = read(joinpath(HERE, "corpus.txt"), String)     # first 60,000 bytes of Tiny Shakespeare
-abc = alphabet(text); data = encode(collect(text), abc)
-ntrain = 54_000
-train, held = data[1:ntrain], data[ntrain+1:end]
-c = Config(; V = length(abc), D = 32, H = 4, L = 2, T = 32, F = 64)
+const WORLD = get(ENV, "WORLD", "shakespeare")
+if WORLD == "topic"
+    # A world where evidence is spread over the whole context: the stream is cut into
+    # segments of 96 tokens, each drawn i.i.d. from one of 8 hidden unigram distributions.
+    # The best predictor averages over everything it has seen.
+    wrng = Xoshiro(11); nV = 16
+    dists = [(p = exp.(1.5 .* randn(wrng, nV)); cumsum(p ./ sum(p))) for _ in 1:8]
+    function stream(n)
+        s = Int[]
+        while length(s) < n
+            cdf = dists[rand(wrng, 1:8)]
+            for _ in 1:96; push!(s, min(searchsortedfirst(cdf, rand(wrng)), nV)); end
+        end
+        s[1:n]
+    end
+    train, held = stream(54_000), stream(6_000)
+else
+    text = read(joinpath(HERE, "corpus.txt"), String)     # first 60,000 bytes of Tiny Shakespeare
+    abc = alphabet(text); data = encode(collect(text), abc); nV = length(abc)
+    train, held = data[1:54_000], data[54_001:end]
+end
+c = Config(; V = nV, D = 32, H = 4, L = 2, T = 32, F = 64)
 T = c.T
 
 function evaluate(θ, labeler; stride = 10)
@@ -214,6 +231,19 @@ function evaluate(θ, labeler; stride = 10)
     nll ./ n                                           # held-out loss by position
 end
 
+"Per-window loss at positions 17-32, for paired comparisons."
+function evaluate_windows(θ, labeler; stride = 10)
+    per = Float64[]
+    for J in Iterators.partition(1:stride:length(held)-T, 128)
+        x, y = windows(held, T, J)
+        Z, _ = bgpt(θ, x, c, labeler)
+        for b in 1:length(J)
+            push!(per, mean(logsumexp(view(Z, :, (b-1)*T + t)) - Z[y[t, b], (b-1)*T + t] for t in 17:T))
+        end
+    end
+    per
+end
+
 function fit!(θ, labeler; steps, η, seed, warmup = 50)
     rng = Xoshiro(seed); opt = AdamW(θ; λ = decay(c, 0.01))
     for t in 1:steps
@@ -225,7 +255,7 @@ function fit!(θ, labeler; steps, η, seed, warmup = 50)
 end
 
 late(v) = mean(v[17:end])
-out = open(joinpath(HERE, "results.txt"), "w")
+out = open(joinpath(HERE, WORLD == "shakespeare" ? "results.txt" : "results-$WORLD.txt"), "w")
 say(fmt, args...) = (s = Printf.format(Printf.Format(fmt), args...); print(s); print(out, s); flush(out); flush(stdout))
 
 # ---------------------------------------------------------------- checks
@@ -265,7 +295,8 @@ t0 = time()
 θ = init(c; rng = Xoshiro(1))
 fit!(θ, static(identity_labels(T)); steps = parse(Int, get(ENV, "STEPS", "1500")), η = 3e-3, seed = 2, warmup = 100)
 base = evaluate(θ, static(identity_labels(T)))
-say("model V=%d D=%d H=%d L=%d T=%d F=%d, %d parameters; trained %.0f s on %d characters; held out %d\n",
+say("world: %s\n", WORLD)
+say("model V=%d D=%d H=%d L=%d T=%d F=%d, %d parameters; trained %.0f s on %d tokens; held out %d\n",
     c.V, c.D, c.H, c.L, c.T, c.F, nparams(c), time() - t0, length(train), length(held))
 say("baseline held-out loss: all positions %.4f, positions 17-32 %.4f\n", mean(base), late(base))
 say("baseline loss by position (= a truly shorter context of that length):\n  ")
@@ -286,6 +317,13 @@ for (b, r) in grid
     table[(b, r)] = res
     say("%-3d %-3d %8.2f | %10.4f %10.4f %10.4f\n", b, r, srcs(Gc), res...)
 end
+say("\npaired difference blk-contig − drop-match over %d held-out windows (mean ± standard error; windows overlap, so the error is optimistic):\n  ", length(1:10:length(held)-T))
+for (b, r) in grid
+    Gc = contiguous(T, b, r)
+    δ = evaluate_windows(θ, static(Gc)) .- evaluate_windows(θ, static(drop_matched(Gc)))
+    say("b=%d r=%d: %+.4f ± %.4f   ", b, r, mean(δ), std(δ) / √length(δ))
+end
+say("\n")
 say("\nplain window of the m most recent sources in every layer:\n  ")
 for m in (1, 2, 4, 8, 12, 16, 24); say("m=%d: %.4f  ", m, late(evaluate(θ, static(window(T, m))))); end
 say("\n\n")

@@ -9,7 +9,7 @@ abc = alphabet(corpus)
 x, y = windows(encode(corpus, abc), 8)
 const ℓfloor = (2log(2) + 3log(3)) / 80
 const target = 1.01ℓfloor
-const η, cap, seeds = 2e-2, 3000, 1:8
+const η, cap, capfrozen = 2e-2, 3000, 1000
 c4 = Config(V = 7, D = 4, H = 2, L = 1, T = 8, F = 16)      # 315 parameters
 c8 = Config(V = 7, D = 8, H = 2, L = 1, T = 8, F = 32)      # 1007: the specimen's shape
 net4, net8 = Net(c4), Net(c8)
@@ -25,7 +25,7 @@ rows = []
 run!(arm, n1, seed, s1, s2, wall, last, gap = 0.0) =
     push!(rows, (; arm, n1, seed, s1, s2, work = s1 * p4 + s2 * p8, wall, reached = last ≤ target, last, gap))
 
-function experiment()
+function experiment(seeds; cap = cap, capfrozen = capfrozen, ns = (50, 100, 200))
     for seed in seeds
         # full size from scratch: PicoGPT's code, and the duplicated code the child must use
         for (arm, net) in (("scratch D8, PicoGPT code", net8), ("scratch D8, duplicated code", net8d))
@@ -38,7 +38,7 @@ function experiment()
         wall = @elapsed l = train!(θ, net4, x, y; steps = cap, η, target)
         run!("parent D4 alone", 0, seed, length(l) - 1, 0, wall, l[end])
         # train the parent n1 steps, lift, continue
-        for n1 in (25, 50, 100, 200)
+        for n1 in ns
             θ4 = init(c4; rng = Xoshiro(seed))
             w1 = @elapsed l1 = train!(θ4, net4, x, y; steps = n1, η, target)
             s1 = length(l1) - 1
@@ -46,15 +46,16 @@ function experiment()
                                        ("grown, asymmetric readers", 1.0, nothing),
                                        ("grown, parent frozen", 1.0, N))
                 θ′, net′ = grow(θ4, net4; asym, rng = Xoshiro(1000 + seed))
-                w2 = @elapsed l2 = train!(θ′, net′, x, y; steps = cap, η, target, basis)
+                w2 = @elapsed l2 = train!(θ′, net′, x, y; steps = basis === nothing ? cap : capfrozen, η, target, basis)
                 run!(arm, n1, seed, s1, length(l2) - 1, w1 + w2, l2[end], abs(l2[1] - l1[end]))
             end
         end
     end
 end
 
-experiment(); empty!(rows)          # once to compile, then for the record
-experiment()
+experiment(1:1; cap = 5, capfrozen = 5, ns = (3,)); empty!(rows)     # once to compile, then for the record
+const seeds = 1:8
+experiment(seeds)
 
 open(joinpath(@__DIR__, "out", "growth.tsv"), "w") do io
     println(io, "arm\tn1\tseed\tsteps_parent\tsteps_child\twork\twall_s\treached\tfinal_loss\tbirth_gap")
@@ -63,7 +64,7 @@ open(joinpath(@__DIR__, "out", "growth.tsv"), "w") do io
     end
 end
 
-@printf("floor %.6f, target %.6f; η = %g, %d seeds, cap %d updates per phase; p = %d → %d\n", ℓfloor, target, η, length(seeds), cap, p4, p8)
+@printf("floor %.6f, target %.6f; η = %g, %d seeds, cap %d updates per phase (%d with the parent frozen); p = %d → %d\n", ℓfloor, target, η, length(seeds), cap, capfrozen, p4, p8)
 @printf("%-28s %4s  %7s  %-17s %-17s %-22s %-14s %s\n", "arm", "n1", "reached", "parent updates", "child updates", "work/1000 med [min,max]", "wall ms (med)", "birth gap")
 for key in unique((r.arm, r.n1) for r in rows)
     rs = [r for r in rows if (r.arm, r.n1) == key]

@@ -124,3 +124,18 @@ used.
 | Longer context | `grow/context/` | prototype | Train at T=8, extend to 16 and 32; what is inherited, what must be learned. |
 | A world with actions | `grow/doors/` | prototype | The directory world: `Ada → red door`, refined to `Ada → oak`, `oak → red door`. Does a child with one more pass reuse the parent's lookup? |
 | Prior art | `grow/notes/prior-art.md` | reading | Verify the citations above and find what already exists on each axis. |
+
+## Status (24 Nov 2026, 15:20 UTC)
+
+All nine ideas are taken; each has its own branch `grow/<name>` on GitHub (`grow/lifts`,
+`grow/tower`, `grow/truncate`, `grow/notes-definition`, `grow/notes-blocking`, `grow/notes-dmrg`,
+`grow/context`, `grow/doors`, `grow/notes-prior-art`). A branch that is missing has not pushed a
+result yet. If you arrive here in a new session, read the finished results first (`git fetch
+origin`, then `git show origin/grow/<name>:grow/...`) and propose a follow-up in a new folder
+`grow/<new-idea>/` instead of repeating one.
+
+Finished so far: **attention under blocking** (`origin/grow/notes-blocking`, verdict *needs
+more*). A block of positions is replaced exactly by the pair (Σ e^{score}, Σ e^{score}·value);
+merges are associative, also at the causal boundary. One ordinary key per block is exact only
+when the projected keys coincide, and then needs a bias log |B|. On the trained specimen the
+low-order expansion is useless (within-block score range 12.9).

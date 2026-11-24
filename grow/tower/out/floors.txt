@@ -1,0 +1,17 @@
+fine text    "to be or not to be"
+coarse text  "CVSCVSVCSCVCSCVSCV"   (V vowel, C consonant, S space)
+
+H(a | h)      fine floor                     (2 ln 2 + 3 ln 3)/80         = 0.058526640339 nats   (77 contexts, 5 of 80 predictions undetermined)
+H(v | πh)     coarse floor, coarse history   (8 ln 2 + 6 ln 3)/80         = 0.151710639706 nats   (67 contexts, 19 of 80 predictions undetermined)
+H(v | h)      coarse floor, fine history     (3 ln 3)/80                  = 0.041197960825 nats   (77 contexts, 5 of 80 predictions undetermined)
+H(a | v, h)   refinement, fine history       (2 ln 2)/80                  = 0.017328679514 nats   (79 contexts, 2 of 80 predictions undetermined)
+H(a | v, πh)  refinement, coarse history     (2 ln 2 + 3 ln 3)/80         = 0.058526640339 nats   (74 contexts, 7 of 80 predictions undetermined)
+H(a | πh)     fine text, coarse history      (10 ln 2 + 9 ln 3)/80        = 0.210237280045 nats   (67 contexts, 21 of 80 predictions undetermined)
+
+fine floor − (2 ln 2 + 3 ln 3)/80           = +0.0e+00
+chain rule: H(v|h) + H(a|v,h) − H(a|h)       = +0.0e+00   (integer coefficients equal: true)
+chain rule: H(v|πh) + H(a|v,πh) − H(a|πh)    = +0.0e+00   (integer coefficients equal: true)
+
+what the coarse history hides: H(v|πh) − H(v|h) = I(v; h | πh) = 0.110512678881 nats
+floor of a frozen coarse parent with a fine refinement: H(v|πh) + H(a|v,h) = 0.169039319220 nats
+  that is 2.89 × the fine floor 0.058526640339

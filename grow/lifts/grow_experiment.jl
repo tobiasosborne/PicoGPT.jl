@@ -1,5 +1,5 @@
 # Grow the specimen D 4 → 8 (and F 16 → 32) against training at full size from scratch.
-#     julia --project=. -t 1 grow/lifts/grow_experiment.jl
+#     julia --project=. -t 1 grow/lifts/grow_experiment.jl [D0]      (parent width D0 = 4 by default, or 2)
 # Work = Σ over updates of the number of parameters of the model being updated.
 include(joinpath(@__DIR__, "Lifts.jl"))
 using .Lifts, PicoGPT, Random, LinearAlgebra, Printf, Statistics
@@ -10,13 +10,15 @@ x, y = windows(encode(corpus, abc), 8)
 const ℓfloor = (2log(2) + 3log(3)) / 80
 const target = 1.01ℓfloor
 const η, cap, capfrozen = 2e-2, 3000, 1000
-c4 = Config(V = 7, D = 4, H = 2, L = 1, T = 8, F = 16)      # 315 parameters
+const D0 = isempty(ARGS) ? 4 : parse(Int, ARGS[1])
+const k = 8 ÷ D0
+c4 = Config(V = 7, D = D0, H = 2, L = 1, T = 8, F = 4D0)    # the parent: 315 parameters at D0 = 4
 c8 = Config(V = 7, D = 8, H = 2, L = 1, T = 8, F = 32)      # 1007: the specimen's shape
 net4, net8 = Net(c4), Net(c8)
-net8d = Net(c8, dup(4, 2))                                   # the specimen's shape with the duplicated code
+net8d = Net(c8, dup(D0, k))                                   # the specimen's shape with the duplicated code
 p4, p8 = nparams(c4), nparams(c8)
 
-grow(θ, net; asym, rng) = lift_mlp(lift_width(θ, net; asym, rng)...; F′ = 32, rng)
+grow(θ, net; asym, rng) = lift_mlp(lift_width(θ, net; k, asym, rng)...; F′ = 32, rng)
 J, _ = tangent(θ -> grow(θ, net4; asym = 0.0, rng = Xoshiro(0))[1], p4)   # the parent's directions
 N = nullspace(J')                                            # the new directions: 1007 − 315 = 692
 @assert size(N, 2) == p8 - p4
@@ -36,7 +38,7 @@ function experiment(seeds; cap = cap, capfrozen = capfrozen, ns = (50, 100, 200)
         # the parent alone, never lifted
         θ = init(c4; rng = Xoshiro(seed))
         wall = @elapsed l = train!(θ, net4, x, y; steps = cap, η, target)
-        run!("parent D4 alone", 0, seed, length(l) - 1, 0, wall, l[end])
+        run!("parent alone", 0, seed, length(l) - 1, 0, wall, l[end])
         # train the parent n1 steps, lift, continue
         for n1 in ns
             θ4 = init(c4; rng = Xoshiro(seed))
@@ -57,13 +59,14 @@ experiment(1:1; cap = 5, capfrozen = 5, ns = (3,)); empty!(rows)     # once to c
 const seeds = 1:8
 experiment(seeds)
 
-open(joinpath(@__DIR__, "out", "growth.tsv"), "w") do io
+open(joinpath(@__DIR__, "out", D0 == 4 ? "growth.tsv" : "growth_D$D0.tsv"), "w") do io
     println(io, "arm\tn1\tseed\tsteps_parent\tsteps_child\twork\twall_s\treached\tfinal_loss\tbirth_gap")
     for r in rows
         @printf(io, "%s\t%d\t%d\t%d\t%d\t%d\t%.4f\t%s\t%.6f\t%.1e\n", r.arm, r.n1, r.seed, r.s1, r.s2, r.work, r.wall, r.reached, r.last, r.gap)
     end
 end
 
+@printf("parent D = %d: ", D0)
 @printf("floor %.6f, target %.6f; η = %g, %d seeds, cap %d updates per phase (%d with the parent frozen); p = %d → %d\n", ℓfloor, target, η, length(seeds), cap, capfrozen, p4, p8)
 @printf("%-28s %4s  %7s  %-17s %-17s %-22s %-14s %s\n", "arm", "n1", "reached", "parent updates", "child updates", "work/1000 med [min,max]", "wall ms (med)", "birth gap")
 for key in unique((r.arm, r.n1) for r in rows)

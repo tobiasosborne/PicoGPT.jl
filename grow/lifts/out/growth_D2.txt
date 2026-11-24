@@ -1,0 +1,14 @@
+parent D = 2: floor 0.058527, target 0.059112; η = 0.02, 8 seeds, cap 3000 updates per phase (1000 with the parent frozen); p = 113 → 1007
+arm                            n1  reached  parent updates    child updates     work/1000 med [min,max] wall ms (med)  birth gap
+scratch D8, PicoGPT code        0    8/8    0                 124 [109, 135]       124 [ 110,   136]        104        0e+00
+scratch D8, duplicated code     0    8/8    0                 127 [112, 151]       128 [ 113,   152]        108        0e+00
+parent alone                    0    0/8    3000              0 [0, 0]             339 [ 339,   339]       1658        0e+00
+grown, plain duplication       50    8/8    50                276 [224, 478]       283 [ 231,   487]        279        0e+00
+grown, asymmetric readers      50    8/8    50                148 [118, 254]       154 [ 124,   261]        172        0e+00
+grown, parent frozen           50    8/8    50                196 [182, 216]       204 [ 189,   223]       1800        0e+00
+grown, plain duplication      100    7/8    100               242 [157, 3000]      254 [ 169,  3032]        271        4e-16
+grown, asymmetric readers     100    8/8    100               142 [104, 196]       155 [ 116,   209]        194        4e-16
+grown, parent frozen          100    8/8    100               212 [172, 315]       225 [ 185,   329]       1179        4e-16
+grown, plain duplication      200    8/8    200               199 [151, 296]       223 [ 175,   321]        238        4e-16
+grown, asymmetric readers     200    8/8    200               145 [112, 230]       169 [ 135,   254]        196        4e-16
+grown, parent frozen          200    8/8    200               232 [160, 307]       257 [ 184,   332]       1174        4e-16

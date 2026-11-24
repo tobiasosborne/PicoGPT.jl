@@ -29,5 +29,5 @@ vocabulary 7 → 9, token 3 split in three: z′ − (z∘π + log q) max |Δlog
    coarse-grained probabilities Σ_b p′ − p                 max |Δlogit| = 1.67e-16
    loss′ − (parent's loss + mean −log q)                   max |Δlogit| = 1.67e-16
 all five composed (p 559 → 2768)                           max |Δlogit| = 8.33e-16
-Test Summary: | Pass  Total     Time
-lifts         |   34     34  1m50.6s
+Test Summary: | Pass  Total   Time
+lifts         |   34     34  42.1s

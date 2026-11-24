@@ -9,7 +9,8 @@ and the number of heads at fixed D, which is a rank restriction and not a growth
 positional code duplicated along with the coordinates, the width lift is exact. On the specimen,
 growing D 4 → 8 did **not** reduce the work to reach within 1 % of the floor: the best grown arm
 equals training at full size from scratch (126 against 124 thousand parameter-updates), the others
-cost 1.2 to 2.4 times as much, and wall time is worse in every grown arm. Plain duplication is a
+cost 1.2 to 2.4 times as much, and wall time is worse in every grown arm. From a D = 2 parent,
+which cannot reach the floor by itself, every grown arm costs 1.2 times scratch or more. Plain duplication is a
 symmetry trap: the copies stay equal to the last bit for as long as we trained.
 
 ## Files
@@ -17,8 +18,9 @@ symmetry trap: the copies stay equal to the last bit for as long as we trained.
 | File | What it is | Run time |
 |---|---|---|
 | `Lifts.jl` | the lifts, the model with its positional code as data, a trainer | – |
-| `test_lifts.jl` → `out/test_lifts.txt` | 34 tests: exactness of each lift, finite-difference checks | 1 min 50 s (mostly compiling) |
-| `grow_experiment.jl` → `out/growth.txt`, `out/growth.tsv` | grown against scratch, 8 seeds | about 2 min |
+| `test_lifts.jl` → `out/test_lifts.txt` | 34 tests: exactness of each lift, finite-difference checks | 1 to 2 min (mostly compiling) |
+| `grow_experiment.jl` → `out/growth.txt`, `out/growth.tsv` | grown against scratch from a D = 4 parent, 8 seeds | about 2 min |
+| `grow_experiment.jl 2` → `out/growth_D2.txt`, `out/growth_D2.tsv` | the same from a D = 2 parent | about 2 min |
 | `symmetry.jl` → `out/symmetry.txt` | what training does to the duplicated coordinates, 6 seeds | about 1 min |
 
 Run each as `julia --project=. -t 1 grow/lifts/<file>` from the repository root.
@@ -134,6 +136,33 @@ What this says:
   1 ms at either width), so by the clock every grown arm loses to scratch.
 - The duplicated positional code trains as fast as PicoGPT's own (121 against 124 updates).
 
+### The same from a parent that cannot reach the floor, D 2 → 8
+
+Because the D = 4 parent reaches the target alone, the experiment was repeated with a parent
+that does not: D = 2, H = 2, F = 8, 113 parameters, lifted by fourfold duplication (plus 24 fresh
+MLP units) to the same child. Alone, this parent stalls at 1.37 to 1.49 nats (the floor is 0.0585)
+in all 8 seeds after 3000 updates. Same protocol, 8 seeds.
+
+| Arm | parent updates | child updates | work / 1000 | reached |
+|---|---|---|---|---|
+| scratch, D = 8, PicoGPT's code | – | 124 [109, 135] | 124 [110, 136] | 8/8 |
+| scratch, D = 8, fourfold-duplicated code | – | 127 [112, 151] | 128 [113, 152] | 8/8 |
+| parent D = 2 alone | 3000 (cap) | – | – | 0/8 |
+| grown, asymmetric readers | 50 | 148 [118, 254] | 154 [124, 261] | 8/8 |
+| grown, asymmetric readers | 100 | 142 [104, 196] | 155 [116, 209] | 8/8 |
+| grown, asymmetric readers | 200 | 145 [112, 230] | 169 [135, 254] | 8/8 |
+| grown, plain duplication | 50 | 276 [224, 478] | 283 [231, 487] | 8/8 |
+| grown, plain duplication | 100 | 242 [157, 3000] | 254 [169, 3032] | 7/8 |
+| grown, plain duplication | 200 | 199 [151, 296] | 223 [175, 321] | 8/8 |
+| grown, parent frozen | 50 | 196 [182, 216] | 204 [189, 223] | 8/8 |
+| grown, parent frozen | 100 | 212 [172, 315] | 225 [185, 329] | 8/8 |
+| grown, parent frozen | 200 | 232 [160, 307] | 257 [184, 332] | 8/8 |
+
+Here the lift is doing real work (the child reaches a floor its parent cannot), but it is still
+no cheaper: the child alone needs more updates after the lift (142 to 148) than a fresh model needs
+in total (124 to 127). One plain-duplication run stalled at 0.0754 for 3000 updates. Freezing the
+parent's 113 directions costs about 1.4 times the child updates of training everything.
+
 ## 3. The symmetric and the new directions
 
 Parent trained 100 updates, lifted, trained 400 more; medians over 6 seeds. "Stream asymmetry" is
@@ -180,14 +209,14 @@ the fraction of the stream's norm, after the block, outside the duplicated subsp
   error was not computed; 1.45 is the error of the plain duplication lift, not a minimum.
 - Not reached before the deadline: a growth experiment on any axis but width (with MLP width); a
   sweep of the step size, or of the warm-up after the lift; lifting Adam's moments instead of
-  restarting them; what the child does at positions t > T; a parent too small to reach the floor.
+  restarting them; what the child does at positions t > T; a task where the full-size model is
+  itself slow to train, which is where a head start could matter.
 - Derived but not measured: the duplicated readers W Uᵀ/k hold each parent weight as k copies of
   w/k, so the same step on every copy moves the effective weight k times as far; the lift
   multiplies the effective step size of the readers by k.
-- One trainer configuration only (η = 2e-2). The comparison could change with tuning, but the
-  control (the parent alone costs the same work as scratch) would remain.
+- One trainer configuration only (η = 2e-2). The comparison could change with tuning.
 
 **Verdict: needs more** — the lifts are exact and in hand (width needs a duplicated positional
-code and a symmetry-breaking reader), but on the specimen growing costs at least as much as
-training at full size, and the specimen cannot settle it because the small model reaches the floor
-alone.
+code and a symmetry-breaking reader), but on the specimen growing by width costs at least as much
+as training at full size (1.0 to 2.4 times), from a parent that reaches the floor and from one
+that does not; as a way to save training work it is dead at this scale, and untested at any other.

@@ -96,3 +96,22 @@ end
     @test gap > 0
     println("Frozen excess (nats): ", gap)
 end
+
+@testset "Whole-lineage work for a separable dense baseline" begin
+    q = [0.9, 0.75]
+    eta = 4log(3)
+    ce(z,r) = log1p(exp(z)) - r*z
+    slope(z,r) = 1/(1+exp(-z)) - r
+    step(z,r) = z - eta*slope(z,r)
+    h = 1e-5
+    for r in q, z in [0., 0.7, 1.4]
+        @test (ce(z+h,r)-ce(z-h,r))/(2h) ≈ slope(z,r) atol=2e-11
+    end
+    first_step = step.(zeros(2), q)
+    joint = step.(first_step, q)
+    staged = [step(first_step[1], q[1]), step(0., q[2])]
+    @test first_step[2] ≈ log(3)
+    @test first_step[1] < log(9)
+    @test staged ≈ joint
+    @test sum(ce.(staged,q)) < sum(ce.(first_step,q))
+end
